@@ -1,0 +1,395 @@
+﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
+using Rewake.Models;
+using Rewake.Services;
+
+namespace Rewake.ViewModels;
+
+/// <summary>
+/// Root view model for the main window: capture history, the loaded capture's
+/// app/folder selection, restore progress, settings toggles, and the activity log.
+/// </summary>
+public class MainViewModel : ViewModelBase
+{
+    readonly AppSettings _settings;
+    string? _loadedPath;              // snapshot file currently shown in the lists
+    DateTime _loadedWriteTime;        // its write time, to detect rewritten content
+    bool _refreshing;                 // guards selection while the sidebar rebuilds
+
+    public MainViewModel(AppSettings settings)
+    {
+        _settings = settings;
+        RestoreCommand = new RelayCommand(async _ => await RestoreAsync(), _ => !IsRestoring);
+        CaptureNowCommand = new RelayCommand(async _ => await CaptureNowAsync());
+        DeleteCaptureCommand = new RelayCommand(_ => DeleteCapture(), _ => SelectedSnapshot != null);
+        OpenDataFolderCommand = new RelayCommand(_ => OpenDataFolder());
+        ToggleThemeCommand = new RelayCommand(_ => ToggleTheme());
+        RefreshSnapshots();
+        Log("Ready. Closing the window keeps Rewake running in the system tray.");
+    }
+
+    public ObservableCollection<SnapshotItemViewModel> Snapshots { get; } = new();
+    public ObservableCollection<AppGroupViewModel> Apps { get; } = new();
+    public ObservableCollection<FolderItemViewModel> Folders { get; } = new();
+
+    IEnumerable<AppItemViewModel> AllInstances => Apps.SelectMany(g => g.Instances);
+    public ObservableCollection<string> LogEntries { get; } = new();
+
+    /// <summary>Rows of the restore overlay, one per selected window/folder.</summary>
+    public ObservableCollection<RestoreItemViewModel> RestoreProgress { get; } = new();
+
+    public RelayCommand RestoreCommand { get; }
+    public RelayCommand CaptureNowCommand { get; }
+    public RelayCommand DeleteCaptureCommand { get; }
+    public RelayCommand OpenDataFolderCommand { get; }
+    public RelayCommand ToggleThemeCommand { get; }
+
+    /// <summary>Raised when the auto-capture setting changes so the host can reconfigure its timer.</summary>
+    public event Action? AutoCaptureChanged;
+
+    SnapshotItemViewModel? _selectedSnapshot;
+    public SnapshotItemViewModel? SelectedSnapshot
+    {
+        get => _selectedSnapshot;
+        set
+        {
+            // The ListBox pushes a null selection while the list is being
+            // rebuilt — ignoring it preserves the user's checkbox choices.
+            if (_refreshing && value == null) return;
+            if (SetProperty(ref _selectedSnapshot, value) && NeedsReload(value))
+                LoadSnapshot(value);
+            DeleteCaptureCommand.RaiseCanExecuteChanged();
+        }
+    }
+
+    bool NeedsReload(SnapshotItemViewModel? item)
+    {
+        if (item?.Path != _loadedPath) return true;
+        if (item == null) return false;
+        // Same path but rewritten content (last-session.json after a reboot)
+        try { return File.GetLastWriteTime(item.Path) != _loadedWriteTime; }
+        catch { return true; }
+    }
+
+    string _header = "No capture selected";
+    public string Header { get => _header; private set => SetProperty(ref _header, value); }
+
+    string _subHeader = "";
+    public string SubHeader { get => _subHeader; private set => SetProperty(ref _subHeader, value); }
+
+    string _captureStats = "";
+    public string CaptureStats { get => _captureStats; private set => SetProperty(ref _captureStats, value); }
+
+    public string HistoryCount => Snapshots.Count.ToString();
+    public string AppCount => Apps.Count.ToString();
+    public string FolderCount => Folders.Count.ToString();
+
+    bool _isRestoring;
+    public bool IsRestoring
+    {
+        get => _isRestoring;
+        private set
+        {
+            if (SetProperty(ref _isRestoring, value)) RestoreCommand.RaiseCanExecuteChanged();
+        }
+    }
+
+    bool _isCapturing;
+    public bool IsCapturing
+    {
+        get => _isCapturing;
+        private set => SetProperty(ref _isCapturing, value);
+    }
+
+    bool _showRestorePanel;
+    /// <summary>Restore overlay visibility: shown while restoring, lingers a few
+    /// seconds with the summary, then hidden (XAML fades on the falling edge).</summary>
+    public bool ShowRestorePanel
+    {
+        get => _showRestorePanel;
+        private set => SetProperty(ref _showRestorePanel, value);
+    }
+
+    int _restoreDone, _restoreTotal;
+
+    /// <summary>Overlay counter text, e.g. "2 of 6".</summary>
+    public string RestoreCounter => $"{_restoreDone} of {_restoreTotal}";
+
+    /// <summary>Overall restore progress in [0, 1] for the progress bar.</summary>
+    public double RestoreFraction => _restoreTotal == 0 ? 0 : (double)_restoreDone / _restoreTotal;
+
+    /// <summary>Tri-state master checkbox: true = all, false = none, null = mixed.</summary>
+    public bool? AllSelected
+    {
+        get
+        {
+            var total = AllInstances.Count() + Folders.Count;
+            if (total == 0) return false;
+            var selected = AllInstances.Count(a => a.IsSelected) + Folders.Count(f => f.IsSelected);
+            if (selected == 0) return false;
+            if (selected == total) return true;
+            return null;
+        }
+        set
+        {
+            var on = value == true;
+            foreach (var a in AllInstances) a.IsSelected = on;
+            foreach (var f in Folders) f.IsSelected = on;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool AutoCapture
+    {
+        get => _settings.AutoCapture;
+        set
+        {
+            if (_settings.AutoCapture == value) return;
+            _settings.AutoCapture = value;
+            SettingsService.Save(_settings);
+            AutoCaptureChanged?.Invoke();
+            OnPropertyChanged();
+            Log(value ? "Auto capture enabled." : "Auto capture disabled.");
+        }
+    }
+
+    public bool StartWithWindows
+    {
+        get => SettingsService.GetStartWithWindows();
+        set
+        {
+            try
+            {
+                SettingsService.SetStartWithWindows(value);
+                Log(value
+                    ? "Rewake will run at startup (minimized to tray)."
+                    : "Removed from startup.");
+            }
+            catch (Exception ex) { Log($"Startup setting failed: {ex.Message}"); }
+            OnPropertyChanged();
+        }
+    }
+
+    bool _forceLaunch;
+    public bool ForceLaunch { get => _forceLaunch; set => SetProperty(ref _forceLaunch, value); }
+
+    public bool IsDarkTheme => !string.Equals(_settings.Theme, "Light", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Segoe MDL2 glyph for the theme toggle: sun in dark mode, moon in light.</summary>
+    public string ThemeGlyph => IsDarkTheme ? "" : "";
+    public string ThemeTooltip => IsDarkTheme ? "Switch to light mode" : "Switch to dark mode";
+
+    void ToggleTheme()
+    {
+        _settings.Theme = IsDarkTheme ? "Light" : "Dark";
+        SettingsService.Save(_settings);
+        ThemeService.Apply(_settings.Theme);
+        OnPropertyChanged(nameof(IsDarkTheme));
+        OnPropertyChanged(nameof(ThemeGlyph));
+        OnPropertyChanged(nameof(ThemeTooltip));
+        Log($"Switched to {_settings.Theme.ToLowerInvariant()} mode.");
+    }
+
+    /// <summary>Rebuilds the sidebar list, preserving the current selection when possible.</summary>
+    public void RefreshSnapshots()
+    {
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher != null && !dispatcher.CheckAccess()) { dispatcher.Invoke(RefreshSnapshots); return; }
+
+        var selectedPath = SelectedSnapshot?.Path;
+        _refreshing = true;
+        try
+        {
+            Snapshots.Clear();
+            foreach (var sf in SnapshotService.ListSnapshots())
+                Snapshots.Add(new SnapshotItemViewModel(sf));
+        }
+        finally { _refreshing = false; }
+        SelectedSnapshot =
+            Snapshots.FirstOrDefault(s => s.Path == selectedPath) ?? Snapshots.FirstOrDefault();
+
+        try
+        {
+            long bytes = 0;
+            if (Directory.Exists(Paths.SnapDir))
+                bytes += new DirectoryInfo(Paths.SnapDir).GetFiles("snap-*.json").Sum(f => f.Length);
+            if (File.Exists(Paths.LastSession)) bytes += new FileInfo(Paths.LastSession).Length;
+            CaptureStats = $"{Snapshots.Count} captures · {bytes / 1024:N0} KB on disk";
+        }
+        catch { CaptureStats = $"{Snapshots.Count} captures"; }
+
+        OnPropertyChanged(nameof(HistoryCount));
+    }
+
+    /// <summary>Loads a capture's apps and folders into the selection lists.</summary>
+    void LoadSnapshot(SnapshotItemViewModel? item)
+    {
+        if (!IsRestoring) ShowRestorePanel = false;
+        Apps.Clear();
+        Folders.Clear();
+        _loadedPath = null;
+        if (item == null)
+        {
+            Header = "No capture selected";
+            SubHeader = "";
+            NotifyListsChanged();
+            return;
+        }
+        var snap = SnapshotService.Load(item.Path);
+        if (snap == null) { NotifyListsChanged(); return; }
+
+        foreach (var group in snap.Apps
+                     .Where(a => !string.IsNullOrEmpty(a.Exe))
+                     .GroupBy(a => a.Exe, StringComparer.OrdinalIgnoreCase))
+        {
+            var vm = new AppGroupViewModel(group.ToList());
+            vm.SelectionChanged += () => OnPropertyChanged(nameof(AllSelected));
+            Apps.Add(vm);
+        }
+        foreach (var f in snap.Folders)
+        {
+            var vm = new FolderItemViewModel(f);
+            vm.PropertyChanged += ItemSelectionChanged;
+            Folders.Add(vm);
+        }
+
+        var windowCount = snap.Apps.Count;
+        Header = item.IsLastSession ? "Last Session" : "Capture";
+        SubHeader = item.IsLastSession
+            ? $"Captured {item.Taken:ddd dd MMM yyyy 'at' HH:mm} — everything open before shutdown"
+            : $"Captured {item.Taken:ddd dd MMM yyyy, HH:mm:ss} · {Apps.Count} applications · {windowCount} windows · {snap.Folders.Count} folders";
+
+        _loadedPath = item.Path;
+        try { _loadedWriteTime = File.GetLastWriteTime(item.Path); } catch { }
+        NotifyListsChanged();
+    }
+
+    void ItemSelectionChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(AppItemViewModel.IsSelected))
+            OnPropertyChanged(nameof(AllSelected));
+    }
+
+    void NotifyListsChanged()
+    {
+        OnPropertyChanged(nameof(AllSelected));
+        OnPropertyChanged(nameof(AppCount));
+        OnPropertyChanged(nameof(FolderCount));
+    }
+
+    async Task RestoreAsync()
+    {
+        var selectedApps = AllInstances.Where(a => a.IsSelected).ToList();
+        var selectedFolders = Folders.Where(f => f.IsSelected).ToList();
+        var apps = selectedApps.Select(a => a.Entry).ToList();
+        var folders = selectedFolders.Select(f => f.Path).ToList();
+        if (apps.Count == 0 && folders.Count == 0) { Log("Nothing selected to restore."); return; }
+
+        RestoreProgress.Clear();
+        foreach (var a in selectedApps) RestoreProgress.Add(new RestoreItemViewModel(a));
+        foreach (var f in selectedFolders) RestoreProgress.Add(new RestoreItemViewModel(f));
+        _restoreDone = 0;
+        _restoreTotal = RestoreProgress.Count;
+        OnPropertyChanged(nameof(RestoreCounter));
+        OnPropertyChanged(nameof(RestoreFraction));
+        ShowRestorePanel = true;
+
+        IsRestoring = true;
+        Log($"Restoring workspace — {apps.Count} windows, {folders.Count} folders…");
+        try
+        {
+            await Task.Run(() => RestoreService.RestoreAsync(apps, folders, ForceLaunch, Log, OnRestoreProgress));
+        }
+        finally { IsRestoring = false; }
+
+        // Let the summary linger, then fade the overlay away (the XAML side
+        // animates opacity on ShowRestorePanel's falling edge).
+        await Task.Delay(4000);
+        if (!IsRestoring) ShowRestorePanel = false;
+    }
+
+    /// <summary>
+    /// Restore-thread callback: updates the matching overlay row (marshalled to
+    /// the UI thread) and advances the counter when a row reaches a final state.
+    /// </summary>
+    void OnRestoreProgress(int index, RestoreStatus status)
+    {
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher != null && !dispatcher.CheckAccess())
+        {
+            dispatcher.Invoke(() => OnRestoreProgress(index, status));
+            return;
+        }
+        if (index < 0 || index >= RestoreProgress.Count) return;
+        var item = RestoreProgress[index];
+        var wasTerminal = item.IsTerminal;
+        item.Status = status;
+        if (!wasTerminal && item.IsTerminal)
+        {
+            _restoreDone++;
+            OnPropertyChanged(nameof(RestoreCounter));
+            OnPropertyChanged(nameof(RestoreFraction));
+        }
+    }
+
+    /// <summary>Manual capture from the header button or tray menu.</summary>
+    public async Task CaptureNowAsync()
+    {
+        if (IsCapturing) return;
+        IsCapturing = true;
+        Log("Capturing workspace…");
+        try
+        {
+            await Task.Run(() => SnapshotService.SaveSnapshot(SnapshotService.CaptureSta()));
+            RefreshSnapshots();
+            Log("Capture saved.");
+        }
+        finally { IsCapturing = false; }
+    }
+
+    /// <summary>Timer capture: no log chatter, just refresh the list.</summary>
+    public async Task CaptureSilentAsync()
+    {
+        await Task.Run(() => SnapshotService.SaveSnapshot(SnapshotService.CaptureSta()));
+        RefreshSnapshots();
+    }
+
+    void DeleteCapture()
+    {
+        var s = SelectedSnapshot;
+        if (s == null) return;
+        try
+        {
+            File.Delete(s.Path);
+            Log($"Deleted capture: {s.DisplayLabel} ({s.SubLine}).");
+        }
+        catch (Exception ex) { Log($"Delete failed: {ex.Message}"); }
+        _loadedPath = null;
+        RefreshSnapshots();
+    }
+
+    void OpenDataFolder()
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "explorer.exe",
+                Arguments = $"\"{Paths.DataDir}\"",
+                UseShellExecute = true
+            });
+        }
+        catch { }
+    }
+
+    /// <summary>Appends a timestamped line to the activity log (any thread).</summary>
+    public void Log(string message)
+    {
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher != null && !dispatcher.CheckAccess()) { dispatcher.Invoke(() => Log(message)); return; }
+        LogEntries.Add($"[{DateTime.Now:HH:mm:ss}] {message}");
+        while (LogEntries.Count > 400) LogEntries.RemoveAt(0);
+    }
+}

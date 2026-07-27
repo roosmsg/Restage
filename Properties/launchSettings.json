@@ -1,0 +1,8 @@
+﻿{
+  "profiles": {
+    "Rewake": {
+      "commandName": "Project",
+      "commandLineArgs": "--multi"
+    }
+  }
+}

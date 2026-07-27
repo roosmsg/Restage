@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- Option 2b: emerald frame, application-window tabs inside -->
+  <rect x="116" y="194" width="24" height="20" fill="#059669"/>
+  <rect x="84" y="212" width="88" height="14" rx="7" fill="#059669"/>
+  <rect x="6" y="26" width="244" height="170" rx="18" fill="#059669"/>
+  <rect x="18" y="38" width="220" height="146" rx="8" fill="#FFFFFF"/>
+
+  <!-- app window 1 (active: emerald title bar) -->
+  <rect x="32" y="56" width="60" height="110" rx="7" fill="#EDEFF3"/>
+  <path d="M32 63 a7 7 0 0 1 7 -7 h46 a7 7 0 0 1 7 7 v11 h-60 z" fill="#059669"/>
+  <rect x="40" y="88" width="44" height="8" rx="4" fill="#C9CED8"/>
+  <rect x="40" y="103" width="30" height="8" rx="4" fill="#C9CED8"/>
+
+  <!-- app window 2 -->
+  <rect x="98" y="56" width="60" height="110" rx="7" fill="#EDEFF3"/>
+  <path d="M98 63 a7 7 0 0 1 7 -7 h46 a7 7 0 0 1 7 7 v11 h-60 z" fill="#3A3F4A"/>
+  <rect x="106" y="88" width="44" height="8" rx="4" fill="#C9CED8"/>
+  <rect x="106" y="103" width="30" height="8" rx="4" fill="#C9CED8"/>
+
+  <!-- app window 3 -->
+  <rect x="164" y="56" width="60" height="110" rx="7" fill="#EDEFF3"/>
+  <path d="M164 63 a7 7 0 0 1 7 -7 h46 a7 7 0 0 1 7 7 v11 h-60 z" fill="#3A3F4A"/>
+  <rect x="172" y="88" width="44" height="8" rx="4" fill="#C9CED8"/>
+  <rect x="172" y="103" width="30" height="8" rx="4" fill="#C9CED8"/>
+
+  <!-- reload badge -->
+  <circle cx="202" cy="178" r="46" fill="#3A3F4A" stroke="#FFFFFF" stroke-width="9"/>
+  <path d="M 198.5 197.7 A 20 20 0 1 1 216.1 163.9"
+        fill="none" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round"/>
+  <polygon points="225.3,173.1 210.4,169.6 221.8,158.2" fill="#FFFFFF"
+           stroke="#FFFFFF" stroke-width="4" stroke-linejoin="round"/>
+</svg>

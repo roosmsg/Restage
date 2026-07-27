@@ -1,0 +1,22 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <SolidColorBrush x:Key="BgBrush" Color="#161618"/>
+    <SolidColorBrush x:Key="PanelBrush" Color="#1D1D20"/>
+    <SolidColorBrush x:Key="CardBrush" Color="#242428"/>
+    <SolidColorBrush x:Key="CardHoverBrush" Color="#2A2A2F"/>
+    <SolidColorBrush x:Key="AccentBrush" Color="#34D399"/>
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="#2EBD8A"/>
+    <SolidColorBrush x:Key="AccentDisabledBrush" Color="#3F3F46"/>
+    <SolidColorBrush x:Key="AccentTextBrush" Color="#0A2B1E"/>
+    <SolidColorBrush x:Key="TextBrush" Color="#ECECEE"/>
+    <SolidColorBrush x:Key="MutedBrush" Color="#A0A0A8"/>
+    <SolidColorBrush x:Key="BorderBrush2" Color="#38383E"/>
+    <SolidColorBrush x:Key="HoverBrush" Color="#26262B"/>
+    <SolidColorBrush x:Key="SelectedBrush" Color="#2E2E34"/>
+    <SolidColorBrush x:Key="LogBgBrush" Color="#131315"/>
+    <SolidColorBrush x:Key="ScrollThumbBrush" Color="#45454D"/>
+    <SolidColorBrush x:Key="DangerBrush" Color="#E0655C"/>
+    <SolidColorBrush x:Key="OverlayDimBrush" Color="#99000000"/>
+
+</ResourceDictionary>
