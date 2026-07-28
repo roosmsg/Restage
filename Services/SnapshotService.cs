@@ -255,6 +255,23 @@ public static class SnapshotService
         return "";
     }
 
+    /// <summary>
+    /// Runs <see cref="GetExplorerFolders"/> on a dedicated STA thread, so the
+    /// restore path (which runs on the thread pool) can ask what Explorer
+    /// currently has open. Returns empty if the shell doesn't answer in time —
+    /// callers treat that as "nothing known to be open".
+    /// </summary>
+    public static List<string> GetExplorerFoldersSta()
+    {
+        List<string>? result = null;
+        var t = new Thread(() => result = GetExplorerFolders());
+        t.SetApartmentState(ApartmentState.STA);
+        t.IsBackground = true;
+        t.Start();
+        t.Join(3000);
+        return result ?? new List<string>();
+    }
+
     /// <summary>Paths of every open File Explorer window, via the Shell COM API.</summary>
     static List<string> GetExplorerFolders()
     {

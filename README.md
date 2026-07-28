@@ -44,7 +44,8 @@ workspace every 2 minutes.
 - **Browsers** reopen and restore their own tabs — enable your browser's
   "Continue where you left off" setting for full effect.
 - **Force relaunch**: normally an app is skipped when one of its windows is
-  already open; tick this to launch it anyway.
+  already open, and a folder is skipped when Explorer is already showing it;
+  tick this to open them anyway.
 
 ## Known limitations (V1)
 

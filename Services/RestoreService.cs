@@ -130,16 +130,31 @@ public static class RestoreService
                               : $"OK    {first.Name}   {Trunc(first.Title)}");
         }
 
+        // A folder already showing in an Explorer window shouldn't be opened a
+        // second time — the same rule apps get above, with the same "force"
+        // escape hatch. Read after the app pass so the set reflects the desktop
+        // as it actually stands when the folders go out.
+        var openFolders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (!force)
+            foreach (var open in SnapshotService.GetExplorerFoldersSta())
+                openFolders.Add(NormalizeFolder(open));
+
         var seenFolders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         for (var i = 0; i < folders.Count; i++)
         {
             var f = folders[i];
             void ReportFolder(RestoreStatus s) => progress?.Invoke(apps.Count + i, s);
 
-            if (!seenFolders.Add(f)) { ReportFolder(RestoreStatus.Skipped); continue; }
+            if (!seenFolders.Add(NormalizeFolder(f))) { ReportFolder(RestoreStatus.Skipped); continue; }
             if (!Directory.Exists(f))
             {
                 log($"SKIP  folder missing: {f}");
+                ReportFolder(RestoreStatus.Skipped);
+                continue;
+            }
+            if (openFolders.Contains(NormalizeFolder(f)))
+            {
+                log($"SKIP  Explorer {f} — already open");
                 ReportFolder(RestoreStatus.Skipped);
                 continue;
             }
@@ -331,6 +346,12 @@ public static class RestoreService
         }
         return args;
     }
+
+    /// <summary>
+    /// Comparable form of a folder path: trailing separators dropped so
+    /// "C:\Work" and "C:\Work\" match, while drive roots ("C:\") keep theirs.
+    /// </summary>
+    static string NormalizeFolder(string path) => path.Length > 3 ? path.TrimEnd('\\', '/') : path;
 
     static string Trunc(string s) => s.Length > 70 ? s[..70] + "…" : s;
 }
