@@ -65,4 +65,13 @@ public class AppSettings
 
     /// <summary>"Dark" or "Light".</summary>
     public string Theme { get; set; } = "Dark";
+
+    /// <summary>Width of the capture-history sidebar, in pixels (drag to resize).</summary>
+    public double SidebarWidth { get; set; } = 272;
+
+    /// <summary>Height of the bottom panel when the log is expanded, in pixels.</summary>
+    public double BottomPanelHeight { get; set; } = 181;
+
+    /// <summary>True when the activity log is collapsed to just the controls bar.</summary>
+    public bool LogCollapsed { get; set; }
 }
