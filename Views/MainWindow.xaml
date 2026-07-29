@@ -278,10 +278,19 @@
             <Border x:Name="SidebarPanel" Grid.Column="0" Background="{DynamicResource PanelBrush}"
                     BorderBrush="{DynamicResource BorderBrush2}" BorderThickness="0,0,1,0">
                 <DockPanel>
-                    <Grid DockPanel.Dock="Top" Margin="16,16,16,8">
-                        <TextBlock Text="CAPTURE HISTORY" Style="{StaticResource SectionLabel}"/>
-                        <TextBlock Text="{Binding HistoryCount}" Style="{StaticResource NumericText}"
-                                   HorizontalAlignment="Right" FontSize="11" Foreground="{DynamicResource MutedBrush}"/>
+                    <Grid DockPanel.Dock="Top" Margin="16,12,10,8">
+                        <TextBlock Text="CAPTURE HISTORY" Style="{StaticResource SectionLabel}"
+                                   VerticalAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                                    VerticalAlignment="Center">
+                            <TextBlock Text="{Binding HistoryCount}" Style="{StaticResource NumericText}"
+                                       FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"
+                                       Foreground="{DynamicResource MutedBrush}"/>
+                            <Button Style="{StaticResource SubtleIconButton}" Tag="{StaticResource IconEraser}"
+                                    Command="{Binding ClearHistoryCommand}"
+                                    AutomationProperties.Name="Clear History"
+                                    ToolTip="Clear capture history"/>
+                        </StackPanel>
                     </Grid>
 
                     <!-- Open Data Folder used to live here; it moved to the app bar,
@@ -295,6 +304,8 @@
                              SelectedItem="{Binding SelectedSnapshot}"
                              Background="Transparent" BorderThickness="0" Margin="8,0"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ScrollViewer.CanContentScroll="False"
+                             PreviewMouseWheel="Scrollable_PreviewMouseWheel"
                              ItemContainerStyle="{StaticResource SnapItemStyle}">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
@@ -384,7 +395,8 @@
                     </StackPanel>
                 </Grid>
 
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              PreviewMouseWheel="Scrollable_PreviewMouseWheel">
                     <StackPanel Margin="0,0,8,0">
                         <Grid Margin="2,0,2,8">
                             <StackPanel Orientation="Horizontal">
@@ -595,10 +607,16 @@
                     <Grid DockPanel.Dock="Top" Margin="2,0,0,6">
                         <TextBlock Text="ACTIVITY LOG" Style="{StaticResource SectionLabel}"
                                    VerticalAlignment="Center"/>
-                        <ToggleButton x:Name="LogToggle" Style="{StaticResource ExpandToggle}"
-                                      HorizontalAlignment="Right" Margin="0,-6,0,-6"
-                                      Checked="LogToggle_Toggled" Unchecked="LogToggle_Toggled"
-                                      ToolTip="Show or hide the activity log"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                                    VerticalAlignment="Center" Margin="0,-6,0,-6">
+                            <Button Style="{StaticResource SubtleIconButton}" Tag="{StaticResource IconEraser}"
+                                    Command="{Binding ClearLogCommand}"
+                                    AutomationProperties.Name="Clear Log"
+                                    ToolTip="Clear activity log"/>
+                            <ToggleButton x:Name="LogToggle" Style="{StaticResource ExpandToggle}"
+                                          Checked="LogToggle_Toggled" Unchecked="LogToggle_Toggled"
+                                          ToolTip="Show or hide the activity log"/>
+                        </StackPanel>
                     </Grid>
 
                     <!-- Undocked, so it fills whatever height the splitter leaves. -->
@@ -608,7 +626,9 @@
                                  Background="Transparent" BorderThickness="0"
                                  FontFamily="{StaticResource MonoFont}" FontSize="11.5"
                                  ItemContainerStyle="{StaticResource PlainListItem}"
-                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 ScrollViewer.CanContentScroll="False"
+                                 PreviewMouseWheel="Scrollable_PreviewMouseWheel"/>
                     </Border>
                 </DockPanel>
             </Border>
@@ -621,6 +641,34 @@
                           DragCompleted="LogSplitter_DragCompleted"
                           ToolTip="Drag to resize the activity log"/>
             </Grid>
+
+            <!-- Confirmation prompt. Spans both columns but not the title bar,
+                 so the window stays movable and closable while it is up. -->
+            <Border Grid.ColumnSpan="2" Background="{DynamicResource OverlayDimBrush}"
+                    Panel.ZIndex="10"
+                    Visibility="{Binding ShowConfirm, Converter={StaticResource BoolToVis}}">
+                <Border Background="{DynamicResource PanelBrush}"
+                        BorderBrush="{DynamicResource BorderBrush2}" BorderThickness="1"
+                        Width="400" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Padding="24,20,24,18">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="28" ShadowDepth="4" Opacity="0.35" Color="Black"/>
+                    </Border.Effect>
+                    <StackPanel>
+                        <TextBlock Text="{Binding ConfirmTitle}" FontSize="15" FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding ConfirmMessage}" Style="{StaticResource SubtleText}"
+                                   TextWrapping="Wrap" Margin="0,8,0,20"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Style="{StaticResource QuietButton}" Content="Cancel"
+                                    Command="{Binding ConfirmCancelCommand}" Margin="0,0,8,0"
+                                    IsCancel="True"/>
+                            <Button Style="{StaticResource AccentButton}" Padding="16,9" FontSize="12.5"
+                                    Content="{Binding ConfirmAcceptLabel}"
+                                    Command="{Binding ConfirmAcceptCommand}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Border>
 
             <!-- Seam between history and contents. Sits over the sidebar's own
                  1px border, so the layout looks exactly as it did before. -->

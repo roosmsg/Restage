@@ -26,6 +26,12 @@ public class MainViewModel : ViewModelBase
         DeleteCaptureCommand = new RelayCommand(_ => DeleteCapture(), _ => SelectedSnapshot != null);
         OpenDataFolderCommand = new RelayCommand(_ => OpenDataFolder());
         ToggleThemeCommand = new RelayCommand(_ => ToggleTheme());
+        // Clearing the log throws away a few screens of text; clearing the
+        // history deletes files. Only the second one asks.
+        ClearLogCommand = new RelayCommand(_ => ClearLog(), _ => LogEntries.Count > 0);
+        ClearHistoryCommand = new RelayCommand(_ => AskClearHistory(), _ => Snapshots.Count > 0);
+        ConfirmAcceptCommand = new RelayCommand(_ => AcceptConfirm());
+        ConfirmCancelCommand = new RelayCommand(_ => CloseConfirm());
         RefreshSnapshots();
         Log("Ready. Closing the window keeps Rewake running in the system tray.");
     }
@@ -45,6 +51,10 @@ public class MainViewModel : ViewModelBase
     public RelayCommand DeleteCaptureCommand { get; }
     public RelayCommand OpenDataFolderCommand { get; }
     public RelayCommand ToggleThemeCommand { get; }
+    public RelayCommand ClearLogCommand { get; }
+    public RelayCommand ClearHistoryCommand { get; }
+    public RelayCommand ConfirmAcceptCommand { get; }
+    public RelayCommand ConfirmCancelCommand { get; }
 
     /// <summary>Raised when the auto-capture setting changes so the host can reconfigure its timer.</summary>
     public event Action? AutoCaptureChanged;
@@ -209,6 +219,7 @@ public class MainViewModel : ViewModelBase
         finally { _refreshing = false; }
         SelectedSnapshot =
             Snapshots.FirstOrDefault(s => s.Path == selectedPath) ?? Snapshots.FirstOrDefault();
+        ClearHistoryCommand.RaiseCanExecuteChanged();
 
         try
         {
@@ -370,6 +381,94 @@ public class MainViewModel : ViewModelBase
         RefreshSnapshots();
     }
 
+    void ClearLog()
+    {
+        LogEntries.Clear();
+        ClearLogCommand.RaiseCanExecuteChanged();
+    }
+
+    void AskClearHistory() => Confirm(
+        "Clear capture history?",
+        $"Deletes all {Snapshots.Count} captures from disk, including the pinned "
+        + "pre-shutdown session. This can't be undone.",
+        "Clear history",
+        ClearHistory);
+
+    /// <summary>
+    /// Deletes exactly the files behind the rows the sidebar is showing, so
+    /// "clear" can't quietly take something the user was never told about.
+    /// </summary>
+    void ClearHistory()
+    {
+        int cleared = 0, failed = 0;
+        foreach (var s in Snapshots.ToList())
+        {
+            try { File.Delete(s.Path); cleared++; }
+            catch { failed++; }
+        }
+        Log(failed == 0
+            ? $"Cleared capture history — {cleared} captures deleted."
+            : $"Cleared {cleared} captures; {failed} could not be deleted.");
+        _loadedPath = null;
+        RefreshSnapshots();
+    }
+
+    // ---- Confirmation prompt -------------------------------------------
+    // One prompt reused by whatever needs it: the caller supplies the words
+    // and the action, and nothing destructive runs until Accept fires.
+
+    Action? _confirmAction;
+
+    bool _showConfirm;
+    public bool ShowConfirm
+    {
+        get => _showConfirm;
+        private set { _showConfirm = value; OnPropertyChanged(); }
+    }
+
+    string _confirmTitle = "";
+    public string ConfirmTitle
+    {
+        get => _confirmTitle;
+        private set { _confirmTitle = value; OnPropertyChanged(); }
+    }
+
+    string _confirmMessage = "";
+    public string ConfirmMessage
+    {
+        get => _confirmMessage;
+        private set { _confirmMessage = value; OnPropertyChanged(); }
+    }
+
+    string _confirmAcceptLabel = "";
+    public string ConfirmAcceptLabel
+    {
+        get => _confirmAcceptLabel;
+        private set { _confirmAcceptLabel = value; OnPropertyChanged(); }
+    }
+
+    void Confirm(string title, string message, string acceptLabel, Action onAccept)
+    {
+        ConfirmTitle = title;
+        ConfirmMessage = message;
+        ConfirmAcceptLabel = acceptLabel;
+        _confirmAction = onAccept;
+        ShowConfirm = true;
+    }
+
+    void AcceptConfirm()
+    {
+        var action = _confirmAction;
+        CloseConfirm();
+        action?.Invoke();
+    }
+
+    void CloseConfirm()
+    {
+        _confirmAction = null;
+        ShowConfirm = false;
+    }
+
     void OpenDataFolder()
     {
         try
@@ -391,5 +490,6 @@ public class MainViewModel : ViewModelBase
         if (dispatcher != null && !dispatcher.CheckAccess()) { dispatcher.Invoke(() => Log(message)); return; }
         LogEntries.Add($"[{DateTime.Now:HH:mm:ss}] {message}");
         while (LogEntries.Count > 400) LogEntries.RemoveAt(0);
+        ClearLogCommand.RaiseCanExecuteChanged();
     }
 }

@@ -1,7 +1,10 @@
 ﻿using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Media;
 using Rewake.Models;
 using Rewake.Services;
 using Rewake.ViewModels;
@@ -218,6 +221,29 @@ public partial class MainWindow : Window
     {
         Settings.BottomPanelHeight = BottomRow.ActualHeight;
         SettingsService.Save(Settings);
+    }
+
+    // Pixels moved per wheel notch. WPF's default is three "lines" — about 48px
+    // — which overshoots on lists this dense. The two ListBoxes set
+    // CanContentScroll="False" so their offsets are pixels too, not item counts.
+    const double WheelStep = 32;
+
+    void Scrollable_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (FindScrollViewer((DependencyObject)sender) is not { } viewer) return;
+        viewer.ScrollToVerticalOffset(viewer.VerticalOffset - e.Delta / 120.0 * WheelStep);
+        e.Handled = true;
+    }
+
+    // The ScrollViewer of a ListBox lives inside its template, so the handler
+    // has to go looking for it; for a bare ScrollViewer this returns at once.
+    static ScrollViewer? FindScrollViewer(DependencyObject element)
+    {
+        if (element is ScrollViewer viewer) return viewer;
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(element); i++)
+            if (FindScrollViewer(VisualTreeHelper.GetChild(element, i)) is { } found)
+                return found;
+        return null;
     }
 
     // View-only concern: closing hides to tray instead of exiting.
