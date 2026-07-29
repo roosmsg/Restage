@@ -28,6 +28,12 @@
   <ItemGroup>
     <Resource Include="Assets\Rewake.ico" />
     <Resource Include="Assets\Rewake-256.png" />
+    <!-- Inter (SIL OFL 1.1, license alongside). Static weights, not the
+         variable TTF: WPF renders only a variable font's default instance,
+         so Medium and SemiBold would silently come out Regular. -->
+    <Resource Include="Assets\Fonts\Inter-Regular.ttf" />
+    <Resource Include="Assets\Fonts\Inter-Medium.ttf" />
+    <Resource Include="Assets\Fonts\Inter-SemiBold.ttf" />
   </ItemGroup>
 
 </Project>

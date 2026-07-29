@@ -72,6 +72,9 @@ public class AppSettings
     /// <summary>Height of the bottom panel when the log is expanded, in pixels.</summary>
     public double BottomPanelHeight { get; set; } = 181;
 
-    /// <summary>True when the activity log is collapsed to just the controls bar.</summary>
+    /// <summary>True when the activity log is collapsed to just its header.</summary>
     public bool LogCollapsed { get; set; }
+
+    /// <summary>True when the capture-history sidebar is hidden.</summary>
+    public bool SidebarCollapsed { get; set; }
 }

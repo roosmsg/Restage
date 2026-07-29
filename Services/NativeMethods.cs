@@ -42,6 +42,7 @@ internal static class NativeMethods
     public const uint MONITOR_DEFAULTTONEAREST = 2;
 
     [DllImport("user32.dll")] public static extern IntPtr MonitorFromRect(ref RECT rect, uint flags);
+    [DllImport("user32.dll")] public static extern IntPtr MonitorFromWindow(IntPtr hWnd, uint flags);
     [DllImport("user32.dll")] public static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO info);
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]

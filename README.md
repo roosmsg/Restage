@@ -35,7 +35,12 @@ workspace every 2 minutes.
   system tray. Right-click the tray icon → **Exit** to quit for real.
 - After a power cut, restore the pinned **Last Session · BEFORE SHUTDOWN**
   entry at the top of the history — that's everything you had open.
-- Tick **Run at startup** so Rewake is already running after a reboot.
+- The title bar holds a **sidebar toggle** on the left (hide the history for a
+  wider capture list) and a **gear** on the right, next to the window buttons.
+  The gear has your preferences — auto capture, run at startup, force
+  relaunch — plus the theme switch and **Open data folder**.
+- Tick **Run at startup** under the gear so Rewake is already running after a
+  reboot.
 
 ## Good to know
 
@@ -43,9 +48,9 @@ workspace every 2 minutes.
   cmd, WSL…) — multi-tab windows come back with one tab per saved path.
 - **Browsers** reopen and restore their own tabs — enable your browser's
   "Continue where you left off" setting for full effect.
-- **Force relaunch**: normally an app is skipped when one of its windows is
-  already open, and a folder is skipped when Explorer is already showing it;
-  tick this to open them anyway.
+- **Force relaunch** (under the gear): normally an app is skipped when one of
+  its windows is already open, and a folder is skipped when Explorer is already
+  showing it; tick this to open them anyway.
 
 ## Known limitations (V1)
 
@@ -80,9 +85,15 @@ Please include:
 3. `%LOCALAPPDATA%\Rewake\crash.log`, if it exists.
 4. A screenshot of the Activity Log at the bottom of the window, if relevant.
 
+## Third-party
+
+- **[Inter](https://github.com/rsms/inter)** by Rasmus Andersson — SIL Open Font
+  License 1.1. Bundled in `Assets\Fonts\`; full licence in `Inter-OFL.txt`.
+- **[Lucide](https://lucide.dev)** icon paths — ISC License.
+
 ## Uninstall
 
-1. Untick **Run at startup** in the app.
+1. Untick **Run at startup** under the app's gear icon.
 2. Right-click the tray icon → **Exit**.
 3. Delete `Rewake.exe` and the `%LOCALAPPDATA%\Rewake` folder.
 
@@ -107,7 +118,35 @@ Services\                   SnapshotService (capture/persist), RestoreService
                             ThemeService, IconCache, Paths, NativeMethods
 Themes\                     Dark.xaml / Light.xaml swappable dictionaries
 Assets\                     icon (.ico, 8 sizes) + SVG sources + build-icon.ps1
+Assets\Fonts\               Inter (Regular/Medium/SemiBold) + its OFL licence
 ```
+
+### UI conventions
+
+- **Icons are Lucide geometry, not an icon font.** Each is a `Geometry` resource
+  in App.xaml, converted from the official SVG at
+  [lucide-icons/lucide](https://github.com/lucide-icons/lucide/tree/main/icons)
+  and kept in Lucide's 24x24 box. Buttons hand one to their template via `Tag`,
+  and a `Viewbox` scales the whole box so every icon keeps its intended optical
+  size. One stroke weight throughout, and nothing extra to ship.
+  When adding one, note that Lucide splits an icon across several `<path>`
+  elements: concatenating them into one geometry turns a leading relative `m`
+  into a move relative to the *previous* subpath's endpoint, so it has to be
+  rewritten absolute first.
+- **Inter is vendored**, not assumed installed. Static weights rather than the
+  variable TTF — WPF renders only a variable font's default instance, so Medium
+  and SemiBold would silently come out Regular.
+- One type scale (`TitleText` / `BodyText` / `SubtleText` / `SectionLabel`), each
+  `BasedOn` the implicit `TextBlock` style. That `BasedOn` is load-bearing: an
+  explicit `Style` replaces the implicit one outright, so a heading that skips it
+  loses `Foreground` and renders black on a black background.
+- **Square corners throughout** — buttons, cards, list rows, badges, checkboxes,
+  menus. Only the scrollbar thumbs stay rounded.
+- The **activity log sits inside the content column**, not across the window, so
+  the capture history runs the full height and the log starts at the seam.
+- **Accent green means one thing: the action.** Restore Workspace is the only
+  filled accent button; capture and delete are transparent with an accent
+  outline, and their icon turns accent on hover.
 
 ### Feature highlights
 

@@ -1,21 +1,73 @@
-﻿<Window x:Class="Rewake.Views.MainWindow"
+<Window x:Class="Rewake.Views.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Rewake" Height="740" Width="1160"
         MinHeight="560" MinWidth="920"
         WindowStartupLocation="CenterScreen" WindowState="Maximized"
         Background="{DynamicResource BgBrush}"
+        FontFamily="{StaticResource UiFont}" TextOptions.TextFormattingMode="Ideal"
         Closing="Window_Closing">
+    <!-- No native title bar: the app bar below is the title bar. CaptionHeight
+         matches its 42px + 1px border, so that strip drags, double-clicks to
+         maximize, and right-clicks to the system menu the way a caption should.
+         Anything clickable inside it needs IsHitTestVisibleInChrome. -->
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="43" ResizeBorderThickness="6"
+                      CornerRadius="0" GlassFrameThickness="0"
+                      UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
     <Window.Resources>
+        <!-- IconButton that swaps its camera for a spinner mid-capture. Lives
+             here rather than App.xaml because the trigger reads IsCapturing off
+             this window's view model. -->
+        <Style x:Key="CaptureIconButton" TargetType="Button" BasedOn="{StaticResource IconButton}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="Transparent" CornerRadius="0"
+                                BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1">
+                            <Grid>
+                                <Viewbox x:Name="IconBox" Width="{TemplateBinding FontSize}"
+                                         Height="{TemplateBinding FontSize}">
+                                    <Path x:Name="Glyph" Width="24" Height="24"
+                                          Data="{StaticResource IconCamera}"
+                                          Stroke="{DynamicResource MutedBrush}" StrokeThickness="2.25"
+                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                          StrokeLineJoin="Round"/>
+                                </Viewbox>
+                                <Path x:Name="Spin" Style="{StaticResource SpinnerPath}"
+                                      Stroke="{DynamicResource TextBrush}" Visibility="Collapsed"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource HoverBrush}"/>
+                                <Setter TargetName="Glyph" Property="Stroke" Value="{DynamicResource AccentBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentDisabledBrush}"/>
+                                <Setter TargetName="Glyph" Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                            <DataTrigger Binding="{Binding IsCapturing}" Value="True">
+                                <Setter TargetName="IconBox" Property="Visibility" Value="Hidden"/>
+                                <Setter TargetName="Spin" Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- One row of the restore overlay's checklist -->
         <DataTemplate x:Key="RestoreRowTemplate">
-            <Border x:Name="RowBd" Background="Transparent" CornerRadius="2"
+            <Border x:Name="RowBd" Background="Transparent" CornerRadius="0"
                     Padding="8,5" Margin="0,1">
                 <DockPanel>
                     <Grid DockPanel.Dock="Left" Width="20" Height="20"
                           Margin="0,0,10,0" VerticalAlignment="Center">
                         <Image Source="{Binding Icon}" Width="20" Height="20"/>
-                        <Border Background="{DynamicResource SelectedBrush}" CornerRadius="2"
+                        <Border Background="{DynamicResource SelectedBrush}" CornerRadius="0"
                                 Visibility="{Binding FallbackVisibility, Mode=OneWay}">
                             <TextBlock Text="{Binding Initial, Mode=OneWay}" FontSize="10"
                                        FontWeight="Bold" HorizontalAlignment="Center"
@@ -27,16 +79,17 @@
                         <Path x:Name="RowSpinner" Style="{StaticResource SpinnerPath}"
                               Stroke="{DynamicResource TextBrush}" Visibility="Collapsed"
                               VerticalAlignment="Center" Margin="0,0,7,0"/>
-                        <TextBlock x:Name="RowCheck" Text="&#xE73E;"
-                                   FontFamily="Segoe MDL2 Assets" FontSize="12"
-                                   Foreground="{DynamicResource AccentBrush}"
-                                   VerticalAlignment="Center" Margin="0,0,6,0"
-                                   Visibility="Collapsed"
-                                   RenderTransformOrigin="0.5,0.5">
-                            <TextBlock.RenderTransform>
+                        <Viewbox x:Name="RowCheck" Width="13" Height="13"
+                                 VerticalAlignment="Center" Margin="0,0,6,0"
+                                 Visibility="Collapsed" RenderTransformOrigin="0.5,0.5">
+                            <Viewbox.RenderTransform>
                                 <ScaleTransform ScaleX="1" ScaleY="1"/>
-                            </TextBlock.RenderTransform>
-                        </TextBlock>
+                            </Viewbox.RenderTransform>
+                            <Path Width="24" Height="24" Data="{StaticResource IconCheck}"
+                                  Stroke="{DynamicResource AccentBrush}" StrokeThickness="2.5"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                  StrokeLineJoin="Round"/>
+                        </Viewbox>
                         <TextBlock x:Name="RowStatus" Text="{Binding StatusText, Mode=OneWay}"
                                    FontSize="11.5" FontWeight="SemiBold"
                                    Foreground="{DynamicResource MutedBrush}"
@@ -98,40 +151,145 @@
         <!-- Sidebar width and bottom-panel height are restored from settings on
              load; the mins keep either pane from being dragged out of existence. -->
         <Grid.RowDefinitions>
-            <RowDefinition Height="*" MinHeight="240"/>
-            <RowDefinition x:Name="BottomRow" Height="181" MinHeight="128"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
+        <!-- ============ App bar ============ -->
+        <Border Grid.Row="0" Background="{DynamicResource PanelBrush}"
+                BorderBrush="{DynamicResource BorderBrush2}" BorderThickness="0,0,0,1">
+            <Grid Height="42">
+                <!-- Centred on the window rather than on either pane, so the name
+                     holds still while the sidebar is resized or hidden. -->
+                <TextBlock Text="Rewake" FontSize="13" FontWeight="SemiBold"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left"
+                            VerticalAlignment="Center" Margin="6,0,0,0"
+                            WindowChrome.IsHitTestVisibleInChrome="True">
+                    <ToggleButton x:Name="SidebarToggle" Style="{StaticResource IconToggle}"
+                                  Tag="{StaticResource IconPanelLeft}"
+                                  Checked="SidebarToggle_Toggled" Unchecked="SidebarToggle_Toggled"
+                                  AutomationProperties.Name="Toggle Sidebar"
+                                  ToolTip="Toggle Sidebar"/>
+                </StackPanel>
+
+                <!-- Settings sits with the window buttons, separated by a gap
+                     rather than a rule: a 34px centred button against 46px
+                     full-height ones already reads as two groups. -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                            VerticalAlignment="Stretch"
+                            WindowChrome.IsHitTestVisibleInChrome="True">
+                    <ToggleButton x:Name="SettingsToggle" Style="{StaticResource IconToggle}"
+                                  Tag="{StaticResource IconSettings}"
+                                  VerticalAlignment="Center" Margin="0,0,10,0"
+                                  AutomationProperties.Name="Settings" ToolTip="Settings"/>
+                    <Button Style="{StaticResource CaptionButton}" Tag="{StaticResource IconMinus}"
+                            Click="Minimize_Click" ToolTip="Minimize"
+                            AutomationProperties.Name="Minimize"/>
+                    <Button Click="MaxRestore_Click" AutomationProperties.Name="Maximize">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource CaptionButton}">
+                                <Setter Property="Tag" Value="{StaticResource IconSquare}"/>
+                                <Setter Property="ToolTip" Value="Maximize"/>
+                                <Style.Triggers>
+                                    <DataTrigger Value="Maximized"
+                                                 Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}">
+                                        <Setter Property="Tag" Value="{StaticResource IconRestoreWindow}"/>
+                                        <Setter Property="ToolTip" Value="Restore"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Button Style="{StaticResource CaptionCloseButton}" Tag="{StaticResource IconClose}"
+                            Click="CloseWindow_Click" ToolTip="Close"
+                            AutomationProperties.Name="Close"/>
+                </StackPanel>
+
+                <!-- Anchored to the gear; IsOpen rides the toggle both ways. The
+                     gear sits near the right edge, so the panel hangs to the left
+                     of it: Popup offsets from the target's left edge, so
+                     right-aligning the two means shifting by the width
+                     difference — 34 (gear) - 238 (222 border + 8 shadow margin
+                     each side) = -204. Change the border width, change this. -->
+                <Popup x:Name="SettingsPopup" PlacementTarget="{Binding ElementName=SettingsToggle}"
+                       Placement="Bottom" HorizontalOffset="-204" VerticalOffset="2"
+                       StaysOpen="False" AllowsTransparency="True"
+                       IsOpen="{Binding IsChecked, ElementName=SettingsToggle, Mode=TwoWay}"
+                       Opened="SettingsPopup_Opened" Closed="SettingsPopup_Closed">
+                    <Border Background="{DynamicResource PanelBrush}"
+                            BorderBrush="{DynamicResource BorderBrush2}" BorderThickness="1"
+                            CornerRadius="0" Margin="8" Padding="8" Width="222">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="16" ShadowDepth="2" Opacity="0.35" Color="Black"/>
+                        </Border.Effect>
+                        <StackPanel>
+                            <TextBlock Text="SETTINGS" Style="{StaticResource SectionLabel}"
+                                       Margin="7,4,7,10"/>
+                            <CheckBox IsChecked="{Binding AutoCapture}" Margin="7,0,7,12">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="Auto capture" FontSize="12.5"/>
+                                    <TextBlock Text="every 2 min" FontSize="11" Margin="7,1,0,0"
+                                               Foreground="{DynamicResource MutedBrush}"/>
+                                </StackPanel>
+                            </CheckBox>
+                            <CheckBox Content="Run at startup" FontSize="12.5"
+                                      IsChecked="{Binding StartWithWindows}" Margin="7,0,7,12"/>
+                            <CheckBox Content="Force relaunch" FontSize="12.5"
+                                      IsChecked="{Binding ForceLaunch}" Margin="7,0,7,4"/>
+
+                            <Border Height="1" Background="{DynamicResource BorderBrush2}"
+                                    Margin="0,6"/>
+
+                            <!-- Dark shows the sun (what the click gets you), light
+                                 shows the moon; the label is the same promise. -->
+                            <Button Command="{Binding ToggleThemeCommand}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource MenuRowButton}">
+                                        <Setter Property="Tag" Value="{StaticResource IconSun}"/>
+                                        <Setter Property="Content" Value="{Binding ThemeTooltip}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsDarkTheme}" Value="False">
+                                                <Setter Property="Tag" Value="{StaticResource IconMoon}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <Button Style="{StaticResource MenuRowButton}"
+                                    Tag="{StaticResource IconFolderOpen}"
+                                    Content="Open data folder"
+                                    Command="{Binding OpenDataFolderCommand}"/>
+                        </StackPanel>
+                    </Border>
+                </Popup>
+            </Grid>
+        </Border>
+
         <!-- ============ Content: sidebar + main ============ -->
-        <Grid Grid.Row="0">
+        <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition x:Name="SidebarColumn" Width="272" MinWidth="208" MaxWidth="520"/>
                 <ColumnDefinition Width="*" MinWidth="520"/>
             </Grid.ColumnDefinitions>
 
             <!-- Sidebar: capture history -->
-            <Border Grid.Column="0" Background="{DynamicResource PanelBrush}"
+            <Border x:Name="SidebarPanel" Grid.Column="0" Background="{DynamicResource PanelBrush}"
                     BorderBrush="{DynamicResource BorderBrush2}" BorderThickness="0,0,1,0">
                 <DockPanel>
                     <Grid DockPanel.Dock="Top" Margin="16,16,16,8">
                         <TextBlock Text="CAPTURE HISTORY" Style="{StaticResource SectionLabel}"/>
-                        <TextBlock Text="{Binding HistoryCount}" HorizontalAlignment="Right"
-                                   FontSize="11" Foreground="{DynamicResource MutedBrush}"/>
+                        <TextBlock Text="{Binding HistoryCount}" Style="{StaticResource NumericText}"
+                                   HorizontalAlignment="Right" FontSize="11" Foreground="{DynamicResource MutedBrush}"/>
                     </Grid>
 
-                    <StackPanel DockPanel.Dock="Bottom" Margin="14,10,14,12">
-                        <TextBlock Text="{Binding CaptureStats}" FontSize="11.5"
-                                   Foreground="{DynamicResource MutedBrush}"
-                                   HorizontalAlignment="Center" Margin="0,0,0,9"/>
-                        <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Stretch"
-                                Command="{Binding OpenDataFolderCommand}">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE838;" FontFamily="Segoe MDL2 Assets" FontSize="13"
-                                           VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                <TextBlock Text="Open Data Folder"/>
-                            </StackPanel>
-                        </Button>
-                    </StackPanel>
+                    <!-- Open Data Folder used to live here; it moved to the app bar,
+                         where it stays reachable with the sidebar hidden. -->
+                    <TextBlock DockPanel.Dock="Bottom" Text="{Binding CaptureStats}"
+                               Style="{StaticResource NumericText}" FontSize="11.5"
+                               Foreground="{DynamicResource MutedBrush}"
+                               HorizontalAlignment="Center" Margin="14,10,14,14"/>
 
                     <ListBox ItemsSource="{Binding Snapshots}"
                              SelectedItem="{Binding SelectedSnapshot}"
@@ -144,14 +302,15 @@
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="{Binding DisplayLabel, Mode=OneWay}" FontWeight="SemiBold"
                                                    FontSize="13" TextTrimming="CharacterEllipsis"/>
-                                        <Border Background="{DynamicResource AccentBrush}" CornerRadius="2"
-                                                Padding="5,1" Margin="8,0,0,0" VerticalAlignment="Center"
+                                        <Border Background="{DynamicResource AccentBrush}" CornerRadius="0"
+                                                Padding="6,1.5" Margin="8,0,0,0" VerticalAlignment="Center"
                                                 Visibility="{Binding IsLastSession, Converter={StaticResource BoolToVis}}">
                                             <TextBlock Text="BEFORE SHUTDOWN" FontSize="9" FontWeight="SemiBold"
                                                        Foreground="{DynamicResource AccentTextBrush}"/>
                                         </Border>
                                     </StackPanel>
-                                    <TextBlock Text="{Binding SubLine, Mode=OneWay}" FontSize="11" Margin="0,2,0,0"
+                                    <TextBlock Text="{Binding SubLine, Mode=OneWay}" Style="{StaticResource NumericText}"
+                                               FontSize="11" Margin="0,2,0,0"
                                                Foreground="{DynamicResource MutedBrush}"/>
                                 </StackPanel>
                             </DataTemplate>
@@ -160,48 +319,37 @@
                 </DockPanel>
             </Border>
 
-            <!-- Main: selected capture contents (+ restore overlay on top) -->
+            <!-- Main: selected capture contents (+ restore overlay on top),
+                 with the activity log beneath it. The log lives in this column
+                 rather than across the window so the history runs the full
+                 height and the log starts at the seam. -->
             <Grid Grid.Column="1">
-            <DockPanel Margin="26,18,26,10">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" MinHeight="240"/>
+                    <RowDefinition x:Name="BottomRow" Height="181" MinHeight="96"/>
+                </Grid.RowDefinitions>
+            <DockPanel Grid.Row="0" Margin="26,18,26,10">
 
-                <Grid DockPanel.Dock="Top" Margin="0,0,0,12">
-                    <StackPanel>
-                        <TextBlock Text="{Binding Header}" FontSize="21" FontWeight="Bold"/>
-                        <TextBlock Text="{Binding SubHeader}" FontSize="12" Margin="0,4,0,0"
-                                   Foreground="{DynamicResource MutedBrush}"/>
+                <!-- Capture and delete are ghost icons; Restore is the only
+                     accent fill on screen. Two filled green buttons side by side
+                     told you nothing about which one you came here to press. -->
+                <Grid DockPanel.Dock="Top" Margin="0,0,0,14">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Header}" Style="{StaticResource TitleText}"/>
+                        <TextBlock Text="{Binding SubHeader}" Style="{StaticResource SubtleText}"
+                                   Margin="0,4,0,0"/>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
-                        <Button Style="{StaticResource IconButton}" Content="{Binding ThemeGlyph}"
-                                ToolTip="{Binding ThemeTooltip}" Command="{Binding ToggleThemeCommand}"
-                                Margin="0,0,10,0"/>
-                        <Button Style="{StaticResource IconButton}" Content="&#xE74D;"
-                                ToolTip="Delete Capture" AutomationProperties.Name="Delete Capture"
-                                Command="{Binding DeleteCaptureCommand}" Margin="0,0,10,0"/>
-                        <Button Style="{StaticResource BusyAccentButton}" Width="34" Height="34" Padding="0"
-                                ToolTip="Capture Now" AutomationProperties.Name="Capture Now"
-                                Command="{Binding CaptureNowCommand}" Margin="0,0,10,0">
-                            <Grid>
-                                <TextBlock Text="&#xE722;" FontFamily="Segoe MDL2 Assets" FontSize="14"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Foreground"
-                                                    Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsCapturing}" Value="True">
-                                                    <Setter Property="Visibility" Value="Hidden"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                                <Path Style="{StaticResource SpinnerPath}"
-                                      HorizontalAlignment="Center" VerticalAlignment="Center"
-                                      Visibility="{Binding IsCapturing, Converter={StaticResource BoolToVis}}"
-                                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
-                            </Grid>
-                        </Button>
-                        <Button Style="{StaticResource BusyAccentButton}" Padding="18,8"
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                                VerticalAlignment="Center">
+                        <!-- Outlined now, so they need room to read as two boxes
+                             rather than one segmented control. -->
+                        <Button Style="{StaticResource CaptureIconButton}"
+                                ToolTip="Capture now" AutomationProperties.Name="Capture Now"
+                                Command="{Binding CaptureNowCommand}" Margin="0,0,8,0"/>
+                        <Button Style="{StaticResource IconButton}" Tag="{StaticResource IconTrash}"
+                                ToolTip="Delete capture" AutomationProperties.Name="Delete Capture"
+                                Command="{Binding DeleteCaptureCommand}" Margin="0,0,16,0"/>
+                        <Button Style="{StaticResource BusyAccentButton}" Padding="16,9"
                                 Command="{Binding RestoreCommand}">
                             <Grid>
                                 <StackPanel Orientation="Horizontal">
@@ -214,17 +362,21 @@
                                             </Style.Triggers>
                                         </Style>
                                     </StackPanel.Style>
-                                    <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="13"
-                                               VerticalAlignment="Center" Margin="0,0,9,0"
-                                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
-                                    <TextBlock Text="Restore Workspace"
+                                    <Viewbox Width="15" Height="15" VerticalAlignment="Center" Margin="0,0,9,0">
+                                        <Path Width="24" Height="24" Data="{StaticResource IconRotateCcw}"
+                                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                              StrokeThickness="2.25" StrokeStartLineCap="Round"
+                                              StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+                                    </Viewbox>
+                                    <TextBlock Text="Restore Workspace" FontSize="12.5"
+                                               VerticalAlignment="Center"
                                                Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
                                             Visibility="{Binding IsRestoring, Converter={StaticResource BoolToVis}}">
                                     <Path Style="{StaticResource SpinnerPath}" VerticalAlignment="Center" Margin="0,0,9,0"
                                           Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
-                                    <TextBlock Text="Restoring…" VerticalAlignment="Center"
+                                    <TextBlock Text="Restoring…" FontSize="12.5" VerticalAlignment="Center"
                                                Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
                                 </StackPanel>
                             </Grid>
@@ -237,7 +389,8 @@
                         <Grid Margin="2,0,2,8">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="APPLICATIONS" Style="{StaticResource SectionLabel}"/>
-                                <TextBlock Text="{Binding AppCount}" FontSize="11" Margin="7,0,0,0"
+                                <TextBlock Text="{Binding AppCount}" Style="{StaticResource NumericText}"
+                                           FontSize="11" Margin="7,0,0,0"
                                            Foreground="{DynamicResource MutedBrush}"/>
                             </StackPanel>
                             <CheckBox HorizontalAlignment="Right" IsThreeState="False"
@@ -256,7 +409,7 @@
                                                 <Grid DockPanel.Dock="Left" Width="24" Height="24" Margin="12,0,12,0">
                                                     <Image Source="{Binding Icon}" Width="24" Height="24"
                                                            VerticalAlignment="Center"/>
-                                                    <Border Background="{DynamicResource SelectedBrush}" CornerRadius="3"
+                                                    <Border Background="{DynamicResource SelectedBrush}" CornerRadius="0"
                                                             Visibility="{Binding FallbackVisibility, Mode=OneWay}">
                                                         <TextBlock Text="{Binding Initial, Mode=OneWay}" FontWeight="Bold"
                                                                    FontSize="11" HorizontalAlignment="Center"
@@ -271,7 +424,7 @@
                                                     <StackPanel Orientation="Horizontal">
                                                         <TextBlock Text="{Binding Name, Mode=OneWay}" FontSize="13" FontWeight="SemiBold"/>
                                                         <Border Background="Transparent" BorderBrush="{DynamicResource BorderBrush2}"
-                                                                BorderThickness="1" CornerRadius="2" Padding="6,1"
+                                                                BorderThickness="1" CornerRadius="0" Padding="6,1.5"
                                                                 Margin="8,0,0,0" VerticalAlignment="Center"
                                                                 Visibility="{Binding BadgeVisibility, Mode=OneWay}">
                                                             <TextBlock Text="{Binding CountLabel, Mode=OneWay}" FontSize="10"
@@ -305,7 +458,8 @@
 
                         <StackPanel Orientation="Horizontal" Margin="2,14,2,8">
                             <TextBlock Text="FOLDERS" Style="{StaticResource SectionLabel}"/>
-                            <TextBlock Text="{Binding FolderCount}" FontSize="11" Margin="7,0,0,0"
+                            <TextBlock Text="{Binding FolderCount}" Style="{StaticResource NumericText}"
+                                       FontSize="11" Margin="7,0,0,0"
                                        Foreground="{DynamicResource MutedBrush}"/>
                         </StackPanel>
                         <ItemsControl ItemsSource="{Binding Folders}">
@@ -334,7 +488,7 @@
 
             <!-- Restore overlay: dims the capture list while a restore runs,
                  lingers a few seconds with the summary, then fades away -->
-            <Border Background="{DynamicResource OverlayDimBrush}">
+            <Border Grid.Row="0" Background="{DynamicResource OverlayDimBrush}">
                 <Border.Style>
                     <Style TargetType="Border">
                         <Setter Property="Visibility" Value="Collapsed"/>
@@ -370,7 +524,7 @@
                 </Border.Style>
                 <Border Background="{DynamicResource PanelBrush}"
                         BorderBrush="{DynamicResource BorderBrush2}" BorderThickness="1"
-                        CornerRadius="4" Width="460" MaxHeight="440"
+                        CornerRadius="0" Width="460" MaxHeight="440"
                         HorizontalAlignment="Center" VerticalAlignment="Center"
                         Padding="22,18,22,16">
                     <Border.Effect>
@@ -406,9 +560,12 @@
                                             </Style.Triggers>
                                         </Style>
                                     </StackPanel.Style>
-                                    <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="14"
-                                               Foreground="{DynamicResource AccentBrush}"
-                                               VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <Viewbox Width="15" Height="15" VerticalAlignment="Center" Margin="0,0,10,0">
+                                        <Path Width="24" Height="24" Data="{StaticResource IconCheck}"
+                                              Stroke="{DynamicResource AccentBrush}" StrokeThickness="2.5"
+                                              StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                              StrokeLineJoin="Round"/>
+                                    </Viewbox>
                                     <TextBlock Text="Restore finished" FontSize="15" FontWeight="SemiBold"/>
                                 </StackPanel>
                             </StackPanel>
@@ -429,6 +586,40 @@
                     </DockPanel>
                 </Border>
             </Border>
+            <!-- ============ Activity log ============ -->
+            <Border Grid.Row="1" Background="{DynamicResource PanelBrush}"
+                    BorderBrush="{DynamicResource BorderBrush2}" BorderThickness="0,1,0,0"
+                    Padding="26,12,26,14">
+                <DockPanel>
+                    <!-- The three preference checkboxes moved into the app bar's gear. -->
+                    <Grid DockPanel.Dock="Top" Margin="2,0,0,6">
+                        <TextBlock Text="ACTIVITY LOG" Style="{StaticResource SectionLabel}"
+                                   VerticalAlignment="Center"/>
+                        <ToggleButton x:Name="LogToggle" Style="{StaticResource ExpandToggle}"
+                                      HorizontalAlignment="Right" Margin="0,-6,0,-6"
+                                      Checked="LogToggle_Toggled" Unchecked="LogToggle_Toggled"
+                                      ToolTip="Show or hide the activity log"/>
+                    </Grid>
+
+                    <!-- Undocked, so it fills whatever height the splitter leaves. -->
+                    <Border x:Name="LogArea" Background="{DynamicResource LogBgBrush}"
+                            CornerRadius="0" Padding="8,4">
+                        <ListBox x:Name="LogList" ItemsSource="{Binding LogEntries}"
+                                 Background="Transparent" BorderThickness="0"
+                                 FontFamily="{StaticResource MonoFont}" FontSize="11.5"
+                                 ItemContainerStyle="{StaticResource PlainListItem}"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
+                    </Border>
+                </DockPanel>
+            </Border>
+
+            <!-- Seam above the bottom panel; overlays its 1px top border. -->
+            <GridSplitter x:Name="LogSplitter" Grid.Row="1" Height="7" Margin="0,-4,0,0"
+                          HorizontalAlignment="Stretch" VerticalAlignment="Top"
+                          Background="Transparent" Cursor="SizeNS" Focusable="False"
+                          ResizeDirection="Rows" ResizeBehavior="PreviousAndCurrent"
+                          DragCompleted="LogSplitter_DragCompleted"
+                          ToolTip="Drag to resize the activity log"/>
             </Grid>
 
             <!-- Seam between history and contents. Sits over the sidebar's own
@@ -441,53 +632,5 @@
                           ToolTip="Drag to resize the capture history"/>
         </Grid>
 
-        <!-- ============ Full-width bottom panel ============ -->
-        <Border Grid.Row="1" Background="{DynamicResource PanelBrush}"
-                BorderBrush="{DynamicResource BorderBrush2}" BorderThickness="0,1,0,0"
-                Padding="26,12,26,14">
-            <DockPanel>
-                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal"
-                            VerticalAlignment="Center" Margin="0,0,0,10">
-                    <CheckBox IsChecked="{Binding AutoCapture}" Margin="0,0,22,0">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="Auto capture" FontSize="12.5"/>
-                            <TextBlock Text="every 2 min" FontSize="11" Margin="7,1,0,0"
-                                       Foreground="{DynamicResource MutedBrush}"/>
-                        </StackPanel>
-                    </CheckBox>
-                    <CheckBox Content="Run at startup" FontSize="12.5"
-                              IsChecked="{Binding StartWithWindows}" Margin="0,0,22,0"/>
-                    <CheckBox Content="Force relaunch" FontSize="12.5"
-                              IsChecked="{Binding ForceLaunch}"/>
-                </StackPanel>
-
-                <Grid DockPanel.Dock="Top" Margin="2,0,0,6">
-                    <TextBlock Text="ACTIVITY LOG" Style="{StaticResource SectionLabel}"
-                               VerticalAlignment="Center"/>
-                    <ToggleButton x:Name="LogToggle" Style="{StaticResource ExpandToggle}"
-                                  HorizontalAlignment="Right" Margin="0,-6,0,-6"
-                                  Checked="LogToggle_Toggled" Unchecked="LogToggle_Toggled"
-                                  ToolTip="Show or hide the activity log"/>
-                </Grid>
-
-                <!-- Undocked, so it fills whatever height the splitter leaves. -->
-                <Border x:Name="LogArea" Background="{DynamicResource LogBgBrush}"
-                        CornerRadius="3" Padding="8,4">
-                    <ListBox x:Name="LogList" ItemsSource="{Binding LogEntries}"
-                             Background="Transparent" BorderThickness="0"
-                             FontFamily="Consolas" FontSize="11"
-                             ItemContainerStyle="{StaticResource PlainListItem}"
-                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
-                </Border>
-            </DockPanel>
-        </Border>
-
-        <!-- Seam above the bottom panel; overlays its 1px top border. -->
-        <GridSplitter x:Name="LogSplitter" Grid.Row="1" Height="7" Margin="0,-4,0,0"
-                      HorizontalAlignment="Stretch" VerticalAlignment="Top"
-                      Background="Transparent" Cursor="SizeNS" Focusable="False"
-                      ResizeDirection="Rows" ResizeBehavior="PreviousAndCurrent"
-                      DragCompleted="LogSplitter_DragCompleted"
-                      ToolTip="Drag to resize the activity log"/>
     </Grid>
 </Window>

@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.Runtime.InteropServices;
+using System.Windows;
 using System.Windows.Controls.Primitives;
 using System.Windows.Interop;
 using Rewake.Models;
@@ -17,6 +18,8 @@ public partial class MainWindow : Window
     bool _themeHooked;
     bool _restoringLayout;
     double _bottomRowMin;
+    double _sidebarMin;
+    double _sidebarWidth;
 
     public MainWindow()
     {
@@ -25,7 +28,7 @@ public partial class MainWindow : Window
         DataContextChanged += (_, _) => { HookLogAutoScroll(); HookThemeChanges(); };
         // WPF on .NET 9 stamps its own title-bar theme from the OS setting during
         // load, so re-apply ours at every stage that could overwrite it.
-        SourceInitialized += (_, _) => ApplyTitleBarTheme();
+        SourceInitialized += (_, _) => { HookWindowProc(); ApplyTitleBarTheme(); };
         Loaded += (_, _) => ApplyTitleBarTheme();
         ContentRendered += (_, _) => ApplyTitleBarTheme();
     }
@@ -52,6 +55,61 @@ public partial class MainWindow : Window
         _themeHooked = true;
     }
 
+    // ---- Custom title bar -------------------------------------------------
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct POINT { public int X, Y; }
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct MINMAXINFO { public POINT Reserved, MaxSize, MaxPosition, MinTrackSize, MaxTrackSize; }
+
+    void HookWindowProc()
+    {
+        var source = HwndSource.FromHwnd(new WindowInteropHelper(this).Handle);
+        source?.AddHook(WindowProc);
+    }
+
+    /// <summary>
+    /// Windows sizes a maximized resizable window to the work area *plus* its
+    /// resize border on every side, trusting that border to hang off-screen.
+    /// With the caption gone the client area covers that border too, so the
+    /// content would be clipped and the taskbar covered. Answering
+    /// WM_GETMINMAXINFO with the monitor's work area pins it back.
+    /// </summary>
+    IntPtr WindowProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        const int WM_GETMINMAXINFO = 0x0024;
+        if (msg != WM_GETMINMAXINFO) return IntPtr.Zero;
+
+        var monitor = NativeMethods.MonitorFromWindow(hwnd, NativeMethods.MONITOR_DEFAULTTONEAREST);
+        if (monitor == IntPtr.Zero) return IntPtr.Zero;
+
+        var info = new NativeMethods.MONITORINFO { Size = Marshal.SizeOf<NativeMethods.MONITORINFO>() };
+        if (!NativeMethods.GetMonitorInfo(monitor, ref info)) return IntPtr.Zero;
+
+        var mmi = Marshal.PtrToStructure<MINMAXINFO>(lParam);
+        // Maximized position is relative to the monitor, not the desktop.
+        mmi.MaxPosition.X = info.Work.Left - info.Monitor.Left;
+        mmi.MaxPosition.Y = info.Work.Top - info.Monitor.Top;
+        mmi.MaxSize.X = info.Work.Right - info.Work.Left;
+        mmi.MaxSize.Y = info.Work.Bottom - info.Work.Top;
+        mmi.MaxTrackSize = mmi.MaxSize;
+        Marshal.StructureToPtr(mmi, lParam, false);
+
+        handled = true;
+        return IntPtr.Zero;
+    }
+
+    void Minimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+
+    void MaxRestore_Click(object sender, RoutedEventArgs e) =>
+        WindowState = WindowState == WindowState.Maximized
+            ? WindowState.Normal
+            : WindowState.Maximized;
+
+    // Goes through Close so the hide-to-tray rule still applies.
+    void CloseWindow_Click(object sender, RoutedEventArgs e) => Close();
+
     void ApplyTitleBarTheme()
     {
         var hwnd = new WindowInteropHelper(this).Handle;
@@ -68,22 +126,40 @@ public partial class MainWindow : Window
     void RestoreLayout()
     {
         _bottomRowMin = BottomRow.MinHeight;
+        _sidebarMin = SidebarColumn.MinWidth;
+        _sidebarWidth = SidebarColumn.Width.Value;
         _restoringLayout = true;
         try
         {
             var width = Settings.SidebarWidth;
             if (double.IsFinite(width))
-                SidebarColumn.Width = new GridLength(
-                    Math.Clamp(width, SidebarColumn.MinWidth, SidebarColumn.MaxWidth));
+                _sidebarWidth = Math.Clamp(width, _sidebarMin, SidebarColumn.MaxWidth);
 
             var height = Settings.BottomPanelHeight;
             if (double.IsFinite(height) && height >= _bottomRowMin)
                 BottomRow.Height = new GridLength(height);
 
+            // The toggle reads as "sidebar showing", so it is the inverse of the
+            // stored flag — a lit-up dock glyph next to a hidden pane would lie.
+            SidebarToggle.IsChecked = !Settings.SidebarCollapsed;
+            ApplySidebarCollapsed(Settings.SidebarCollapsed);
+
             LogToggle.IsChecked = Settings.LogCollapsed;
             ApplyLogCollapsed(Settings.LogCollapsed);
         }
         finally { _restoringLayout = false; }
+    }
+
+    // Hiding the sidebar means surrendering the column's MinWidth too: a
+    // minimum of 208 would keep the pane on screen whatever width we set. The
+    // seam goes with it — with nothing to its left there is nothing to size,
+    // and an invisible drag strip against the window edge reads as a bug.
+    void ApplySidebarCollapsed(bool collapsed)
+    {
+        SidebarPanel.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
+        SidebarSplitter.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
+        SidebarColumn.MinWidth = collapsed ? 0 : _sidebarMin;
+        SidebarColumn.Width = new GridLength(collapsed ? 0 : _sidebarWidth);
     }
 
     // Collapsed, the bottom row shrinks to the controls bar and the seam stops
@@ -110,13 +186,31 @@ public partial class MainWindow : Window
         SettingsService.Save(Settings);
     }
 
+    void SidebarToggle_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_restoringLayout) return;
+        var collapsed = SidebarToggle.IsChecked != true;
+        ApplySidebarCollapsed(collapsed);
+        Settings.SidebarCollapsed = collapsed;
+        SettingsService.Save(Settings);
+    }
+
+    // An open Popup captures the mouse, so a click on the gear would close it
+    // and then be delivered to the button, which reopens it — the panel could
+    // never be dismissed from the control that opened it. Taking the gear out
+    // of hit-testing while the panel is up leaves that click one job: close.
+    void SettingsPopup_Opened(object sender, EventArgs e) => SettingsToggle.IsHitTestVisible = false;
+
+    void SettingsPopup_Closed(object sender, EventArgs e) => SettingsToggle.IsHitTestVisible = true;
+
     // Persist on drag end rather than on close: the window hides to tray far
     // more often than it actually closes. Each seam saves only its own
     // dimension — a narrow window can squeeze the sidebar below its stored
     // width, and dragging the log must not write that squeeze back as intent.
     void SidebarSplitter_DragCompleted(object sender, DragCompletedEventArgs e)
     {
-        Settings.SidebarWidth = SidebarColumn.ActualWidth;
+        _sidebarWidth = SidebarColumn.ActualWidth;
+        Settings.SidebarWidth = _sidebarWidth;
         SettingsService.Save(Settings);
     }
 
