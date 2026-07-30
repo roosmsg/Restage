@@ -206,6 +206,10 @@ public partial class MainWindow : Window
 
     void SettingsPopup_Closed(object sender, EventArgs e) => SettingsToggle.IsHitTestVisible = true;
 
+    // The row opens a dialog, so the menu's job is done — clicks inside a Popup
+    // don't dismiss it on their own, and a menu under a modal overlay is junk.
+    void StayAwakeRow_Click(object sender, RoutedEventArgs e) => SettingsToggle.IsChecked = false;
+
     // Persist on drag end rather than on close: the window hides to tray far
     // more often than it actually closes. Each seam saves only its own
     // dimension — a narrow window can squeeze the sidebar below its stored

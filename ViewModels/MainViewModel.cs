@@ -35,6 +35,10 @@ public class MainViewModel : ViewModelBase
         ClearHistoryCommand = new RelayCommand(_ => AskClearHistory(), _ => HasClearableHistory);
         ConfirmAcceptCommand = new RelayCommand(_ => AcceptConfirm());
         ConfirmCancelCommand = new RelayCommand(_ => CloseConfirm());
+        OpenStayAwakeCommand = new RelayCommand(_ => ShowStayAwake = true);
+        CloseStayAwakeCommand = new RelayCommand(_ => ShowStayAwake = false);
+        StayAwakeToggleCommand = new RelayCommand(_ => ToggleStayAwake());
+        StayAwakeService.StateChanged += OnStayAwakeStateChanged;
         RefreshSnapshots();
         Log("Ready. Closing the window keeps Rewake running in the system tray.");
     }
@@ -59,6 +63,9 @@ public class MainViewModel : ViewModelBase
     public RelayCommand ClearHistoryCommand { get; }
     public RelayCommand ConfirmAcceptCommand { get; }
     public RelayCommand ConfirmCancelCommand { get; }
+    public RelayCommand OpenStayAwakeCommand { get; }
+    public RelayCommand CloseStayAwakeCommand { get; }
+    public RelayCommand StayAwakeToggleCommand { get; }
 
     /// <summary>Raised when the auto-capture setting changes so the host can reconfigure its timer.</summary>
     public event Action? AutoCaptureChanged;
@@ -582,6 +589,138 @@ public class MainViewModel : ViewModelBase
         _confirmAction = null;
         _promptAction = null;
         ShowConfirm = false;
+    }
+
+    // ---- Stay Awake -----------------------------------------------------
+    // The dialog binds settings straight to AppSettings (saved on change), so
+    // reopening it later starts from the last configuration. The service is
+    // static and outlives the window; this view model only fronts it.
+
+    bool _showStayAwake;
+    public bool ShowStayAwake
+    {
+        get => _showStayAwake;
+        set
+        {
+            if (!SetProperty(ref _showStayAwake, value)) return;
+            // The countdown only needs to tick while someone is looking at it.
+            SyncStayAwakeTicker();
+            if (value) OnPropertyChanged(nameof(StayAwakeStatus));
+        }
+    }
+
+    public bool IsStayAwakeActive => StayAwakeService.IsActive;
+
+    public int StayAwakeIntervalSeconds
+    {
+        get => _settings.StayAwakeIntervalSeconds;
+        set
+        {
+            value = Math.Clamp(value, 10, 3600);
+            if (_settings.StayAwakeIntervalSeconds == value) return;
+            _settings.StayAwakeIntervalSeconds = value;
+            SettingsService.Save(_settings);
+            OnPropertyChanged();
+        }
+    }
+
+    public string StayAwakeMethod
+    {
+        get => _settings.StayAwakeMethod;
+        set
+        {
+            if (_settings.StayAwakeMethod == value) return;
+            _settings.StayAwakeMethod = value;
+            SettingsService.Save(_settings);
+            OnPropertyChanged();
+        }
+    }
+
+    public bool StayAwakeOnlyWhenIdle
+    {
+        get => _settings.StayAwakeOnlyWhenIdle;
+        set
+        {
+            if (_settings.StayAwakeOnlyWhenIdle == value) return;
+            _settings.StayAwakeOnlyWhenIdle = value;
+            SettingsService.Save(_settings);
+            OnPropertyChanged();
+        }
+    }
+
+    public bool StayAwakeAutoStop
+    {
+        get => _settings.StayAwakeAutoStop;
+        set
+        {
+            if (_settings.StayAwakeAutoStop == value) return;
+            _settings.StayAwakeAutoStop = value;
+            SettingsService.Save(_settings);
+            OnPropertyChanged();
+        }
+    }
+
+    public int StayAwakeAutoStopHours
+    {
+        get => _settings.StayAwakeAutoStopHours;
+        set
+        {
+            value = Math.Clamp(value, 1, 24);
+            if (_settings.StayAwakeAutoStopHours == value) return;
+            _settings.StayAwakeAutoStopHours = value;
+            SettingsService.Save(_settings);
+            OnPropertyChanged();
+        }
+    }
+
+    public string StayAwakeButtonLabel => IsStayAwakeActive ? "Stop" : "Start";
+
+    public string StayAwakeStatus
+    {
+        get
+        {
+            if (!IsStayAwakeActive) return "Idle — not running";
+            var next = StayAwakeService.NextNudge - DateTime.Now;
+            if (next < TimeSpan.Zero) next = TimeSpan.Zero;
+            return $"Active since {StayAwakeService.StartedAt:HH:mm} · "
+                 + $"{StayAwakeService.NudgeCount} nudges · next in {(int)next.TotalMinutes}:{next.Seconds:D2}";
+        }
+    }
+
+    /// <summary>Start/Stop from the dialog button or the tray menu item.</summary>
+    public void ToggleStayAwake()
+    {
+        if (IsStayAwakeActive) StayAwakeService.Stop();
+        else StayAwakeService.Start(_settings, Log);
+    }
+
+    System.Windows.Threading.DispatcherTimer? _stayAwakeTicker;
+
+    void OnStayAwakeStateChanged()
+    {
+        OnPropertyChanged(nameof(IsStayAwakeActive));
+        OnPropertyChanged(nameof(StayAwakeButtonLabel));
+        OnPropertyChanged(nameof(StayAwakeStatus));
+        SyncStayAwakeTicker();
+    }
+
+    void SyncStayAwakeTicker()
+    {
+        var wanted = ShowStayAwake && IsStayAwakeActive;
+        if (wanted && _stayAwakeTicker == null)
+        {
+            _stayAwakeTicker = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(1)
+            };
+            _stayAwakeTicker.Tick += (_, _) => OnPropertyChanged(nameof(StayAwakeStatus));
+            _stayAwakeTicker.Start();
+        }
+        else if (!wanted && _stayAwakeTicker != null)
+        {
+            _stayAwakeTicker.Stop();
+            _stayAwakeTicker = null;
+        }
     }
 
     void OpenDataFolder()

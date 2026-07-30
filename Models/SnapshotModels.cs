@@ -94,4 +94,23 @@ public class AppSettings
 
     /// <summary>True when the capture-history sidebar is hidden.</summary>
     public bool SidebarCollapsed { get; set; }
+
+    // ---- Stay Awake (Services.StayAwakeService) ----
+    // Only the configuration is saved; whether it is running is not. A machine
+    // that reboots should come back asleep-able until the user says otherwise.
+
+    /// <summary>Seconds between simulated-activity nudges.</summary>
+    public int StayAwakeIntervalSeconds { get; set; } = 60;
+
+    /// <summary>"Invisible" (1px move &amp; return), "Visible" (small drift) or "Key" (F15 tap).</summary>
+    public string StayAwakeMethod { get; set; } = "Visible";
+
+    /// <summary>Skip the nudge whenever the user has produced real input within the interval.</summary>
+    public bool StayAwakeOnlyWhenIdle { get; set; } = true;
+
+    /// <summary>True to stop automatically after <see cref="StayAwakeAutoStopHours"/>.</summary>
+    public bool StayAwakeAutoStop { get; set; }
+
+    /// <summary>Hours before an automatic stop (guards a forgotten Friday session).</summary>
+    public int StayAwakeAutoStopHours { get; set; } = 2;
 }

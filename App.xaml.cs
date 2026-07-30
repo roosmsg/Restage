@@ -5,6 +5,7 @@ using System.Windows.Threading;
 using Rewake.Models;
 using Rewake.Services;
 using Rewake.ViewModels;
+using Rewake.Views;
 using Drawing = System.Drawing;
 using WinForms = System.Windows.Forms;
 
@@ -73,12 +74,7 @@ public partial class App : Application
             Visible = true,
             Text = $"Rewake {AppVersion} — workspace snapshots"
         };
-        var menu = new WinForms.ContextMenuStrip();
-        menu.Items.Add("Open Rewake", null, (_, _) => ShowMain());
-        menu.Items.Add("Capture now", null, async (_, _) => await ViewModel.CaptureNowAsync());
-        menu.Items.Add(new WinForms.ToolStripSeparator());
-        menu.Items.Add("Exit", null, (_, _) => ExitApp());
-        _tray.ContextMenuStrip = menu;
+        _tray.ContextMenuStrip = BuildTrayMenu();
         _tray.DoubleClick += (_, _) => ShowMain();
 
         SetupTimer();
@@ -117,6 +113,64 @@ public partial class App : Application
                 $"{ex}{Environment.NewLine}{Environment.NewLine}");
         }
         catch { /* never let crash reporting crash */ }
+    }
+
+    /// <summary>
+    /// Tray menu in the app's own chrome (see Views.TrayMenuRenderer), with the
+    /// same Lucide icons as the window. Icons are re-rasterised on every open:
+    /// that is when the current theme and Stay Awake state are known to be
+    /// fresh, and four small bitmaps cost nothing.
+    /// </summary>
+    WinForms.ContextMenuStrip BuildTrayMenu()
+    {
+        var menu = new WinForms.ContextMenuStrip
+        {
+            Renderer = new Views.TrayMenuRenderer(),
+            ShowCheckMargin = false,
+            ShowImageMargin = true,
+            Font = new Drawing.Font("Segoe UI", 9.5f),
+        };
+        // Pre-scaled bitmaps, so WinForms doesn't resample them a second time.
+        var px = Math.Max(16, 16 * menu.DeviceDpi / 96);
+        menu.ImageScalingSize = new Drawing.Size(px, px);
+        menu.Padding = new WinForms.Padding(4, 6, 4, 6);
+
+        var open = new WinForms.ToolStripMenuItem("Open Rewake");
+        open.Click += (_, _) => ShowMain();
+        var capture = new WinForms.ToolStripMenuItem("Capture now");
+        capture.Click += async (_, _) => await ViewModel.CaptureNowAsync();
+        // Stay Awake outlives the window, so the tray is where a forgotten
+        // keeper gets found and stopped without reopening anything.
+        var stayAwake = new WinForms.ToolStripMenuItem("Stay awake");
+        stayAwake.Click += (_, _) => ViewModel.ToggleStayAwake();
+        var exit = new WinForms.ToolStripMenuItem("Exit");
+        exit.Click += (_, _) => ExitApp();
+
+        foreach (var item in new[] { open, capture, stayAwake, exit })
+            item.Padding = new WinForms.Padding(2, 5, 2, 5);
+
+        menu.Items.Add(open);
+        menu.Items.Add(capture);
+        menu.Items.Add(stayAwake);
+        menu.Items.Add(new WinForms.ToolStripSeparator());
+        menu.Items.Add(exit);
+
+        void RefreshIcons()
+        {
+            var active = StayAwakeService.IsActive;
+            TrayIcons.Set(open, TrayIcons.Render("IconAppWindow", "MutedBrush", px));
+            TrayIcons.Set(capture, TrayIcons.Render("IconCamera", "MutedBrush", px));
+            // The running keeper reads as the accent, same as the gear dot; the
+            // renderer picks the text colour up from the Tag.
+            TrayIcons.Set(stayAwake, TrayIcons.Render("IconBell", active ? "AccentBrush" : "MutedBrush", px));
+            stayAwake.Text = active ? "Stay awake — on" : "Stay awake";
+            stayAwake.Tag = active ? "accent" : null;
+            TrayIcons.Set(exit, TrayIcons.Render("IconPower", "MutedBrush", px));
+        }
+
+        RefreshIcons();
+        menu.Opening += (_, _) => RefreshIcons();
+        return menu;
     }
 
     /// <summary>The embedded app icon, falling back to the generic system icon.</summary>
@@ -162,6 +216,9 @@ public partial class App : Application
     /// <summary>Removes the tray icon and shuts the application down for real.</summary>
     public void ExitApp()
     {
+        // Releases the execution-state hold; a dead process can't hold it, but
+        // stopping cleanly also writes the run's summary to the log path.
+        StayAwakeService.Stop();
         if (_tray != null) { _tray.Visible = false; _tray.Dispose(); _tray = null; }
         Shutdown();
     }

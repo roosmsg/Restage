@@ -4,7 +4,8 @@ namespace Rewake.Services;
 
 /// <summary>
 /// Win32 P/Invoke surface: window enumeration/placement, DWM attributes,
-/// shell icons, and reading another process's working directory from its PEB.
+/// shell icons, input simulation and idle time (Stay Awake), and reading
+/// another process's working directory from its PEB.
 /// </summary>
 internal static class NativeMethods
 {
@@ -64,6 +65,71 @@ internal static class NativeMethods
     public static extern IntPtr SHGetFileInfo(string path, uint attr, ref SHFILEINFO fi, uint size, uint flags);
 
     [DllImport("user32.dll")] public static extern bool DestroyIcon(IntPtr hIcon);
+
+    // ---- Input simulation & idle time (Stay Awake) ----------------------
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct LASTINPUTINFO { public uint Size; public uint Time; }
+
+    [DllImport("user32.dll")] static extern bool GetLastInputInfo(ref LASTINPUTINFO info);
+
+    /// <summary>Time since the last real keyboard or mouse input, system-wide.</summary>
+    public static TimeSpan GetIdleTime()
+    {
+        var info = new LASTINPUTINFO { Size = (uint)Marshal.SizeOf<LASTINPUTINFO>() };
+        if (!GetLastInputInfo(ref info)) return TimeSpan.Zero;
+        // Both are 32-bit tick counts, so the subtraction survives the 49-day wrap.
+        return TimeSpan.FromMilliseconds(unchecked((uint)Environment.TickCount - info.Time));
+    }
+
+    public const uint ES_CONTINUOUS = 0x80000000;
+    public const uint ES_SYSTEM_REQUIRED = 0x00000001;
+    public const uint ES_DISPLAY_REQUIRED = 0x00000002;
+
+    [DllImport("kernel32.dll")] public static extern uint SetThreadExecutionState(uint flags);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MOUSEINPUT
+    {
+        public int Dx, Dy;
+        public uint MouseData, Flags, Time;
+        public IntPtr ExtraInfo;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct KEYBDINPUT
+    {
+        public ushort Vk, Scan;
+        public uint Flags, Time;
+        public IntPtr ExtraInfo;
+    }
+
+    // The union: mouse and keyboard variants share the payload at offset 0.
+    // HARDWAREINPUT is smaller than both, so leaving it out keeps the size right.
+    [StructLayout(LayoutKind.Explicit)]
+    public struct INPUTUNION
+    {
+        [FieldOffset(0)] public MOUSEINPUT Mouse;
+        [FieldOffset(0)] public KEYBDINPUT Keyboard;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct INPUT
+    {
+        public uint Type;
+        public INPUTUNION Data;
+    }
+
+    public const uint INPUT_MOUSE = 0;
+    public const uint INPUT_KEYBOARD = 1;
+    public const uint MOUSEEVENTF_MOVE = 0x0001;
+    public const uint KEYEVENTF_KEYUP = 0x0002;
+
+    /// <summary>F15: real, delivered like any key, and bound to nothing anywhere.</summary>
+    public const ushort VK_F15 = 0x7E;
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern uint SendInput(uint count, INPUT[] inputs, int size);
 
     [StructLayout(LayoutKind.Sequential)]
     struct PROCESS_BASIC_INFORMATION

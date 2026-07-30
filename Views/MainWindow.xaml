@@ -222,10 +222,17 @@
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
                             VerticalAlignment="Stretch"
                             WindowChrome.IsHitTestVisibleInChrome="True">
-                    <ToggleButton x:Name="SettingsToggle" Style="{StaticResource IconToggle}"
-                                  Tag="{StaticResource IconSettings}"
-                                  VerticalAlignment="Center" Margin="0,0,10,0"
-                                  AutomationProperties.Name="Settings" ToolTip="Settings"/>
+                    <Grid VerticalAlignment="Center" Margin="0,0,10,0">
+                        <ToggleButton x:Name="SettingsToggle" Style="{StaticResource IconToggle}"
+                                      Tag="{StaticResource IconSettings}"
+                                      AutomationProperties.Name="Settings" ToolTip="Settings"/>
+                        <!-- Stay Awake runs with the window closed, so its only
+                             always-visible tell is this dot on the gear. -->
+                        <Ellipse Width="6" Height="6" Fill="{DynamicResource AccentBrush}"
+                                 HorizontalAlignment="Right" VerticalAlignment="Top"
+                                 Margin="0,5,5,0" IsHitTestVisible="False"
+                                 Visibility="{Binding IsStayAwakeActive, Converter={StaticResource BoolToVis}}"/>
+                    </Grid>
                     <Button Style="{StaticResource CaptionButton}" Tag="{StaticResource IconMinus}"
                             Click="Minimize_Click" ToolTip="Minimize"
                             AutomationProperties.Name="Minimize"/>
@@ -303,6 +310,19 @@
                                     Tag="{StaticResource IconFolderOpen}"
                                     Content="Open data folder"
                                     Command="{Binding OpenDataFolderCommand}"/>
+                            <!-- Opens the Stay Awake dialog; the dot mirrors the
+                                 gear's so the row itself says whether it runs. -->
+                            <Grid>
+                                <Button Style="{StaticResource MenuRowButton}"
+                                        Tag="{StaticResource IconBell}"
+                                        Content="Stay awake…"
+                                        Command="{Binding OpenStayAwakeCommand}"
+                                        Click="StayAwakeRow_Click"/>
+                                <Ellipse Width="7" Height="7" Fill="{DynamicResource AccentBrush}"
+                                         HorizontalAlignment="Right" VerticalAlignment="Center"
+                                         Margin="0,0,8,0" IsHitTestVisible="False"
+                                         Visibility="{Binding IsStayAwakeActive, Converter={StaticResource BoolToVis}}"/>
+                            </Grid>
                         </StackPanel>
                     </Border>
                 </Popup>
@@ -758,6 +778,160 @@
                                     Content="{Binding ConfirmAcceptLabel}"
                                     Command="{Binding ConfirmAcceptCommand}"/>
                         </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Border>
+
+            <!-- Stay Awake: configure-and-start dialog. Same overlay treatment
+                 as the confirmation prompt; the service it fronts lives in the
+                 tray process, so closing this dialog (or the window) does not
+                 stop a running keeper — only Stop does. -->
+            <Border Grid.ColumnSpan="2" Background="{DynamicResource OverlayDimBrush}"
+                    Panel.ZIndex="11"
+                    Visibility="{Binding ShowStayAwake, Converter={StaticResource BoolToVis}}">
+                <Border Background="{DynamicResource PanelBrush}"
+                        BorderBrush="{DynamicResource BorderBrush2}" BorderThickness="1"
+                        Width="392" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="28" ShadowDepth="4" Opacity="0.35" Color="Black"/>
+                    </Border.Effect>
+                    <StackPanel>
+                        <Grid Margin="20,14,10,12">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Viewbox Width="15" Height="15" VerticalAlignment="Center" Margin="0,0,10,0">
+                                    <Path Width="24" Height="24" Data="{StaticResource IconBell}"
+                                          Stroke="{DynamicResource AccentBrush}" StrokeThickness="2.25"
+                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                          StrokeLineJoin="Round"/>
+                                </Viewbox>
+                                <TextBlock Text="STAY AWAKE" Style="{StaticResource SectionLabel}"
+                                           Foreground="{DynamicResource TextBrush}"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <Button Style="{StaticResource SubtleIconButton}" Tag="{StaticResource IconClose}"
+                                    HorizontalAlignment="Right" VerticalAlignment="Center"
+                                    Command="{Binding CloseStayAwakeCommand}"
+                                    ToolTip="Close" AutomationProperties.Name="Close Stay Awake"/>
+                        </Grid>
+                        <Border Height="1" Background="{DynamicResource BorderBrush2}"/>
+
+                        <!-- Config: read-only while running, so what the status
+                             line reports is always what was started. -->
+                        <StackPanel Margin="20,14,20,4">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsStayAwakeActive}" Value="True">
+                                            <Setter Property="IsEnabled" Value="False"/>
+                                            <Setter Property="Opacity" Value="0.5"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+
+                            <TextBlock Text="NUDGE EVERY" Style="{StaticResource SectionLabel}"
+                                       FontSize="10.5" Margin="0,0,0,8"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                <RadioButton Style="{StaticResource ChipRadio}" GroupName="SaInterval"
+                                             Content="30 s" Margin="0,0,6,0"
+                                             IsChecked="{Binding StayAwakeIntervalSeconds, Converter={StaticResource EqualsParam}, ConverterParameter=30}"/>
+                                <RadioButton Style="{StaticResource ChipRadio}" GroupName="SaInterval"
+                                             Content="1 min" Margin="0,0,6,0"
+                                             IsChecked="{Binding StayAwakeIntervalSeconds, Converter={StaticResource EqualsParam}, ConverterParameter=60}"/>
+                                <RadioButton Style="{StaticResource ChipRadio}" GroupName="SaInterval"
+                                             Content="2 min" Margin="0,0,6,0"
+                                             IsChecked="{Binding StayAwakeIntervalSeconds, Converter={StaticResource EqualsParam}, ConverterParameter=120}"/>
+                                <RadioButton Style="{StaticResource ChipRadio}" GroupName="SaInterval"
+                                             Content="5 min" Margin="0,0,10,0"
+                                             IsChecked="{Binding StayAwakeIntervalSeconds, Converter={StaticResource EqualsParam}, ConverterParameter=300}"/>
+                                <TextBlock Text="custom" FontSize="11" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource MutedBrush}" Margin="0,0,6,0"/>
+                                <TextBox Width="42" FontSize="12" Padding="4,3"
+                                         HorizontalContentAlignment="Center"
+                                         Text="{Binding StayAwakeIntervalSeconds, UpdateSourceTrigger=LostFocus}"
+                                         ToolTip="Seconds between nudges (10–3600)"/>
+                                <TextBlock Text="s" FontSize="11" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource MutedBrush}" Margin="4,0,0,0"/>
+                            </StackPanel>
+
+                            <TextBlock Text="METHOD" Style="{StaticResource SectionLabel}"
+                                       FontSize="10.5" Margin="0,0,0,8"/>
+                            <RadioButton Style="{StaticResource DotRadio}" GroupName="SaMethod" Margin="0,0,0,8"
+                                         IsChecked="{Binding StayAwakeMethod, Converter={StaticResource EqualsParam}, ConverterParameter=Invisible}">
+                                <StackPanel>
+                                    <TextBlock Text="Invisible nudge" FontSize="12.5"/>
+                                    <TextBlock Text="1 px move &amp; return — the cursor never visibly moves"
+                                               FontSize="11" Foreground="{DynamicResource MutedBrush}"/>
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton Style="{StaticResource DotRadio}" GroupName="SaMethod" Margin="0,0,0,8"
+                                         IsChecked="{Binding StayAwakeMethod, Converter={StaticResource EqualsParam}, ConverterParameter=Visible}">
+                                <StackPanel>
+                                    <TextBlock Text="Visible nudge" FontSize="12.5"/>
+                                    <TextBlock Text="drifts the cursor a few pixels and back"
+                                               FontSize="11" Foreground="{DynamicResource MutedBrush}"/>
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton Style="{StaticResource DotRadio}" GroupName="SaMethod" Margin="0,0,0,14"
+                                         IsChecked="{Binding StayAwakeMethod, Converter={StaticResource EqualsParam}, ConverterParameter=Key}">
+                                <StackPanel>
+                                    <TextBlock Text="Key press (F15)" FontSize="12.5"/>
+                                    <TextBlock Text="for apps that watch the keyboard instead"
+                                               FontSize="11" Foreground="{DynamicResource MutedBrush}"/>
+                                </StackPanel>
+                            </RadioButton>
+
+                            <TextBlock Text="BEHAVIOUR" Style="{StaticResource SectionLabel}"
+                                       FontSize="10.5" Margin="0,0,0,8"/>
+                            <CheckBox IsChecked="{Binding StayAwakeOnlyWhenIdle}" Margin="0,0,0,8">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="Only when I'm idle" FontSize="12.5"/>
+                                    <TextBlock Text="never fights real input" FontSize="11" Margin="7,1,0,0"
+                                               Foreground="{DynamicResource MutedBrush}"/>
+                                </StackPanel>
+                            </CheckBox>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <CheckBox IsChecked="{Binding StayAwakeAutoStop}" VerticalAlignment="Center"
+                                          Content="Stop automatically after" FontSize="12.5"/>
+                                <TextBox Width="34" FontSize="12" Padding="4,3" Margin="8,0,0,0"
+                                         HorizontalContentAlignment="Center"
+                                         IsEnabled="{Binding StayAwakeAutoStop}"
+                                         Text="{Binding StayAwakeAutoStopHours, UpdateSourceTrigger=LostFocus}"
+                                         ToolTip="Hours before it stops on its own (1–24)"/>
+                                <TextBlock Text="hours" FontSize="11" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource MutedBrush}" Margin="6,0,0,0"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <Border Height="1" Background="{DynamicResource BorderBrush2}"/>
+                        <Grid Margin="20,12,20,14">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Ellipse Width="7" Height="7" Fill="{DynamicResource AccentBrush}"
+                                         Margin="0,0,7,0" VerticalAlignment="Center"
+                                         Visibility="{Binding IsStayAwakeActive, Converter={StaticResource BoolToVis}}"/>
+                                <TextBlock Text="{Binding StayAwakeStatus}" FontSize="11.5"
+                                           Style="{StaticResource NumericText}"
+                                           Foreground="{DynamicResource MutedBrush}"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <Button Content="Start" Padding="16,9" FontSize="12.5"
+                                    HorizontalAlignment="Right"
+                                    Command="{Binding StayAwakeToggleCommand}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource AccentButton}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsStayAwakeActive}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <Button Content="Stop" Style="{StaticResource DangerOutlineButton}"
+                                    HorizontalAlignment="Right"
+                                    Command="{Binding StayAwakeToggleCommand}"
+                                    Visibility="{Binding IsStayAwakeActive, Converter={StaticResource BoolToVis}}"/>
+                        </Grid>
                     </StackPanel>
                 </Border>
             </Border>
