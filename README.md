@@ -7,7 +7,7 @@ folders), and File Explorer windows — and brings it all back after a power cut
 restart, or accidental shutdown. It sits in the system tray and snapshots your
 workspace every 2 minutes.
 
-**Version:** 1.0.0-beta.1 · **Requires:** Windows 11 (64-bit), nothing else to install
+**Version:** 1.0.0-beta.2 · **Requires:** Windows 11 (64-bit), nothing else to install
 
 ---
 
@@ -38,7 +38,7 @@ workspace every 2 minutes.
 - The title bar holds a **sidebar toggle** on the left (hide the history for a
   wider capture list) and a **gear** on the right, next to the window buttons.
   The gear has your preferences — auto capture, run at startup, force
-  relaunch — plus the theme switch and **Open data folder**.
+  relaunch — plus the theme switch, **Open data folder**, and **Stay awake…**.
 - Tick **Run at startup** under the gear so Rewake is already running after a
   reboot.
 
@@ -51,6 +51,13 @@ workspace every 2 minutes.
 - **Force relaunch** (under the gear): normally an app is skipped when one of
   its windows is already open, and a folder is skipped when Explorer is already
   showing it; tick this to open them anyway.
+- **Stay awake** (gear → Stay awake…) nudges the mouse or taps F15 on an
+  interval so the PC doesn't sleep or go idle. "Only when I'm idle" means it
+  never interferes while you're actually working, and it keeps running after
+  the window closes — a green dot on the gear (and the tray menu's
+  "Stay awake — on") shows it's active. Stop it from the dialog or the tray.
+  Note: it keeps the machine unlocked and the display on, so mind your
+  battery and your workplace's policy on idle timeouts.
 
 ## Known limitations (V1)
 
@@ -73,6 +80,7 @@ Data lives in `%LOCALAPPDATA%\Rewake`:
 | --- | --- |
 | `snapshots\` | the last 30 captures (window titles, exe paths, command lines, folder paths) |
 | `last-session.json` | the pinned pre-reboot capture |
+| `capture-meta.json` | names and favourite flags you've given captures |
 | `app-settings.json` | your preferences |
 | `crash.log` | written only if something goes wrong |
 
@@ -81,7 +89,7 @@ Data lives in `%LOCALAPPDATA%\Rewake`:
 Please include:
 
 1. What you did and what you expected to happen.
-2. The version — hover the tray icon (e.g. "Rewake 1.0.0-beta.1").
+2. The version — hover the tray icon (e.g. "Rewake 1.0.0-beta.2").
 3. `%LOCALAPPDATA%\Rewake\crash.log`, if it exists.
 4. A screenshot of the Activity Log at the bottom of the window, if relevant.
 
@@ -114,8 +122,10 @@ Views\MainWindow.xaml       pure XAML bindings; code-behind has view-only
 ViewModels\                 MainViewModel (commands + state), item VMs,
                             RelayCommand, ViewModelBase
 Services\                   SnapshotService (capture/persist), RestoreService
-                            (staggered relaunch + progress), SettingsService,
-                            ThemeService, IconCache, Paths, NativeMethods
+                            (staggered relaunch + progress), CaptureMetaService
+                            (names/favourites), StayAwakeService (keep-awake
+                            timer), SettingsService, ThemeService, IconCache,
+                            Paths, NativeMethods
 Themes\                     Dark.xaml / Light.xaml swappable dictionaries
 Assets\                     icon (.ico, 8 sizes) + SVG sources + build-icon.ps1
 Assets\Fonts\               Inter (Regular/Medium/SemiBold) + its OFL licence

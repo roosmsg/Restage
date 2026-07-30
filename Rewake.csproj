@@ -10,7 +10,7 @@
     <AssemblyName>Rewake</AssemblyName>
     <RootNamespace>Rewake</RootNamespace>
     <ApplicationIcon>Assets\Rewake.ico</ApplicationIcon>
-    <Version>1.0.0-beta.1</Version>
+    <Version>1.0.0-beta.2</Version>
     <Product>Rewake</Product>
     <Company>Rewake</Company>
     <Copyright>© 2026 Anurag Patil</Copyright>
