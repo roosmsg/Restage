@@ -308,9 +308,16 @@ public static class SnapshotService
         Directory.CreateDirectory(Paths.SnapDir);
         var file = Path.Combine(Paths.SnapDir, $"snap-{DateTime.Now:yyyyMMdd-HHmmss}.json");
         File.WriteAllText(file, JsonSerializer.Serialize(snap, JsonOpts));
+        // Favourites are exempt, so the cap is 30 rolling captures plus whatever
+        // the user chose to keep — a starred capture is never pruned out from
+        // under them.
         foreach (var old in new DirectoryInfo(Paths.SnapDir).GetFiles("snap-*.json")
+                     .Where(f => !CaptureMetaService.IsFavorite(f.FullName))
                      .OrderByDescending(f => f.LastWriteTime).Skip(30))
-            try { old.Delete(); } catch { }
+        {
+            try { old.Delete(); } catch { continue; }
+            CaptureMetaService.Forget(old.FullName);
+        }
         return file;
     }
 
@@ -337,14 +344,21 @@ public static class SnapshotService
         }
         if (Directory.Exists(Paths.SnapDir))
         {
+            var captures = new List<SnapshotFile>();
             foreach (var f in new DirectoryInfo(Paths.SnapDir).GetFiles("snap-*.json")
                          .OrderByDescending(x => x.LastWriteTime))
             {
                 var s = Load(f.FullName);
-                if (s != null)
-                    list.Add(new SnapshotFile(f.FullName, f.LastWriteTime.ToString("ddd dd MMM  HH:mm:ss"),
-                        f.LastWriteTime, false, s.Apps.Count, s.Folders.Count));
+                if (s == null) continue;
+                var meta = CaptureMetaService.Get(f.FullName);
+                captures.Add(new SnapshotFile(f.FullName, f.LastWriteTime.ToString("ddd dd MMM  HH:mm:ss"),
+                    f.LastWriteTime, false, s.Apps.Count, s.Folders.Count, meta?.Name, meta?.Favorite == true));
             }
+            // Favourites float to the top, newest first within each half. They
+            // are the ones kept on purpose, and finding one by scrolling past 30
+            // rolling captures is the thing starring was meant to avoid.
+            list.AddRange(captures.Where(c => c.IsFavorite));
+            list.AddRange(captures.Where(c => !c.IsFavorite));
         }
         return list;
     }

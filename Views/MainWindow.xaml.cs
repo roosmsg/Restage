@@ -223,6 +223,26 @@ public partial class MainWindow : Window
         SettingsService.Save(Settings);
     }
 
+    // The prompt's box is the only thing worth typing in while it is up, so it
+    // takes focus with its text selected — typing replaces the old name.
+    void ConfirmInput_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (e.NewValue is not true) return;
+        // The TextBox is still mid-layout when Visibility changes; focus lands
+        // once the overlay has actually been arranged.
+        Dispatcher.BeginInvoke(() => { ConfirmInputBox.Focus(); ConfirmInputBox.SelectAll(); });
+    }
+
+    // Enter commits, rather than IsDefault on the accept button: a default button
+    // answers Enter from anywhere in the window, including while the overlay that
+    // owns it is hidden.
+    void ConfirmInput_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter || DataContext is not MainViewModel vm) return;
+        vm.ConfirmAcceptCommand.Execute(null);
+        e.Handled = true;
+    }
+
     // Pixels moved per wheel notch. WPF's default is three "lines" — about 48px
     // — which overshoots on lists this dense. The two ListBoxes set
     // CanContentScroll="False" so their offsets are pixels too, not item counts.

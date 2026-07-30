@@ -51,9 +51,26 @@ public class Snapshot
 }
 
 /// <summary>Lightweight listing entry for a snapshot file (sidebar rows).</summary>
-public record SnapshotFile(string Path, string Label, DateTime Taken, bool IsLastSession, int AppCount, int FolderCount)
+public record SnapshotFile(string Path, string Label, DateTime Taken, bool IsLastSession, int AppCount,
+    int FolderCount, string? Name = null, bool IsFavorite = false)
 {
     public string Sub => $"{AppCount} apps · {FolderCount} folders";
+}
+
+/// <summary>
+/// What the user attached to a capture, stored beside the snapshots rather than
+/// inside them (see <see cref="Services.CaptureMetaService"/>).
+/// </summary>
+public class CaptureMeta
+{
+    /// <summary>Name shown instead of the capture time; null when unnamed.</summary>
+    [JsonPropertyName("name")] public string? Name { get; set; }
+
+    /// <summary>True when the capture is kept: sorted to the top, never pruned.</summary>
+    [JsonPropertyName("favorite")] public bool Favorite { get; set; }
+
+    /// <summary>Nothing set means the entry can be dropped on the next write.</summary>
+    [JsonIgnore] public bool IsEmpty => !Favorite && string.IsNullOrWhiteSpace(Name);
 }
 
 /// <summary>User preferences persisted to app-settings.json.</summary>

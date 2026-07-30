@@ -23,13 +23,16 @@ public class MainViewModel : ViewModelBase
         _settings = settings;
         RestoreCommand = new RelayCommand(async _ => await RestoreAsync(), _ => !IsRestoring);
         CaptureNowCommand = new RelayCommand(async _ => await CaptureNowAsync());
-        DeleteCaptureCommand = new RelayCommand(_ => DeleteCapture(), _ => SelectedSnapshot != null);
+        DeleteCaptureCommand = new RelayCommand(_ => DeleteCapture(SelectedSnapshot),
+            _ => SelectedSnapshot != null);
+        FavoriteSelectedCommand = new RelayCommand(_ => ToggleFavorite(SelectedSnapshot!),
+            _ => SelectedSnapshot?.CanTag == true);
         OpenDataFolderCommand = new RelayCommand(_ => OpenDataFolder());
         ToggleThemeCommand = new RelayCommand(_ => ToggleTheme());
         // Clearing the log throws away a few screens of text; clearing the
         // history deletes files. Only the second one asks.
         ClearLogCommand = new RelayCommand(_ => ClearLog(), _ => LogEntries.Count > 0);
-        ClearHistoryCommand = new RelayCommand(_ => AskClearHistory(), _ => Snapshots.Count > 0);
+        ClearHistoryCommand = new RelayCommand(_ => AskClearHistory(), _ => HasClearableHistory);
         ConfirmAcceptCommand = new RelayCommand(_ => AcceptConfirm());
         ConfirmCancelCommand = new RelayCommand(_ => CloseConfirm());
         RefreshSnapshots();
@@ -49,6 +52,7 @@ public class MainViewModel : ViewModelBase
     public RelayCommand RestoreCommand { get; }
     public RelayCommand CaptureNowCommand { get; }
     public RelayCommand DeleteCaptureCommand { get; }
+    public RelayCommand FavoriteSelectedCommand { get; }
     public RelayCommand OpenDataFolderCommand { get; }
     public RelayCommand ToggleThemeCommand { get; }
     public RelayCommand ClearLogCommand { get; }
@@ -71,7 +75,20 @@ public class MainViewModel : ViewModelBase
             if (SetProperty(ref _selectedSnapshot, value) && NeedsReload(value))
                 LoadSnapshot(value);
             DeleteCaptureCommand.RaiseCanExecuteChanged();
+            NotifyFavoriteChanged();
         }
+    }
+
+    /// <summary>Fills the star in the action row for the selected capture.</summary>
+    public bool SelectedIsFavorite => SelectedSnapshot?.IsFavorite == true;
+
+    public string FavoriteTooltip => SelectedIsFavorite ? "Remove from favourites" : "Add to favourites";
+
+    void NotifyFavoriteChanged()
+    {
+        OnPropertyChanged(nameof(SelectedIsFavorite));
+        OnPropertyChanged(nameof(FavoriteTooltip));
+        FavoriteSelectedCommand.RaiseCanExecuteChanged();
     }
 
     bool NeedsReload(SnapshotItemViewModel? item)
@@ -214,12 +231,15 @@ public class MainViewModel : ViewModelBase
         {
             Snapshots.Clear();
             foreach (var sf in SnapshotService.ListSnapshots())
-                Snapshots.Add(new SnapshotItemViewModel(sf));
+                Snapshots.Add(new SnapshotItemViewModel(sf, this));
         }
         finally { _refreshing = false; }
         SelectedSnapshot =
             Snapshots.FirstOrDefault(s => s.Path == selectedPath) ?? Snapshots.FirstOrDefault();
         ClearHistoryCommand.RaiseCanExecuteChanged();
+        // Rows are rebuilt rather than mutated, so the selected row is a new
+        // object even when it is the same capture — the star has to be re-asked.
+        NotifyFavoriteChanged();
 
         try
         {
@@ -367,17 +387,61 @@ public class MainViewModel : ViewModelBase
         RefreshSnapshots();
     }
 
-    void DeleteCapture()
+    /// <summary>
+    /// Deletes one capture, from either the toolbar (the selected row) or a row's
+    /// own context menu. No confirmation in either case: it is the same action
+    /// reached two ways, and one entry point must not behave differently from
+    /// the other.
+    /// </summary>
+    public void DeleteCapture(SnapshotItemViewModel? s)
     {
-        var s = SelectedSnapshot;
         if (s == null) return;
         try
         {
             File.Delete(s.Path);
+            CaptureMetaService.Forget(s.Path);
             Log($"Deleted capture: {s.DisplayLabel} ({s.SubLine}).");
         }
         catch (Exception ex) { Log($"Delete failed: {ex.Message}"); }
         _loadedPath = null;
+        RefreshSnapshots();
+    }
+
+    /// <summary>
+    /// Stars or unstars a capture. Favourites sort to the top of the sidebar and
+    /// survive both the 30-capture prune and Clear History, so the list has to be
+    /// rebuilt rather than just repainted.
+    /// </summary>
+    public void ToggleFavorite(SnapshotItemViewModel item)
+    {
+        if (!item.CanTag) return;
+        var favorite = !item.IsFavorite;
+        CaptureMetaService.SetFavorite(item.Path, favorite);
+        Log(favorite
+            ? $"Added to favourites: {item.DisplayLabel}. Favourites are never pruned."
+            : $"Removed from favourites: {item.DisplayLabel}.");
+        RefreshSnapshots();
+    }
+
+    public void AskRename(SnapshotItemViewModel item)
+    {
+        if (!item.CanTag) return;
+        Prompt(
+            "Name this capture",
+            "The name replaces the time in the list; the time still shows underneath. "
+            + "Leave it empty to go back to the time.",
+            item.Name ?? "",
+            "Save",
+            name => Rename(item, name));
+    }
+
+    void Rename(SnapshotItemViewModel item, string name)
+    {
+        name = name.Trim();
+        CaptureMetaService.SetName(item.Path, name);
+        Log(name.Length == 0
+            ? $"Cleared the name on the {item.Taken:HH:mm:ss} capture."
+            : $"Named the {item.Taken:HH:mm:ss} capture \"{name}\".");
         RefreshSnapshots();
     }
 
@@ -387,23 +451,35 @@ public class MainViewModel : ViewModelBase
         ClearLogCommand.RaiseCanExecuteChanged();
     }
 
-    void AskClearHistory() => Confirm(
-        "Clear capture history?",
-        $"Deletes all {Snapshots.Count} captures from disk, including the pinned "
-        + "pre-shutdown session. This can't be undone.",
-        "Clear history",
-        ClearHistory);
+    /// <summary>Nothing to clear once every remaining row is a favourite.</summary>
+    bool HasClearableHistory => Snapshots.Any(s => !s.IsFavorite);
+
+    void AskClearHistory()
+    {
+        var going = Snapshots.Count(s => !s.IsFavorite);
+        var kept = Snapshots.Count - going;
+        var pinned = Snapshots.Any(s => s.IsLastSession && !s.IsFavorite);
+        Confirm(
+            "Clear capture history?",
+            $"Deletes {going} {(going == 1 ? "capture" : "captures")} from disk"
+            + (pinned ? ", including the pinned pre-shutdown session" : "")
+            + (kept > 0 ? $", and keeps your {kept} favourite{(kept == 1 ? "" : "s")}" : "")
+            + ". This can't be undone.",
+            "Clear history",
+            ClearHistory);
+    }
 
     /// <summary>
     /// Deletes exactly the files behind the rows the sidebar is showing, so
-    /// "clear" can't quietly take something the user was never told about.
+    /// "clear" can't quietly take something the user was never told about —
+    /// minus the favourites, which were kept on purpose.
     /// </summary>
     void ClearHistory()
     {
         int cleared = 0, failed = 0;
-        foreach (var s in Snapshots.ToList())
+        foreach (var s in Snapshots.Where(s => !s.IsFavorite).ToList())
         {
-            try { File.Delete(s.Path); cleared++; }
+            try { File.Delete(s.Path); CaptureMetaService.Forget(s.Path); cleared++; }
             catch { failed++; }
         }
         Log(failed == 0
@@ -415,9 +491,13 @@ public class MainViewModel : ViewModelBase
 
     // ---- Confirmation prompt -------------------------------------------
     // One prompt reused by whatever needs it: the caller supplies the words
-    // and the action, and nothing destructive runs until Accept fires.
+    // and the action, and nothing destructive runs until Accept fires. It has a
+    // second mode that asks for a line of text — same overlay, because a
+    // MessageBox or a second dialog would arrive as a light-mode system window
+    // on top of a dark, custom-chromed one.
 
     Action? _confirmAction;
+    Action<string>? _promptAction;
 
     bool _showConfirm;
     public bool ShowConfirm
@@ -447,25 +527,60 @@ public class MainViewModel : ViewModelBase
         private set { _confirmAcceptLabel = value; OnPropertyChanged(); }
     }
 
+    /// <summary>True while the prompt is asking for text rather than a yes/no.</summary>
+    bool _confirmIsInput;
+    public bool ConfirmIsInput
+    {
+        get => _confirmIsInput;
+        private set { _confirmIsInput = value; OnPropertyChanged(); }
+    }
+
+    string _confirmInput = "";
+    public string ConfirmInput
+    {
+        get => _confirmInput;
+        set { _confirmInput = value; OnPropertyChanged(); }
+    }
+
     void Confirm(string title, string message, string acceptLabel, Action onAccept)
+    {
+        _promptAction = null;
+        _confirmAction = onAccept;
+        Open(title, message, acceptLabel, input: false);
+    }
+
+    void Prompt(string title, string message, string initialValue, string acceptLabel,
+        Action<string> onAccept)
+    {
+        _confirmAction = null;
+        _promptAction = onAccept;
+        ConfirmInput = initialValue;
+        Open(title, message, acceptLabel, input: true);
+    }
+
+    void Open(string title, string message, string acceptLabel, bool input)
     {
         ConfirmTitle = title;
         ConfirmMessage = message;
         ConfirmAcceptLabel = acceptLabel;
-        _confirmAction = onAccept;
+        ConfirmIsInput = input;
         ShowConfirm = true;
     }
 
     void AcceptConfirm()
     {
         var action = _confirmAction;
+        var prompt = _promptAction;
+        var value = ConfirmInput;
         CloseConfirm();
         action?.Invoke();
+        prompt?.Invoke(value);
     }
 
     void CloseConfirm()
     {
         _confirmAction = null;
+        _promptAction = null;
         ShowConfirm = false;
     }
 

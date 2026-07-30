@@ -11,6 +11,7 @@ public static class Paths
     public static readonly string LastSession = Path.Combine(DataDir, "last-session.json");
     public static readonly string Bootmark = Path.Combine(DataDir, "bootmark.txt");
     public static readonly string SettingsFile = Path.Combine(DataDir, "app-settings.json");
+    public static readonly string CaptureMetaFile = Path.Combine(DataDir, "capture-meta.json");
     public static readonly string CrashLog = Path.Combine(DataDir, "crash.log");
 
     // One-time data migration from the tool's previous names

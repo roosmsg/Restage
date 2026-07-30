@@ -59,6 +59,48 @@
             </Setter>
         </Style>
 
+        <!-- Favourite star for the selected capture. The template takes its
+             outline from Foreground and its fill from Tag, so one DataTrigger on
+             the button turns a grey outline into a solid green star: a
+             ControlTemplate trigger can't see the view model, and a Style trigger
+             can't reach a part inside the template. -->
+        <Style x:Key="FavoriteIconButton" TargetType="Button" BasedOn="{StaticResource IconButton}">
+            <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="Transparent" CornerRadius="0"
+                                BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1">
+                            <Viewbox Width="{TemplateBinding FontSize}" Height="{TemplateBinding FontSize}">
+                                <Path x:Name="Glyph" Width="24" Height="24"
+                                      Data="{StaticResource IconStar}"
+                                      Fill="{TemplateBinding Tag}"
+                                      Stroke="{TemplateBinding Foreground}" StrokeThickness="2.25"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                      StrokeLineJoin="Round"/>
+                            </Viewbox>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource HoverBrush}"/>
+                                <Setter TargetName="Glyph" Property="Stroke" Value="{DynamicResource AccentBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentDisabledBrush}"/>
+                                <Setter TargetName="Glyph" Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding SelectedIsFavorite}" Value="True">
+                    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                    <Setter Property="Tag" Value="{DynamicResource AccentBrush}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
         <!-- One row of the restore overlay's checklist -->
         <DataTemplate x:Key="RestoreRowTemplate">
             <Border x:Name="RowBd" Background="Transparent" CornerRadius="0"
@@ -305,25 +347,69 @@
                              Background="Transparent" BorderThickness="0" Margin="8,0"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                              ScrollViewer.CanContentScroll="False"
-                             PreviewMouseWheel="Scrollable_PreviewMouseWheel"
-                             ItemContainerStyle="{StaticResource SnapItemStyle}">
+                             PreviewMouseWheel="Scrollable_PreviewMouseWheel">
+                        <ListBox.ItemContainerStyle>
+                            <!-- The padding moves into the row itself, so the
+                                 context menu covers the row edge to edge. -->
+                            <Style TargetType="ListBoxItem" BasedOn="{StaticResource SnapItemStyle}">
+                                <Setter Property="Padding" Value="0"/>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <StackPanel>
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="{Binding DisplayLabel, Mode=OneWay}" FontWeight="SemiBold"
-                                                   FontSize="13" TextTrimming="CharacterEllipsis"/>
-                                        <Border Background="{DynamicResource AccentBrush}" CornerRadius="0"
-                                                Padding="6,1.5" Margin="8,0,0,0" VerticalAlignment="Center"
-                                                Visibility="{Binding IsLastSession, Converter={StaticResource BoolToVis}}">
-                                            <TextBlock Text="BEFORE SHUTDOWN" FontSize="9" FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource AccentTextBrush}"/>
-                                        </Border>
-                                    </StackPanel>
-                                    <TextBlock Text="{Binding SubLine, Mode=OneWay}" Style="{StaticResource NumericText}"
-                                               FontSize="11" Margin="0,2,0,0"
-                                               Foreground="{DynamicResource MutedBrush}"/>
-                                </StackPanel>
+                                <!-- Background, not just padding: a transparent
+                                     brush is still hit-testable, so right-click
+                                     works anywhere on the row. The menu lives
+                                     here rather than on the container style
+                                     because a DataTemplate is instantiated per
+                                     row — one shared menu in a Setter would show
+                                     the first row's data for every row. -->
+                                <Border Background="Transparent" Padding="11,9">
+                                    <Border.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="{Binding FavoriteLabel}"
+                                                      Tag="{StaticResource IconStar}"
+                                                      Command="{Binding ToggleFavoriteCommand}"/>
+                                            <MenuItem Header="Rename…"
+                                                      Tag="{StaticResource IconPencil}"
+                                                      Command="{Binding RenameCommand}"/>
+                                            <MenuItem Header="Delete capture"
+                                                      Tag="{StaticResource IconTrash}"
+                                                      Command="{Binding DeleteCommand}"/>
+                                        </ContextMenu>
+                                    </Border.ContextMenu>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <!-- A star gutter every row pays for,
+                                                 so the labels keep one left edge. -->
+                                            <ColumnDefinition Width="19"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Viewbox Grid.Column="0" Width="12" Height="12" Margin="0,1,0,0"
+                                                 HorizontalAlignment="Left" VerticalAlignment="Top"
+                                                 Visibility="{Binding IsFavorite, Converter={StaticResource BoolToVis}}">
+                                            <Path Width="24" Height="24" Data="{StaticResource IconStar}"
+                                                  Fill="{DynamicResource AccentBrush}"
+                                                  Stroke="{DynamicResource AccentBrush}" StrokeThickness="2.25"
+                                                  StrokeLineJoin="Round"/>
+                                        </Viewbox>
+                                        <StackPanel Grid.Column="1">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding DisplayLabel, Mode=OneWay}" FontWeight="SemiBold"
+                                                           FontSize="13" TextTrimming="CharacterEllipsis"/>
+                                                <Border Background="{DynamicResource AccentBrush}" CornerRadius="0"
+                                                        Padding="6,1.5" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                        Visibility="{Binding IsLastSession, Converter={StaticResource BoolToVis}}">
+                                                    <TextBlock Text="BEFORE SHUTDOWN" FontSize="9" FontWeight="SemiBold"
+                                                               Foreground="{DynamicResource AccentTextBrush}"/>
+                                                </Border>
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding SubLine, Mode=OneWay}" Style="{StaticResource NumericText}"
+                                                       FontSize="11" Margin="0,2,0,0"
+                                                       Foreground="{DynamicResource MutedBrush}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
@@ -356,10 +442,7 @@
                              rather than one segmented control. -->
                         <Button Style="{StaticResource CaptureIconButton}"
                                 ToolTip="Capture now" AutomationProperties.Name="Capture Now"
-                                Command="{Binding CaptureNowCommand}" Margin="0,0,8,0"/>
-                        <Button Style="{StaticResource IconButton}" Tag="{StaticResource IconTrash}"
-                                ToolTip="Delete capture" AutomationProperties.Name="Delete Capture"
-                                Command="{Binding DeleteCaptureCommand}" Margin="0,0,16,0"/>
+                                Command="{Binding CaptureNowCommand}" Margin="0,0,16,0"/>
                         <Button Style="{StaticResource BusyAccentButton}" Padding="16,9"
                                 Command="{Binding RestoreCommand}">
                             <Grid>
@@ -657,8 +740,17 @@
                     <StackPanel>
                         <TextBlock Text="{Binding ConfirmTitle}" FontSize="15" FontWeight="SemiBold"/>
                         <TextBlock Text="{Binding ConfirmMessage}" Style="{StaticResource SubtleText}"
-                                   TextWrapping="Wrap" Margin="0,8,0,20"/>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                   TextWrapping="Wrap" Margin="0,8,0,0"/>
+                        <!-- Collapsed for a plain confirmation, so the spacing
+                             below the message comes from whichever element is
+                             actually there. MaxLength keeps a name inside the
+                             sidebar it has to fit in. -->
+                        <TextBox x:Name="ConfirmInputBox" Margin="0,14,0,0" MaxLength="48"
+                                 Text="{Binding ConfirmInput, UpdateSourceTrigger=PropertyChanged}"
+                                 Visibility="{Binding ConfirmIsInput, Converter={StaticResource BoolToVis}}"
+                                 IsVisibleChanged="ConfirmInput_IsVisibleChanged"
+                                 KeyDown="ConfirmInput_KeyDown"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
                             <Button Style="{StaticResource QuietButton}" Content="Cancel"
                                     Command="{Binding ConfirmCancelCommand}" Margin="0,0,8,0"
                                     IsCancel="True"/>
