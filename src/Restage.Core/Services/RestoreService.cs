@@ -329,7 +329,7 @@ public static class RestoreService
     /// relaunch (Edge startup-boost runs with --no-startup-window; COM-activated
     /// apps carry -Embedding). Keep only what helps.
     /// </summary>
-    static string SanitizeArgs(string name, string? args)
+    internal static string SanitizeArgs(string name, string? args)
     {
         if (string.IsNullOrWhiteSpace(args)) return "";
         if (args.IndexOf("-Embedding", StringComparison.OrdinalIgnoreCase) >= 0 ||

@@ -1,3 +1,9 @@
-﻿<Solution>
-  <Project Path="Restage.csproj" />
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Restage.Core/Restage.Core.csproj" />
+    <Project Path="src/Restage.App/Restage.App.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Restage.Core.Tests/Restage.Core.Tests.csproj" />
+  </Folder>
 </Solution>
