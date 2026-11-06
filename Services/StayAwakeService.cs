@@ -1,11 +1,11 @@
 using System.Windows.Threading;
-using Rewake.Models;
+using Restage.Models;
 
-namespace Rewake.Services;
+namespace Restage.Services;
 
 /// <summary>
 /// Keeps the machine (and presence apps) awake by simulating a sliver of input
-/// on a timer — Rewake's take on the classic "Move Mouse" utility. Runs in the
+/// on a timer — Restage's take on the classic "Move Mouse" utility. Runs in the
 /// tray process, so closing the window does not stop it; only Stop or the
 /// auto-stop deadline does.
 ///

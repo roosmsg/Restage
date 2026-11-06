@@ -2,9 +2,9 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-using Rewake.Models;
+using Restage.Models;
 
-namespace Rewake.Services;
+namespace Restage.Services;
 
 /// <summary>
 /// Relaunches the applications and folders of a snapshot: one process per

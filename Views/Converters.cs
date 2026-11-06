@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Windows.Data;
 
-namespace Rewake.Views;
+namespace Restage.Views;
 
 /// <summary>
 /// Two-way "is this value equal to the parameter" converter, for radio-style

@@ -1,8 +1,8 @@
 using System.Windows;
 using System.Windows.Media;
-using Rewake.Models;
+using Restage.Models;
 
-namespace Rewake.ViewModels;
+namespace Restage.ViewModels;
 
 /// <summary>One row in the restore progress panel.</summary>
 public class RestoreItemViewModel : ViewModelBase

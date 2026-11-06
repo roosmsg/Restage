@@ -1,6 +1,6 @@
 ﻿using System.Windows;
 
-namespace Rewake.Services;
+namespace Restage.Services;
 
 /// <summary>Swaps the application's theme ResourceDictionary at runtime.</summary>
 public static class ThemeService

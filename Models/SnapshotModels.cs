@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Rewake.Models;
+namespace Restage.Models;
 
 /// <summary>Saved position and state of one top-level window.</summary>
 public class WindowInfo

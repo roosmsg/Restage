@@ -2,10 +2,10 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Media;
-using Rewake.Models;
-using Rewake.Services;
+using Restage.Models;
+using Restage.Services;
 
-namespace Rewake.ViewModels;
+namespace Restage.ViewModels;
 
 /// <summary>All captured windows of one application, shown as an expandable card.</summary>
 public class AppGroupViewModel : ViewModelBase

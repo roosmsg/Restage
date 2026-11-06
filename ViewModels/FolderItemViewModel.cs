@@ -1,7 +1,7 @@
 ﻿using System.Windows.Media;
-using Rewake.Services;
+using Restage.Services;
 
-namespace Rewake.ViewModels;
+namespace Restage.ViewModels;
 
 /// <summary>One captured Explorer folder; selectable for restore.</summary>
 public class FolderItemViewModel : ViewModelBase

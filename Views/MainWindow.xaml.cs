@@ -5,11 +5,11 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
-using Rewake.Models;
-using Rewake.Services;
-using Rewake.ViewModels;
+using Restage.Models;
+using Restage.Services;
+using Restage.ViewModels;
 
-namespace Rewake.Views;
+namespace Restage.Views;
 
 /// <summary>
 /// Main window code-behind. Bindings live in XAML; only view concerns are

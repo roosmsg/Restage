@@ -5,10 +5,10 @@ using Drawing = System.Drawing;
 using WinForms = System.Windows.Forms;
 using WpfApplication = System.Windows.Application;
 
-namespace Rewake.Views;
+namespace Restage.Views;
 
 /// <summary>
-/// Draws the tray menu in Rewake's own chrome: flat panel, 1px border, hover
+/// Draws the tray menu in Restage's own chrome: flat panel, 1px border, hover
 /// fill — the same treatment the in-app context menus get, instead of the
 /// light-grey system look that lands like a dialog from another decade.
 /// Colours are read from the live theme dictionary at paint time, so the menu

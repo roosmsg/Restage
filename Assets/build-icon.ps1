@@ -1,15 +1,15 @@
-﻿# Regenerates Rewake.ico from the SVG sources in this folder.
+﻿# Regenerates Restage.ico from the SVG sources in this folder.
 # Per-size artwork keeps shapes bold at taskbar/tray sizes:
-#   Rewake.svg        -> 256/128/64/48  (full design)
-#   Rewake-small.svg  -> 32/24/20       (simplified)
-#   Rewake-16.svg     -> 16             (minimal)
-# Requires Google Chrome. Afterwards: dotnet publish Rewake.csproj ...
+#   Restage.svg        -> 256/128/64/48  (full design)
+#   Restage-small.svg  -> 32/24/20       (simplified)
+#   Restage-16.svg     -> 16             (minimal)
+# Requires Google Chrome. Afterwards: dotnet publish Restage.csproj ...
 
 $assets = Split-Path -Parent $MyInvocation.MyCommand.Path
-$dst = Join-Path $assets 'Rewake.ico'
-$work = Join-Path $env:TEMP 'Rewake-icon-build'
+$dst = Join-Path $assets 'Restage.ico'
+$work = Join-Path $env:TEMP 'Restage-icon-build'
 New-Item -ItemType Directory -Force -Path $work | Out-Null
-Copy-Item (Join-Path $assets 'Rewake*.svg') $work -Force
+Copy-Item (Join-Path $assets 'Restage*.svg') $work -Force
 
 $chrome = @("$env:ProgramFiles\Google\Chrome\Application\chrome.exe",
             "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe") |
@@ -17,14 +17,14 @@ $chrome = @("$env:ProgramFiles\Google\Chrome\Application\chrome.exe",
 if (-not $chrome) { throw 'Google Chrome not found.' }
 
 $plan = @(
-    @{ Size = 256; Svg = 'Rewake.svg' },
-    @{ Size = 128; Svg = 'Rewake.svg' },
-    @{ Size = 64;  Svg = 'Rewake.svg' },
-    @{ Size = 48;  Svg = 'Rewake.svg' },
-    @{ Size = 32;  Svg = 'Rewake-small.svg' },
-    @{ Size = 24;  Svg = 'Rewake-small.svg' },
-    @{ Size = 20;  Svg = 'Rewake-small.svg' },
-    @{ Size = 16;  Svg = 'Rewake-16.svg' }
+    @{ Size = 256; Svg = 'Restage.svg' },
+    @{ Size = 128; Svg = 'Restage.svg' },
+    @{ Size = 64;  Svg = 'Restage.svg' },
+    @{ Size = 48;  Svg = 'Restage.svg' },
+    @{ Size = 32;  Svg = 'Restage-small.svg' },
+    @{ Size = 24;  Svg = 'Restage-small.svg' },
+    @{ Size = 20;  Svg = 'Restage-small.svg' },
+    @{ Size = 16;  Svg = 'Restage-16.svg' }
 )
 
 foreach ($p in $plan) {
@@ -57,7 +57,7 @@ foreach ($b in $blobs) { $bw.Write($b.Data) }
 $bw.Dispose(); $fs.Dispose()
 
 # Refresh the 256px PNG used as a WPF resource
-Copy-Item "$work\ico-256.png" (Join-Path $assets 'Rewake-256.png') -Force
+Copy-Item "$work\ico-256.png" (Join-Path $assets 'Restage-256.png') -Force
 
 Remove-Item $work -Recurse -Force
 "ICO regenerated: $dst ($([math]::Round((Get-Item $dst).Length / 1KB, 1)) KB, $($blobs.Count) sizes)"

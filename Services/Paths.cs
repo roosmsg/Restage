@@ -1,12 +1,12 @@
 ﻿using System.IO;
 
-namespace Rewake.Services;
+namespace Restage.Services;
 
-/// <summary>All file-system locations under %LOCALAPPDATA%\Rewake.</summary>
+/// <summary>All file-system locations under %LOCALAPPDATA%\Restage.</summary>
 public static class Paths
 {
     public static readonly string DataDir = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Rewake");
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Restage");
     public static readonly string SnapDir = Path.Combine(DataDir, "snapshots");
     public static readonly string LastSession = Path.Combine(DataDir, "last-session.json");
     public static readonly string Bootmark = Path.Combine(DataDir, "bootmark.txt");
@@ -15,7 +15,7 @@ public static class Paths
     public static readonly string CrashLog = Path.Combine(DataDir, "crash.log");
 
     // One-time data migration from the tool's previous names
-    // (WorkspaceRestore → StateKeeper → Rewake).
+    // (WorkspaceRestore → StateKeeper → Restage).
     static Paths()
     {
         try

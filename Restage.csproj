@@ -7,14 +7,14 @@
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <AssemblyName>Rewake</AssemblyName>
-    <RootNamespace>Rewake</RootNamespace>
-    <ApplicationIcon>Assets\Rewake.ico</ApplicationIcon>
+    <AssemblyName>Restage</AssemblyName>
+    <RootNamespace>Restage</RootNamespace>
+    <ApplicationIcon>Assets\Restage.ico</ApplicationIcon>
     <Version>1.0.0-beta.2</Version>
-    <Product>Rewake</Product>
-    <Company>Rewake</Company>
+    <Product>Restage</Product>
+    <Company>Restage</Company>
     <Copyright>© 2026 Anurag Patil</Copyright>
-    <AssemblyTitle>Rewake — workspace snapshot and restore</AssemblyTitle>
+    <AssemblyTitle>Restage — workspace snapshot and restore</AssemblyTitle>
   </PropertyGroup>
 
   <ItemGroup>
@@ -26,8 +26,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="Assets\Rewake.ico" />
-    <Resource Include="Assets\Rewake-256.png" />
+    <Resource Include="Assets\Restage.ico" />
+    <Resource Include="Assets\Restage-256.png" />
     <!-- Inter (SIL OFL 1.1, license alongside). Static weights, not the
          variable TTF: WPF renders only a variable font's default instance,
          so Medium and SemiBold would silently come out Regular. -->

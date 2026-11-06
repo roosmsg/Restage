@@ -2,9 +2,9 @@
 using System.IO;
 using System.Management;
 using System.Text.Json;
-using Rewake.Models;
+using Restage.Models;
 
-namespace Rewake.Services;
+namespace Restage.Services;
 
 /// <summary>
 /// Captures the current workspace (every visible window, terminal working
@@ -17,7 +17,7 @@ public static class SnapshotService
     {
         "explorer", "TextInputHost", "ApplicationFrameHost", "SystemSettings", "ShellExperienceHost",
         "SearchHost", "StartMenuExperienceHost", "LockApp", "Taskmgr", "msedgewebview2", "WWAHost",
-        "PhoneExperienceHost", "Rewake"
+        "PhoneExperienceHost", "Restage"
     };
 
     // Shells whose working directory is worth capturing so terminals can be

@@ -2,14 +2,14 @@
 using System.Reflection;
 using System.Windows;
 using System.Windows.Threading;
-using Rewake.Models;
-using Rewake.Services;
-using Rewake.ViewModels;
-using Rewake.Views;
+using Restage.Models;
+using Restage.Services;
+using Restage.ViewModels;
+using Restage.Views;
 using Drawing = System.Drawing;
 using WinForms = System.Windows.Forms;
 
-namespace Rewake;
+namespace Restage;
 
 /// <summary>
 /// Composition root: owns the single-instance guard, tray icon, auto-capture
@@ -43,14 +43,14 @@ public partial class App : Application
         var skipGuard = e.Args.Contains("--multi") || System.Diagnostics.Debugger.IsAttached;
         if (!skipGuard)
         {
-            _singleInstance = new Mutex(true, @"Local\Rewake.SingleInstance", out var isFirst);
+            _singleInstance = new Mutex(true, @"Local\Restage.SingleInstance", out var isFirst);
             if (!isFirst)
             {
-                try { EventWaitHandle.OpenExisting(@"Local\Rewake.ShowSignal").Set(); } catch { }
+                try { EventWaitHandle.OpenExisting(@"Local\Restage.ShowSignal").Set(); } catch { }
                 Shutdown();
                 return;
             }
-            _showSignal = new EventWaitHandle(false, EventResetMode.AutoReset, @"Local\Rewake.ShowSignal");
+            _showSignal = new EventWaitHandle(false, EventResetMode.AutoReset, @"Local\Restage.ShowSignal");
             var waiter = new Thread(() =>
             {
                 while (_showSignal.WaitOne())
@@ -72,7 +72,7 @@ public partial class App : Application
         {
             Icon = LoadTrayIcon(),
             Visible = true,
-            Text = $"Rewake {AppVersion} — workspace snapshots"
+            Text = $"Restage {AppVersion} — workspace snapshots"
         };
         _tray.ContextMenuStrip = BuildTrayMenu();
         _tray.DoubleClick += (_, _) => ShowMain();
@@ -83,7 +83,7 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// Writes every unhandled exception to %LOCALAPPDATA%\Rewake\crash.log so
+    /// Writes every unhandled exception to %LOCALAPPDATA%\Restage\crash.log so
     /// testers can attach it to a bug report. UI-thread faults are swallowed
     /// after logging to keep the tray app alive.
     /// </summary>
@@ -109,7 +109,7 @@ public partial class App : Application
         {
             Directory.CreateDirectory(Paths.DataDir);
             File.AppendAllText(Paths.CrashLog,
-                $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Rewake {AppVersion} — {source}{Environment.NewLine}" +
+                $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Restage {AppVersion} — {source}{Environment.NewLine}" +
                 $"{ex}{Environment.NewLine}{Environment.NewLine}");
         }
         catch { /* never let crash reporting crash */ }
@@ -135,7 +135,7 @@ public partial class App : Application
         menu.ImageScalingSize = new Drawing.Size(px, px);
         menu.Padding = new WinForms.Padding(4, 6, 4, 6);
 
-        var open = new WinForms.ToolStripMenuItem("Open Rewake");
+        var open = new WinForms.ToolStripMenuItem("Open Restage");
         open.Click += (_, _) => ShowMain();
         var capture = new WinForms.ToolStripMenuItem("Capture now");
         capture.Click += async (_, _) => await ViewModel.CaptureNowAsync();
@@ -178,7 +178,7 @@ public partial class App : Application
     {
         try
         {
-            var sri = GetResourceStream(new Uri("pack://application:,,,/Assets/Rewake.ico"));
+            var sri = GetResourceStream(new Uri("pack://application:,,,/Assets/Restage.ico"));
             if (sri != null) return new Drawing.Icon(sri.Stream);
         }
         catch { }

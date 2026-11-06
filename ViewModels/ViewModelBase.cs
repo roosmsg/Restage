@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
-namespace Rewake.ViewModels;
+namespace Restage.ViewModels;
 
 /// <summary>Base class providing <see cref="INotifyPropertyChanged"/> plumbing.</summary>
 public abstract class ViewModelBase : INotifyPropertyChanged

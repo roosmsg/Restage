@@ -1,6 +1,6 @@
 using System.Windows.Input;
 
-namespace Rewake.ViewModels;
+namespace Restage.ViewModels;
 
 /// <summary>Delegate-based <see cref="ICommand"/> for view-model command bindings.</summary>
 public class RelayCommand : ICommand

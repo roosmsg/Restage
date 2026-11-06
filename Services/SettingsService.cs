@@ -1,9 +1,9 @@
 ﻿using System.IO;
 using System.Text.Json;
 using Microsoft.Win32;
-using Rewake.Models;
+using Restage.Models;
 
-namespace Rewake.Services;
+namespace Restage.Services;
 
 /// <summary>Persists <see cref="AppSettings"/> and the HKCU Run (auto-start) entry.</summary>
 public static class SettingsService
@@ -32,7 +32,7 @@ public static class SettingsService
     }
 
     const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
-    const string RunValue = "Rewake";
+    const string RunValue = "Restage";
 
     /// <summary>True when the HKCU Run entry is present.</summary>
     public static bool GetStartWithWindows()

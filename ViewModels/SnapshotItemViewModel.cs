@@ -1,6 +1,6 @@
-using Rewake.Models;
+using Restage.Models;
 
-namespace Rewake.ViewModels;
+namespace Restage.ViewModels;
 
 /// <summary>One capture in the sidebar history list.</summary>
 public class SnapshotItemViewModel : ViewModelBase

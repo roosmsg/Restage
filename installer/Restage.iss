@@ -1,14 +1,14 @@
-; Rewake installer (Inno Setup 6)
-; Per-user setup: no admin prompt, installs to %LOCALAPPDATA%\Programs\Rewake —
+; Restage installer (Inno Setup 6)
+; Per-user setup: no admin prompt, installs to %LOCALAPPDATA%\Programs\Restage —
 ; same pattern as VS Code's user setup, and it matches the app's HKCU-only
-; footprint (settings, Run entry). Build with:  ISCC.exe Rewake.iss
-; Expects the published exe at ..\publish\Rewake.exe (see README "Build & publish").
+; footprint (settings, Run entry). Build with:  ISCC.exe Restage.iss
+; Expects the published exe at ..\publish\Restage.exe (see README "Build & publish").
 
-#define MyAppName "Rewake"
+#define MyAppName "Restage"
 #define MyAppVersion "1.0.0-beta.2"
-#define MyAppPublisher "Rewake"
-#define MyAppURL "https://github.com/Anurag-patil-26/Rewake-Windows"
-#define MyAppExeName "Rewake.exe"
+#define MyAppPublisher "Restage"
+#define MyAppURL "https://github.com/Anurag-patil-26/Restage-Windows"
+#define MyAppExeName "Restage.exe"
 
 [Setup]
 ; Never change AppId between versions — it is how upgrades find the install.
@@ -24,11 +24,11 @@ PrivilegesRequired=lowest
 DefaultDirName={autopf}\{#MyAppName}
 DisableProgramGroupPage=yes
 ; The app holds this mutex while running (tray included): setup asks the user
-; to exit Rewake rather than clobbering a running copy.
-AppMutex=Local\Rewake.SingleInstance
+; to exit Restage rather than clobbering a running copy.
+AppMutex=Local\Restage.SingleInstance
 OutputDir=Output
-OutputBaseFilename=Rewake-Setup-v{#MyAppVersion}
-SetupIconFile=..\Assets\Rewake.ico
+OutputBaseFilename=Restage-Setup-v{#MyAppVersion}
+SetupIconFile=..\Assets\Restage.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 UninstallDisplayName={#MyAppName}
 Compression=lzma2/max
@@ -58,7 +58,7 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 ; Same key/value the app's own "Run at startup" toggle manages, so the two
 ; stay interchangeable. uninsdeletevalue removes it on uninstall.
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; \
-  ValueType: string; ValueName: "Rewake"; \
+  ValueType: string; ValueName: "Restage"; \
   ValueData: """{app}\{#MyAppExeName}"" --minimized"; \
   Flags: uninsdeletevalue; Tasks: startup
 
@@ -77,8 +77,8 @@ begin
   if CurUninstallStep = usPostUninstall then
   begin
     RegDeleteValue(HKEY_CURRENT_USER,
-      'Software\Microsoft\Windows\CurrentVersion\Run', 'Rewake');
-    DataDir := ExpandConstant('{localappdata}\Rewake');
+      'Software\Microsoft\Windows\CurrentVersion\Run', 'Restage');
+    DataDir := ExpandConstant('{localappdata}\Restage');
     if DirExists(DataDir) then
       if MsgBox('Also delete your captures and settings?' + #13#10 +
                 DataDir, mbConfirmation, MB_YESNO) = IDYES then

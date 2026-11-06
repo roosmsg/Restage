@@ -2,10 +2,10 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
-using Rewake.Models;
-using Rewake.Services;
+using Restage.Models;
+using Restage.Services;
 
-namespace Rewake.ViewModels;
+namespace Restage.ViewModels;
 
 /// <summary>
 /// Root view model for the main window: capture history, the loaded capture's
@@ -40,7 +40,7 @@ public class MainViewModel : ViewModelBase
         StayAwakeToggleCommand = new RelayCommand(_ => ToggleStayAwake());
         StayAwakeService.StateChanged += OnStayAwakeStateChanged;
         RefreshSnapshots();
-        Log("Ready. Closing the window keeps Rewake running in the system tray.");
+        Log("Ready. Closing the window keeps Restage running in the system tray.");
     }
 
     public ObservableCollection<SnapshotItemViewModel> Snapshots { get; } = new();
@@ -198,7 +198,7 @@ public class MainViewModel : ViewModelBase
             {
                 SettingsService.SetStartWithWindows(value);
                 Log(value
-                    ? "Rewake will run at startup (minimized to tray)."
+                    ? "Restage will run at startup (minimized to tray)."
                     : "Removed from startup.");
             }
             catch (Exception ex) { Log($"Startup setting failed: {ex.Message}"); }

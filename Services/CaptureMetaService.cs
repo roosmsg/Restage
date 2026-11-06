@@ -1,8 +1,8 @@
 using System.IO;
 using System.Text.Json;
-using Rewake.Models;
+using Restage.Models;
 
-namespace Rewake.Services;
+namespace Restage.Services;
 
 /// <summary>
 /// Names and favourite flags for captures, held in capture-meta.json next to the

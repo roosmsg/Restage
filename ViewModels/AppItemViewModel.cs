@@ -1,9 +1,9 @@
 ﻿using System.Windows;
 using System.Windows.Media;
-using Rewake.Models;
-using Rewake.Services;
+using Restage.Models;
+using Restage.Services;
 
-namespace Rewake.ViewModels;
+namespace Restage.ViewModels;
 
 /// <summary>One captured window inside an application group; selectable for restore.</summary>
 public class AppItemViewModel : ViewModelBase

@@ -3,7 +3,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
-namespace Rewake.Services;
+namespace Restage.Services;
 
 /// <summary>Extracts and caches application/folder icons for the UI lists.</summary>
 public static class IconCache

@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace Rewake.Services;
+namespace Restage.Services;
 
 /// <summary>
 /// Win32 P/Invoke surface: window enumeration/placement, DWM attributes,

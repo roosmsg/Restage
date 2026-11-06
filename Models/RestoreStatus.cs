@@ -1,4 +1,4 @@
-namespace Rewake.Models;
+namespace Restage.Models;
 
 /// <summary>Lifecycle of one item (window or folder) during a restore run.</summary>
 public enum RestoreStatus
