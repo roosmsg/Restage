@@ -104,6 +104,7 @@
             <Geometry x:Key="IconCamera">M 13.997 4 a 2 2 0 0 1 1.76 1.05 l 0.486 0.9 A 2 2 0 0 0 18.003 7 H 20 a 2 2 0 0 1 2 2 v 9 a 2 2 0 0 1 -2 2 H 4 a 2 2 0 0 1 -2 -2 V 9 a 2 2 0 0 1 2 -2 h 1.997 a 2 2 0 0 0 1.759 -1.048 l 0.489 -0.904 A 2 2 0 0 1 10.004 4 z M 9 13 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0</Geometry>
             <Geometry x:Key="IconTrash">M 10 11 v 6 M 14 11 v 6 M 19 6 v 14 a 2 2 0 0 1 -2 2 H 7 a 2 2 0 0 1 -2 -2 V 6 M 3 6 h 18 M 8 6 V 4 a 2 2 0 0 1 2 -2 h 4 a 2 2 0 0 1 2 2 v 2</Geometry>
             <Geometry x:Key="IconRotateCcw">M 3 12 a 9 9 0 1 0 9 -9 a 9.75 9.75 0 0 0 -6.74 2.74 L 3 8 M 3 3 v 5 h 5</Geometry>
+            <Geometry x:Key="IconPlay">M 6 3 L 20 12 L 6 21 Z</Geometry>
             <Geometry x:Key="IconSun">M 8 12 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 12 2 v 2 M 12 20 v 2 M 4.93 4.93 l 1.41 1.41 M 17.66 17.66 l 1.41 1.41 M 2 12 h 2 M 20 12 h 2 M 6.34 17.66 l -1.41 1.41 M 19.07 4.93 l -1.41 1.41</Geometry>
             <Geometry x:Key="IconMoon">M 20.985 12.486 a 9 9 0 1 1 -9.473 -9.472 c 0.405 -0.022 0.617 0.46 0.402 0.803 a 6 6 0 0 0 8.268 8.268 c 0.344 -0.215 0.825 -0.004 0.803 0.401</Geometry>
             <Geometry x:Key="IconChevronDown">M 6 9 l 6 6 l 6 -6</Geometry>

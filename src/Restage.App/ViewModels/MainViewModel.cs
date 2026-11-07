@@ -336,7 +336,7 @@ public class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(RestoreCounter));
         OnPropertyChanged(nameof(RestoreFraction));
         ShowRestorePanel = true;
-        Log($"Restoring \"{card.Name}\" — {_restoreTotal} items…");
+        Log($"Starting \"{card.Name}\" — {_restoreTotal} items…");
 
         _restoreCts = new CancellationTokenSource();
         var options = new RestoreOptions
@@ -351,8 +351,8 @@ public class MainViewModel : ViewModelBase
         {
             await Task.Run(() => WorkspaceRestoreService.RestoreAsync(ws, options, progress, _restoreCts.Token));
         }
-        catch (OperationCanceledException) { Log("Restore cancelled."); RestoreNote = "Cancelled."; }
-        catch (Exception ex) { Log($"Restore failed: {ex.Message}"); RestoreNote = $"Failed: {ex.Message}"; }
+        catch (OperationCanceledException) { Log("Start cancelled."); RestoreNote = "Cancelled."; }
+        catch (Exception ex) { Log($"Start failed: {ex.Message}"); RestoreNote = $"Failed: {ex.Message}"; }
         finally
         {
             IsRestoring = false;
