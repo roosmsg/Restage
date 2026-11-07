@@ -1,6 +1,11 @@
+Restage is a fork of Rewake (https://github.com/Anurag-patil-26/Rewake-Windows)
+by Anurag Patil (MIT), which it keeps as its foundation: the capture of
+command lines, terminal working directories and Explorer folders, the WPF
+shell and the design language all come from there.
+
 MIT License
 
-Copyright (c) 2026 Anurag Patil 
+Copyright (c) 2026 Anurag Patil
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
