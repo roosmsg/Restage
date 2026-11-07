@@ -235,14 +235,15 @@
         <Border Grid.Row="0" Background="{DynamicResource PanelBrush}"
                 BorderBrush="{DynamicResource BorderBrush2}" BorderThickness="0,0,0,1">
             <Grid Height="42">
-                <TextBlock Text="Restage" FontSize="13" FontWeight="SemiBold"
-                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <!-- Icon and title at the left, as Windows 11 apps do. -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="14,0,0,0">
+                    <Image Source="pack://application:,,,/Assets/Restage-256.png" Width="16" Height="16"
+                           RenderOptions.BitmapScalingMode="HighQuality" Margin="0,0,9,0"/>
+                    <TextBlock Text="Restage" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                </StackPanel>
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Stretch"
                             WindowChrome.IsHitTestVisibleInChrome="True">
-                    <ToggleButton x:Name="SettingsToggle" Style="{StaticResource IconToggle}"
-                                  Tag="{StaticResource IconSettings}" VerticalAlignment="Center" Margin="0,0,10,0"
-                                  AutomationProperties.Name="Settings" ToolTip="Settings"/>
                     <Button Style="{StaticResource CaptionButton}" Tag="{StaticResource IconMinus}"
                             Click="Minimize_Click" ToolTip="Minimize" AutomationProperties.Name="Minimize"/>
                     <Button Click="MaxRestore_Click" AutomationProperties.Name="Maximize">
@@ -362,7 +363,12 @@
                             <TextBlock Text="Workspaces" Style="{StaticResource TitleText}"/>
                             <TextBlock Text="{Binding WorkspaceCountText}" Style="{StaticResource SubtleText}" Margin="0,4,0,0"/>
                         </StackPanel>
-                        <Button Style="{StaticResource BusyAccentButton}" Padding="16,9" HorizontalAlignment="Right"
+                        <!-- The gear sits with the primary action, not among the window buttons. -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <ToggleButton x:Name="SettingsToggle" Style="{StaticResource IconToggle}"
+                                      Tag="{StaticResource IconSettings}" VerticalAlignment="Center" Margin="0,0,10,0"
+                                      AutomationProperties.Name="Settings" ToolTip="Settings"/>
+                        <Button Style="{StaticResource BusyAccentButton}" Padding="16,9"
                                 VerticalAlignment="Center" Command="{Binding NewWorkspaceCommand}"
                                 ToolTip="Save everything open right now as a new workspace">
                             <Grid>
@@ -394,6 +400,7 @@
                                 </StackPanel>
                             </Grid>
                         </Button>
+                        </StackPanel>
                     </Grid>
 
                     <Grid>
