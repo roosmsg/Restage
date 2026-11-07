@@ -72,9 +72,43 @@ public class MainViewModel : ViewModelBase
         _clock = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
         _clock.Tick += (_, _) => { foreach (var card in Workspaces) card.RefreshTimes(); };
         _clock.Start();
+
+        // Workspaces saved or deleted on disk by the CLI, or by the API's
+        // callers, show up without a restart. Half a second of quiet first:
+        // a save is several files, and our own saves come through here too.
+        _storeChanged.Tick += (_, _) =>
+        {
+            _storeChanged.Stop();
+            if (IsBusy) { _storeChanged.Start(); return; }
+            RefreshWorkspaces();
+        };
+        _watcher = WatchStore();
     }
 
     readonly System.Windows.Threading.DispatcherTimer _clock;
+    readonly System.Windows.Threading.DispatcherTimer _storeChanged = new() { Interval = TimeSpan.FromMilliseconds(500) };
+    readonly FileSystemWatcher? _watcher;
+
+    FileSystemWatcher? WatchStore()
+    {
+        try
+        {
+            Directory.CreateDirectory(WorkspaceStore.Root);
+            var watcher = new FileSystemWatcher(WorkspaceStore.Root)
+            {
+                IncludeSubdirectories = true,
+                NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite,
+            };
+            void Bump() => Application.Current?.Dispatcher.BeginInvoke(() => { _storeChanged.Stop(); _storeChanged.Start(); });
+            watcher.Changed += (_, _) => Bump();
+            watcher.Created += (_, _) => Bump();
+            watcher.Deleted += (_, _) => Bump();
+            watcher.Renamed += (_, _) => Bump();
+            watcher.EnableRaisingEvents = true;
+            return watcher;
+        }
+        catch { return null; }
+    }
 
     static WorkspaceCardViewModel Card(object? p) => (WorkspaceCardViewModel)p!;
 
@@ -625,7 +659,8 @@ public class MainViewModel : ViewModelBase
     // ---- Edit panel: name and keyboard shortcut ---------------------------------
     // Works on copies; Save writes both, Cancel drops both.
 
-    WorkspaceCardViewModel? _editing;
+    // By id, not by card: the gallery can be rebuilt (a change on disk) while the panel is open.
+    string? _editingId;
 
     bool _showEdit;
     public bool ShowEdit { get => _showEdit; private set => SetProperty(ref _showEdit, value); }
@@ -647,7 +682,7 @@ public class MainViewModel : ViewModelBase
 
     void OpenEdit(WorkspaceCardViewModel card)
     {
-        _editing = card;
+        _editingId = card.Id;
         EditName = card.Name;
         EditHotkey = new HotkeyRowViewModel(card.Hotkey.Action, card.Hotkey.Text);
         ShowEdit = true;
@@ -655,7 +690,7 @@ public class MainViewModel : ViewModelBase
 
     void SaveEdit()
     {
-        if (_editing is not { } card || EditHotkey is not { } edited) return;
+        if (EditHotkey is not { } edited || Workspaces.FirstOrDefault(w => w.Id == _editingId) is not { } card) { CloseEdit(); return; }
         Rename(card, EditName);
         if (edited.Text != card.Hotkey.Text)
         {
@@ -674,7 +709,7 @@ public class MainViewModel : ViewModelBase
     void CloseEdit()
     {
         ShowEdit = false;
-        _editing = null;
+        _editingId = null;
     }
 
     /// <summary>
@@ -704,7 +739,7 @@ public class MainViewModel : ViewModelBase
         row.Problem = "";
         if (hotkey is not { } hk) { row.Text = ""; return; }
         var text = hk.ToString();
-        var owner = Workspaces.FirstOrDefault(w => w != _editing && w.Hotkey.Text == text);
+        var owner = Workspaces.FirstOrDefault(w => w.Id != _editingId && w.Hotkey.Text == text);
         if (owner != null) { row.Problem = $"Already used for \"{owner.Name}\""; return; }
         if (!_hotkeys.IsAvailable(hk)) { row.Problem = "Taken by another app or by Windows"; return; }
         row.Text = text;
