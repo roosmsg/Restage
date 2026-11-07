@@ -725,7 +725,7 @@ public class MainViewModel : ViewModelBase
     public string EditTitle => EditingApp ? "Open Restage" : "Edit workspace";
 
     public string EditHint => EditingApp
-        ? "Opens Restage's window from anywhere in Windows, also while the tray icon is hidden. Click the box, then press Ctrl, Alt or Win plus a key."
+        ? "Opens Restage's window from anywhere in Windows, also while the tray icon is hidden; pressed again, it puts Restage away. Click the box, then press Ctrl, Alt or Win plus a key."
         : "Starts the workspace from anywhere in Windows, or brings it to the front when it is already open. Click the box, then press Ctrl, Alt or Win plus a key.";
 
     void OnEditModeChanged()
@@ -844,8 +844,15 @@ public class MainViewModel : ViewModelBase
 
     async void OnHotkey(string action)
     {
-        // WM_HOTKEY gives Restage the right to take the foreground, so the window comes up on top.
-        if (action == HotkeyActions.OpenApp) { _host.ShowMain(); return; }
+        // A toggle: in front, Restage goes back to the tray (or out of sight when
+        // the tray icon is hidden); anywhere else (closed, minimized, behind other
+        // windows) it comes up on top, which WM_HOTKEY gives it the right to do.
+        if (action == HotkeyActions.OpenApp)
+        {
+            if (_host.IsMainActive) _host.HideMain();
+            else _host.ShowMain();
+            return;
+        }
         if (HotkeyActions.WorkspaceId(action) is { } id && Workspaces.FirstOrDefault(w => w.Id == id) is { } card)
             await StartByCommandAsync(card, bringToFront: true);
     }

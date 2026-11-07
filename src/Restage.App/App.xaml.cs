@@ -289,6 +289,9 @@ public partial class App : Application, IAppHost
 
     public bool IsMainVisible => _mainWindow?.IsVisible == true;
 
+    public bool IsMainActive =>
+        _mainWindow is { IsVisible: true, IsActive: true } w && w.WindowState != WindowState.Minimized;
+
     /// <summary>Removes the tray icon and shuts the application down for real.</summary>
     public void ExitApp()
     {

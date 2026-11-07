@@ -15,6 +15,9 @@ public interface IAppHost
     /// <summary>True while the main window is on screen (not hidden to the tray).</summary>
     bool IsMainVisible { get; }
 
+    /// <summary>True while the main window is on screen, not minimized, and the active window.</summary>
+    bool IsMainActive { get; }
+
     /// <summary>Shows, hides or repaints the tray icon after its settings changed.</summary>
     void RefreshTray();
 
