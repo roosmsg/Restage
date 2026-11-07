@@ -1,12 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
   <!-- Simplified for 20-32px: two app windows, bigger shapes -->
-  <rect x="112" y="192" width="32" height="22" fill="#7E22CE"/>
-  <rect x="76" y="212" width="104" height="16" rx="8" fill="#7E22CE"/>
-  <rect x="2" y="20" width="252" height="176" rx="20" fill="#7E22CE"/>
+  <rect x="112" y="192" width="32" height="22" fill="#7209B7"/>
+  <rect x="76" y="212" width="104" height="16" rx="8" fill="#7209B7"/>
+  <rect x="2" y="20" width="252" height="176" rx="20" fill="#7209B7"/>
   <rect x="16" y="34" width="224" height="148" rx="10" fill="#FFFFFF"/>
   <!-- app window 1 (active) -->
   <rect x="32" y="52" width="88" height="112" rx="9" fill="#EDEFF3"/>
-  <path d="M32 61 a9 9 0 0 1 9 -9 h70 a9 9 0 0 1 9 9 v15 h-88 z" fill="#7E22CE"/>
+  <path d="M32 61 a9 9 0 0 1 9 -9 h70 a9 9 0 0 1 9 9 v15 h-88 z" fill="#7209B7"/>
   <!-- app window 2 -->
   <rect x="128" y="52" width="88" height="112" rx="9" fill="#EDEFF3"/>
   <path d="M128 61 a9 9 0 0 1 9 -9 h70 a9 9 0 0 1 9 9 v15 h-88 z" fill="#3A3F4A"/>
