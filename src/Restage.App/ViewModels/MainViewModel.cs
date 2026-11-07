@@ -474,9 +474,9 @@ public class MainViewModel : ViewModelBase
         catch { }
     }
 
-    // ---- Rename / delete ------------------------------------------------------
+    // ---- Rename / delete (rename: the edit panel, or a click on the details pane's title) ----
 
-    /// <summary>Renames a workspace (edit panel); an empty or unchanged name is ignored.</summary>
+    /// <summary>Renames a workspace (edit panel or title); an empty or unchanged name is ignored.</summary>
     public void Rename(WorkspaceCardViewModel card, string name)
     {
         name = name.Trim();

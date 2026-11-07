@@ -264,6 +264,40 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
+    // ---- Rename in place (details pane title) -------------------------------------
+    // The card being renamed is kept apart from the editor's DataContext: picking
+    // another workspace mid-edit saves to the one the edit started on.
+
+    WorkspaceCardViewModel? _renaming;
+
+    void NameDisplay_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (NameDisplay.DataContext is not WorkspaceCardViewModel card) return;
+        _renaming = card;
+        NameEditor.Text = card.Name;
+        NameDisplay.Visibility = Visibility.Hidden;
+        NameEditor.Visibility = Visibility.Visible;
+        Dispatcher.BeginInvoke(() => { NameEditor.Focus(); NameEditor.SelectAll(); });
+    }
+
+    void NameEditor_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter) { EndRename(save: true); e.Handled = true; }
+        else if (e.Key == Key.Escape) { EndRename(save: false); e.Handled = true; }
+    }
+
+    void NameEditor_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e) => EndRename(save: true);
+
+    void EndRename(bool save)
+    {
+        if (_renaming is not { } card) return;
+        _renaming = null; // first: hiding the editor drops its focus, which comes back here
+        if (save && DataContext is MainViewModel vm) vm.Rename(card, NameEditor.Text);
+        NameEditor.Visibility = Visibility.Collapsed;
+        NameDisplay.Visibility = Visibility.Visible;
+        if (NameEditor.IsKeyboardFocusWithin) DetailsPane.Focus();
+    }
+
     // ---- Edit panel: name and keyboard shortcut -----------------------------------
 
     void EditBackdrop_MouseDown(object sender, MouseButtonEventArgs e)

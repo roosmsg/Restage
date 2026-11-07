@@ -445,9 +445,30 @@
                 <Border Grid.Column="1" Width="392" Background="{DynamicResource PanelBrush}"
                         BorderBrush="{DynamicResource BorderBrush2}" BorderThickness="1,0,0,0"
                         Visibility="{Binding HasSelection, Converter={StaticResource BoolToVis}}">
-                    <DockPanel Margin="20,18,20,12" DataContext="{Binding Selected}">
+                    <DockPanel x:Name="DetailsPane" Margin="20,18,20,12" DataContext="{Binding Selected}"
+                               Focusable="True" FocusVisualStyle="{x:Null}">
                         <StackPanel DockPanel.Dock="Top">
-                            <TextBlock Text="{Binding Name}" Style="{StaticResource TitleText}" TextTrimming="CharacterEllipsis"/>
+                            <!-- Click the name to rename in place: Enter or clicking elsewhere saves, Esc cancels. -->
+                            <Grid>
+                                <Border x:Name="NameDisplay" Margin="-6,0,0,0" Padding="5,0" HorizontalAlignment="Left"
+                                        Background="Transparent" Cursor="IBeam" ToolTip="Click to rename"
+                                        MouseLeftButtonUp="NameDisplay_MouseLeftButtonUp">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Style.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource HoverBrush}"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="{Binding Name}" Style="{StaticResource TitleText}" TextTrimming="CharacterEllipsis"/>
+                                </Border>
+                                <TextBox x:Name="NameEditor" Visibility="Collapsed" Margin="-6,0,0,0" Padding="4,0"
+                                         FontSize="20" FontWeight="SemiBold" MaxLength="48"
+                                         AutomationProperties.Name="Workspace name"
+                                         KeyDown="NameEditor_KeyDown" LostKeyboardFocus="NameEditor_LostKeyboardFocus"/>
+                            </Grid>
                             <TextBlock Text="{Binding UpdatedText}" Style="{StaticResource SubtleText}" Margin="0,4,0,0"/>
                         </StackPanel>
 
