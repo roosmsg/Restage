@@ -188,6 +188,46 @@ public class ObsidianAdapterTests
         Assert.Equal(expected, ObsidianAdapter.VaultNameFromTitle(title));
     }
 
+    [Theory]
+    [InlineData("Untitled - Afstuderen - Obsidian 1.15.0", "Untitled")]
+    [InlineData("My - Note - Vault - Obsidian 1.15.0", "My - Note")]
+    [InlineData("Afstuderen - Obsidian 1.15.0", null)]
+    [InlineData("Settings", null)]
+    public void Note_name_is_everything_before_the_vault(string title, string? expected)
+    {
+        Assert.Equal(expected, ObsidianAdapter.NoteNameFromTitle(title));
+    }
+
+    [Fact]
+    public void Open_uri_names_the_vault_and_the_note_as_a_vault_relative_path()
+    {
+        Assert.Equal("obsidian://open?vault=Mijn%20Vault", ObsidianAdapter.OpenUri("Mijn Vault", null));
+        Assert.Equal("obsidian://open?vault=Afstuderen&file=Hoofdstuk%202%2FInleiding",
+            ObsidianAdapter.OpenUri("Afstuderen", @"Hoofdstuk 2\Inleiding"));
+    }
+
+    [Fact]
+    public void Note_path_is_found_inside_the_vault_preferring_markdown_and_recent_files()
+    {
+        var vault = Path.Combine(Path.GetTempPath(), "restage-vault-" + Guid.NewGuid().ToString("N")[..6]);
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(vault, "Old"));
+            Directory.CreateDirectory(Path.Combine(vault, "New"));
+            Directory.CreateDirectory(Path.Combine(vault, ".obsidian"));
+            File.WriteAllText(Path.Combine(vault, "Old", "Plan.md"), "");
+            File.WriteAllText(Path.Combine(vault, "New", "Plan.md"), "");
+            File.WriteAllText(Path.Combine(vault, "Plan.canvas"), "");
+            File.WriteAllText(Path.Combine(vault, ".obsidian", "Plan.md"), "");
+            File.SetLastWriteTimeUtc(Path.Combine(vault, "Old", "Plan.md"), DateTime.UtcNow.AddDays(-2));
+            File.SetLastWriteTimeUtc(Path.Combine(vault, "New", "Plan.md"), DateTime.UtcNow);
+
+            Assert.Equal("New/Plan.md", ObsidianAdapter.ResolveNotePath(vault, "Plan"));
+            Assert.Null(ObsidianAdapter.ResolveNotePath(vault, "Missing"));
+        }
+        finally { Directory.Delete(vault, recursive: true); }
+    }
+
     [Fact]
     public void Vaults_load_open_first_and_resolve_by_folder_name()
     {

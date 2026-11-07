@@ -62,6 +62,13 @@ public abstract class AppAdapter
     /// <summary>Starts the item(s). Does not wait for windows; the restore service does that.</summary>
     public abstract Task<LaunchResult> LaunchAsync(IReadOnlyList<WorkspaceItem> group, RestoreContext context, CancellationToken ct);
 
+    /// <summary>
+    /// An open window was reused for the item (and placed). Adapters that can
+    /// steer the running app toward the saved state do it here; default: nothing.
+    /// </summary>
+    public virtual Task ReuseAsync(WorkspaceItem item, CapturedWindow window, RestoreContext context, CancellationToken ct) =>
+        Task.CompletedTask;
+
     /// <summary>Live windows that could belong to this adapter's items.</summary>
     public virtual IReadOnlyList<CapturedWindow> LiveWindows() => WindowEnumerator.EnumerateLight();
 

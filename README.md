@@ -23,7 +23,7 @@ shell and the design language all come from there.
 | Item | Saved as | Restored by |
 | --- | --- | --- |
 | VS Code window | the folder or `.code-workspace` it shows | `code -n <folder>`; VS Code reopens the editors itself |
-| Obsidian window | the vault | `obsidian://open?vault=…`; Obsidian reopens its notes itself |
+| Obsidian window | the vault and the note it shows | `obsidian://open?vault=…&file=…`, also when the vault is already open |
 | Firefox window | the profile | starting that profile once; Firefox restores windows and tabs |
 | Firefox web app on the taskbar | its exact launch arguments | the same arguments |
 | Chrome / Edge / Brave window | the profile | starting that profile once; the browser restores its tabs |

@@ -90,6 +90,8 @@ public static class WorkspaceRestoreService
                 {
                     claimed.Add(hit.Handle);
                     Place(item, hit, context.ProfileId, placed);
+                    try { await adapter.ReuseAsync(item, hit, context, ct); }
+                    catch (Exception ex) { context.Log?.Invoke($"{item.Name}: {ex.Message}"); }
                     Report(item.Id, RestoreStatus.Opened, "already open; placed");
                 }
                 else if (item.Policy == LaunchPolicy.FocusOnly)
