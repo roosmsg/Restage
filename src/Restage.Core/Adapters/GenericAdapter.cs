@@ -49,7 +49,7 @@ public sealed class GenericAdapter : AppAdapter
         var args = BuildArgs(item);
         try
         {
-            LaunchHelpers.Start(exe, args, item.Cwds?.FirstOrDefault(Directory.Exists));
+            LaunchHelpers.Start(exe, args, item.OpenContent ? item.Cwds?.FirstOrDefault(Directory.Exists) : null);
         }
         catch (Exception ex)
         {
@@ -69,6 +69,8 @@ public sealed class GenericAdapter : AppAdapter
     /// </summary>
     internal static string BuildArgs(WorkspaceItem item)
     {
+        // OpenContent off: the bare app, no file, no folders, no arguments.
+        if (!item.OpenContent) return "";
         if (item.Name.Equals("WindowsTerminal", StringComparison.OrdinalIgnoreCase) && item.Cwds is { Count: > 0 })
         {
             // -w new: each restored entry gets its own window even when the

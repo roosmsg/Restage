@@ -48,12 +48,13 @@ public sealed class ExplorerAdapter : AppAdapter
     public override Task<LaunchResult> LaunchAsync(IReadOnlyList<WorkspaceItem> group, RestoreContext context, CancellationToken ct)
     {
         var item = group[0];
-        if (item.Target == null || !Directory.Exists(item.Target))
+        if (item.OpenContent && (item.Target == null || !Directory.Exists(item.Target)))
             return Task.FromResult(LaunchResult.Failed($"folder missing: {item.Target}"));
         try
         {
-            LaunchHelpers.Start("explorer.exe", $"\"{item.Target}\"");
-            return Task.FromResult(new LaunchResult(true, $"opened {item.Target}")
+            // OpenContent off: a plain Explorer window (Home / This PC).
+            LaunchHelpers.Start("explorer.exe", item.OpenContent ? $"\"{item.Target}\"" : "");
+            return Task.FromResult(new LaunchResult(true, item.OpenContent ? $"opened {item.Target}" : "opened Explorer")
             {
                 Gap = TimeSpan.FromMilliseconds(300),
             });
