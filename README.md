@@ -105,21 +105,22 @@ back to their places and to the front when they are already open. One more
 shortcut opens Restage itself, and puts it away again when it is in front:
 Settings › *Shortcut to open Restage*. Handy with the tray icon hidden. Nothing is bound until you set it.
 
-## Voice control and automation: the local API
+## Connecting other apps: the local API
 
-Restage does not listen to the microphone. Voice tools such as
-[Hex](https://anoma.ly/hex) or [Handy](https://handy.computer) do that their
-own way; what Restage offers them is a small local API to send commands to.
-While the app runs it listens on `127.0.0.1` with a token; Settings ›
-*Connect apps* copies the command URL and the token for your voice tool,
-Stream Deck or script,
-and both stay the same when Restage restarts (they are also announced in
-`%LOCALAPPDATA%\Restage\local-api.json`). It lists, starts
-and captures workspaces, and `POST /command` takes a spoken sentence as it
-came out of the transcriber ("open research", "switch to thesis", "save
-this as Thesis"), in English or Dutch, and works out the rest, with some
-tolerance for names heard slightly wrong. [docs/API.md](docs/API.md) has every route and examples;
-`restage command "<text>"` tries one from a shell.
+Other apps on the same PC can drive Restage: a voice tool such as
+[Hex](https://anoma.ly/hex) or [Handy](https://handy.computer), a Stream
+Deck button, a launcher, a script. Restage offers them a small local API:
+while it runs, it listens on `127.0.0.1` with a token. Settings ›
+*Connect apps* copies the command URL and the token to give such an app;
+both stay the same when Restage restarts (they are also announced in
+`%LOCALAPPDATA%\Restage\local-api.json`). The API lists, starts and
+captures workspaces, and `POST /command` takes a plain sentence ("open
+research", "switch to thesis", "save this as Thesis"), in English or Dutch,
+and works out the rest, with some tolerance for names that are slightly
+off, such as a voice tool's transcription. Restage itself never listens to
+the microphone; a voice tool sends what it heard. [docs/API.md](docs/API.md)
+has every route and examples; `restage command "<text>"` tries one from a
+shell.
 
 ## Your data and privacy
 
