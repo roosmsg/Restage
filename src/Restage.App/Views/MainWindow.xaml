@@ -365,9 +365,6 @@
                         </StackPanel>
                         <!-- The gear sits with the primary action, not among the window buttons. -->
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                        <ToggleButton x:Name="SettingsToggle" Style="{StaticResource IconToggle}"
-                                      Tag="{StaticResource IconSettings}" VerticalAlignment="Center" Margin="0,0,10,0"
-                                      AutomationProperties.Name="Settings" ToolTip="Settings"/>
                         <Button Style="{StaticResource BusyAccentButton}" Padding="16,9"
                                 VerticalAlignment="Center" Command="{Binding NewWorkspaceCommand}"
                                 ToolTip="Save everything open right now as a new workspace">
@@ -400,6 +397,9 @@
                                 </StackPanel>
                             </Grid>
                         </Button>
+                        <ToggleButton x:Name="SettingsToggle" Style="{StaticResource IconToggle}"
+                                      Tag="{StaticResource IconSettings}" VerticalAlignment="Center" Margin="10,0,0,0"
+                                      AutomationProperties.Name="Settings" ToolTip="Settings"/>
                         </StackPanel>
                     </Grid>
 
