@@ -46,6 +46,16 @@ internal sealed class TrayMenuRenderer : WinForms.ToolStripRenderer
         e.Graphics.FillRectangle(b, new Drawing.Rectangle(2, 0, e.Item.Width - 4, e.Item.Height));
     }
 
+    // The stock layout puts the image and the text on different midlines once a
+    // row has padding of its own; both are centred on the row here instead.
+    protected override void OnRenderItemImage(WinForms.ToolStripItemImageRenderEventArgs e)
+    {
+        if (e.Image == null) return;
+        var r = e.ImageRectangle;
+        var y = (e.Item.Height - r.Height) / 2;
+        e.Graphics.DrawImage(e.Image, new Drawing.Rectangle(r.X, y, r.Width, r.Height));
+    }
+
     protected override void OnRenderItemText(WinForms.ToolStripItemTextRenderEventArgs e)
     {
         // Items opt into the accent (the running Stay Awake row) via Tag; the
@@ -53,6 +63,9 @@ internal sealed class TrayMenuRenderer : WinForms.ToolStripRenderer
         e.TextColor = !e.Item.Enabled ? C("MutedBrush")
             : Equals(e.Item.Tag, "accent") ? C("AccentBrush")
             : C("TextBrush");
+        var r = e.TextRectangle;
+        e.TextRectangle = new Drawing.Rectangle(r.X, 0, r.Width, e.Item.Height);
+        e.TextFormat = (e.TextFormat & ~WinForms.TextFormatFlags.Bottom) | WinForms.TextFormatFlags.VerticalCenter;
         base.OnRenderItemText(e);
     }
 
