@@ -8,7 +8,7 @@ Restage saves what you have open — VS Code folders, Obsidian vaults, Firefox
 and Chrome profiles and web apps, Explorer folders, terminals, any other app —
 together with the Windows 11 virtual desktop it lives on, its wallpaper and
 the position of every window. A workspace is a card with a screenshot in a
-gallery; **Restore** brings it all back, on every monitor arrangement you have
+gallery; **Start** brings it all back, on every monitor arrangement you have
 saved a layout for.
 
 ---
@@ -67,7 +67,7 @@ window manager and has no zones; it puts windows back where they were.
 2. Open Restage and press **New workspace**. The window hides, the desktop is
    photographed, and you see the windows that were found. Untick what you do
    not want, give it a name, **Save workspace**.
-3. Later: press **Restore** on the card. Apps open one at a time; windows that
+3. Later: press **Start** on the card. Apps open one at a time; windows that
    are already open are reused and moved into place.
 
 Closing the window keeps Restage in the system tray; the tray menu lists the
@@ -78,8 +78,8 @@ workspaces too. Right-click the tray icon → **Exit** to quit for real.
 Windows has no public API to switch virtual desktops, so Restage never does it
 behind your back. If a workspace lives on another desktop, a prompt names it
 and offers Task View; press <kbd>Win</kbd>+<kbd>Ctrl</kbd>+<kbd>←</kbd>/<kbd>→</kbd>
-and the restore continues the moment you arrive. The gear menu can turn this
-off (restore on the current desktop).
+and the workspace starts the moment you arrive. The settings panel can turn
+this off (start on the current desktop).
 
 ### Items and policies
 
@@ -90,8 +90,9 @@ first for one session.
 
 Items with content of their own (an Obsidian note, a VS Code or Explorer
 folder, a terminal's folders, a file passed as an argument) have a second
-checkbox — *note*, *folder*, *arguments* — that is on by default. Untick it
-and the app just starts, without that note, folder or file.
+checkbox — *note*, *folder*, *folders*, *file* — that is on by default. Untick
+it and the app just starts, without that note, folder or file. Apps whose
+arguments are mere switches get no such checkbox.
 
 ## Command line
 
@@ -178,7 +179,7 @@ monitor.
 
 ## Third-party
 
-- [Rewake](https://github.com/Anurag-patil-26/Rewake-Windows) by Anurag Patil — MIT. Restage's foundation; see `LICENSE`.
+- [Rewake](https://github.com/Anurag-patil-26/Rewake-Windows) by Anurag Patil — MIT. Restage's foundation; see `NOTICE.md`.
 - [Inter](https://github.com/rsms/inter) by Rasmus Andersson — SIL Open Font License 1.1, bundled in `src/Restage.App/Assets/Fonts`.
 - [Lucide](https://lucide.dev) icon paths — ISC License.
 
