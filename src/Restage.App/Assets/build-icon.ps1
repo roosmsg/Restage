@@ -31,7 +31,7 @@ foreach ($p in $plan) {
     $s = $p.Size
     $html = "<!doctype html><html><head><style>html,body{margin:0;padding:0;background:transparent}</style></head><body><img src='$($p.Svg)' style='width:${s}px;height:${s}px;display:block'></body></html>"
     [IO.File]::WriteAllText("$work\render.html", $html)
-    & $chrome --headless=new --disable-gpu --default-background-color=00000000 `
+    & $chrome --headless=new --disable-gpu --user-data-dir="$work\profile" --default-background-color=00000000 `
         --screenshot="$work\ico-$s.png" --window-size="$s,$s" --hide-scrollbars `
         "file:///$($work -replace '\\','/')/render.html" 2>$null | Out-Null
     Start-Sleep -Milliseconds 400
