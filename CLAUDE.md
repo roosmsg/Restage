@@ -142,8 +142,8 @@ Data: `%LOCALAPPDATA%\Restage\workspaces\<id>\workspace.json` + `thumbnail.png`,
   more. The title bar picks the ICO frame that is 1:1 at the window's DPI.
 - **Tray icon:** `AppSettings.ShowTrayIcon` (hidden: the app keeps running;
   a second launch opens the window) and `MonochromeTrayIcon`: `TrayGlyph`
-  draws the SVG's frame and card in one colour (a 30-unit gap cuts the card
-  free) into an in-memory PNG .ico, white or black by the taskbar's mode
+  draws the SVG's frame and card as thin outlines in one colour (1 px at
+  16 px; the frame is cut back 40 units around the card) into an in-memory PNG .ico, white or black by the taskbar's mode
   (`SystemUsesLightTheme`, not the apps' `AppsUseLightTheme`), redrawn on
   `UserPreferenceChanged`.
 - **Single instance / hooks:** mutex `Local\Restage.SingleInstance`; a second

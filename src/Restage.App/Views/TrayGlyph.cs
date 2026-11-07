@@ -9,10 +9,10 @@ using Pen = System.Windows.Media.Pen;
 namespace Restage.Views;
 
 /// <summary>
-/// The tray icon's monochrome variant: the logo's outline in one colour, white
-/// on a dark taskbar and black on a light one, like the system's own icons.
-/// The shapes are the frame and card of Assets/Restage.svg; the card is cut
-/// free of the frame by a thin gap so the two still read apart at 16 px.
+/// The tray icon's monochrome variant: the logo drawn as thin outlines in one
+/// colour, white on a dark taskbar and black on a light one, like the system's
+/// own outline icons. The shapes are the frame and card of Assets/Restage.svg;
+/// the frame is cut back around the card so the two read apart at 16 px.
 /// </summary>
 internal static class TrayGlyph
 {
@@ -28,12 +28,15 @@ internal static class TrayGlyph
         "M711 532 Q711 501 738 489 L975 367 Q997 358 1014 374 Q1030 389 1030 411 L1030 639 Q1030 667 1007 679 L745 802 Q711 819 711 784 Z";
 
     /// <summary>Gap between card and frame, in SVG units (the logo is about 530 wide).</summary>
-    const double Gap = 30;
+    const double Gap = 40;
+
+    /// <summary>Outline width in pixels at 16 px; it grows with the icon.</summary>
+    const double StrokeAt16 = 1.0;
 
     /// <summary>Icon sizes Windows may ask for, from 100 % to 300 % scaling.</summary>
     static readonly int[] Sizes = [16, 20, 24, 32, 40, 48, 64];
 
-    static Geometry? _shape;
+    static Geometry? _frame, _card, _all;
 
     /// <summary>The icon in white (dark taskbar) or black (light taskbar).</summary>
     public static Drawing.Icon Render(bool lightTaskbar)
@@ -43,33 +46,39 @@ internal static class TrayGlyph
         return new Drawing.Icon(new MemoryStream(BuildIco(frames)));
     }
 
-    static Geometry Shape()
+    static void Build()
     {
-        if (_shape != null) return _shape;
+        if (_all != null) return;
         Geometry frame = Geometry.Parse(FramePaths[0]);
         foreach (var data in FramePaths.Skip(1))
             frame = Geometry.Combine(frame, Geometry.Parse(data), GeometryCombineMode.Union, null);
         var card = Geometry.Parse(CardPath);
         var halo = Geometry.Combine(card.GetWidenedPathGeometry(new Pen(Brushes.Black, 2 * Gap)), card,
             GeometryCombineMode.Union, null);
-        frame = Geometry.Combine(frame, halo, GeometryCombineMode.Exclude, null);
-        _shape = Geometry.Combine(frame, card, GeometryCombineMode.Union, null);
-        _shape.Freeze();
-        return _shape;
+        _frame = Geometry.Combine(frame, halo, GeometryCombineMode.Exclude, null);
+        _card = card;
+        _all = Geometry.Combine(_frame, card, GeometryCombineMode.Union, null);
+        _frame.Freeze();
+        _card.Freeze();
+        _all.Freeze();
     }
 
     static byte[] RenderPng(Brush brush, int px)
     {
-        var shape = Shape();
-        var bounds = shape.Bounds;
-        var scale = px / Math.Max(bounds.Width, bounds.Height);
+        Build();
+        var bounds = _all!.Bounds;
+        var stroke = StrokeAt16 * px / 16;
+        // Scaled to leave half an outline free on each side of the bitmap.
+        var scale = (px - stroke) / Math.Max(bounds.Width, bounds.Height);
+        var pen = new Pen(brush, stroke / scale) { LineJoin = PenLineJoin.Round };
         var visual = new DrawingVisual();
         using (var dc = visual.RenderOpen())
         {
             dc.PushTransform(new TranslateTransform((px - bounds.Width * scale) / 2, (px - bounds.Height * scale) / 2));
             dc.PushTransform(new ScaleTransform(scale, scale));
             dc.PushTransform(new TranslateTransform(-bounds.X, -bounds.Y));
-            dc.DrawGeometry(brush, null, shape);
+            dc.DrawGeometry(null, pen, _frame);
+            dc.DrawGeometry(null, pen, _card);
         }
         var target = new RenderTargetBitmap(px, px, 96, 96, PixelFormats.Pbgra32);
         target.Render(visual);
