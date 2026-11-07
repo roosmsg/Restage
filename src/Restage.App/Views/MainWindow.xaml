@@ -58,7 +58,7 @@
                         <TextBlock Text="No preview" Style="{StaticResource SubtleText}"
                                    HorizontalAlignment="Center" VerticalAlignment="Center"
                                    Visibility="{Binding NoThumbnail, Converter={StaticResource BoolToVis}}"/>
-                        <Border HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="8"
+                        <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="8"
                                 Background="#B3000000" Padding="7,3"
                                 Visibility="{Binding HasDesktop, Converter={StaticResource BoolToVis}}">
                             <StackPanel Orientation="Horizontal">
