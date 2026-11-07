@@ -55,11 +55,11 @@ public static class ThemeService
             resources.Remove("AccentTextBrush");
             return;
         }
-        // Two notches darker than Windows paints it: the accent fills buttons
-        // here, and the raw colour reads too bright against the dark panels.
-        var baseColor = Scale(accent, 0.66);
+        // Well below how Windows paints it: the accent fills buttons here, and
+        // the raw colour reads too bright against the dark panels.
+        var baseColor = Scale(accent, 0.54);
         resources["AccentBrush"] = Frozen(baseColor);
-        resources["AccentHoverBrush"] = Frozen(Scale(accent, 0.54));
+        resources["AccentHoverBrush"] = Frozen(Scale(accent, 0.44));
         resources["AccentTextBrush"] = Frozen(Luminance(baseColor) > 0.62 ? Color.FromRgb(0x14, 0x14, 0x18) : Colors.White);
     }
 
