@@ -35,6 +35,32 @@ The principle: Restage stores *identity and placement* and lets every
 application restore its own session. No hooks, no reading other processes'
 memory, no browser extension.
 
+## Compared with PowerToys Workspaces
+
+[PowerToys Workspaces](https://learn.microsoft.com/windows/powertoys/workspaces)
+is the obvious comparison, and for many people it is enough: it captures which
+apps are open and where their windows sit, launches them again and moves them
+into place. Restage does that too, with the same public APIs, and then goes a
+step further: it looks at *what* each window has open and brings that back as
+well.
+
+| | PowerToys Workspaces | Restage |
+| --- | --- | --- |
+| Apps and window positions | yes | yes; pixel-exact, one layout per monitor arrangement |
+| What an app had open | only if you type CLI arguments per app by hand, and a re-capture wipes them | read from the app itself at capture: the VS Code folder, the Obsidian vault *and note*, the browser profile, a terminal's working folders, a file passed as an argument |
+| Browser tabs | paste URLs as arguments | the profile is started and the browser restores its own session, so the tabs you had come back (with "continue where you left off" on) |
+| Web apps (PWAs, Firefox taskbar tabs) | launched as whatever executable they are | recognised as that web app by its window id and started as that app, in that profile |
+| Windows already open | optional "move existing windows" | reused and moved into place by default; per item: reuse, always launch, only if open, skip |
+| Virtual desktop | — | remembered; the start waits until you have switched to it |
+| Wallpaper | — | remembered and applied |
+| Monitor arrangements | one layout | docked and undocked layouts side by side in the same workspace |
+| Gallery | a list in the editor | cards with a screenshot of the desktop as it was |
+| Hotkeys and voice | desktop shortcuts | `restage://restore/<name>` and `restage.exe`, for hotkey tools and voice assistants |
+
+What PowerToys has and Restage does not: launching apps as administrator
+(Restage cannot see elevated windows at all) and FancyZones. Restage is not a
+window manager and has no zones; it puts windows back where they were.
+
 ## Quick start
 
 1. Arrange a desktop the way you work.
