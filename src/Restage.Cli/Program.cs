@@ -92,7 +92,7 @@ static class Program
         var all = WorkspaceStore.List();
         if (all.Count == 0) { Console.WriteLine("No workspaces yet. Try: restage capture <name>"); return 0; }
         foreach (var ws in all)
-            Console.WriteLine($"{ws.Id,-40} {ws.Name,-24} {ws.Items.Count,3} items  desktop: {ws.Desktop?.DisplayName ?? "-",-12} updated {ws.UpdatedAt:yyyy-MM-dd HH:mm}");
+            Console.WriteLine($"{ws.Id,-40} {ws.Name,-24} {ws.Items.Count,3} items  desktop: {ws.Desktop?.DisplayName ?? "-",-12} updated {ws.UpdatedAt:yyyy-MM-dd HH:mm}  opened {(ws.LastOpenedAt is { } o ? o.ToString("yyyy-MM-dd HH:mm") : "never")}");
         return 0;
     }
 
@@ -141,6 +141,7 @@ static class Program
         };
         using var cts = new CancellationTokenSource();
         Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
+        WorkspaceStore.MarkOpened(ws);
         await WorkspaceRestoreService.RestoreAsync(ws, options, progress, cts.Token);
         // Progress<T> posts to the thread pool; give the last lines a moment.
         await Task.Delay(100);

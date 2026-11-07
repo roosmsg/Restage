@@ -44,6 +44,23 @@ public class WorkspaceCardViewModel : ViewModelBase
         }
     }
 
+    /// <summary>"Opened 5 minutes ago", or "Never opened".</summary>
+    public string OpenedText => Model.LastOpenedAt is { } t ? $"Opened {RelativeTime.Ago(t, DateTime.Now)}" : "Never opened";
+
+    /// <summary>"Created today", "Created 7 Nov".</summary>
+    public string CreatedText => $"Created {RelativeTime.Date(Model.CreatedAt, DateTime.Now)}";
+
+    /// <summary>Both on one line, for the card.</summary>
+    public string TimesText => $"{OpenedText} · {CreatedText}";
+
+    /// <summary>Re-evaluates the "ago" texts; called after a start and by a minute clock.</summary>
+    public void RefreshTimes()
+    {
+        OnPropertyChanged(nameof(OpenedText));
+        OnPropertyChanged(nameof(CreatedText));
+        OnPropertyChanged(nameof(TimesText));
+    }
+
     /// <summary>"Updated today 14:22" style line for the details pane.</summary>
     public string UpdatedText => Model.UpdatedAt.Date == DateTime.Today
         ? $"Updated today {Model.UpdatedAt:HH:mm}"
@@ -75,6 +92,7 @@ public class WorkspaceCardViewModel : ViewModelBase
                      nameof(Name), nameof(Thumbnail), nameof(NoThumbnail), nameof(Subtitle), nameof(HasDesktop),
                      nameof(DesktopName), nameof(WallpaperName), nameof(HasWallpaper), nameof(UpdatedText),
                      nameof(ProfilesText), nameof(LacksCurrentProfile), nameof(EnabledCount),
+                     nameof(OpenedText), nameof(CreatedText), nameof(TimesText),
                  })
             OnPropertyChanged(name);
     }

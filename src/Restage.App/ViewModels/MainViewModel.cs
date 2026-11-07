@@ -60,7 +60,14 @@ public class MainViewModel : ViewModelBase
 
         RefreshWorkspaces();
         Log("Ready. Closing the window keeps Restage in the system tray.");
+
+        // "Opened 5 minutes ago" has to age; once a minute is plenty.
+        _clock = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
+        _clock.Tick += (_, _) => { foreach (var card in Workspaces) card.RefreshTimes(); };
+        _clock.Start();
     }
+
+    readonly System.Windows.Threading.DispatcherTimer _clock;
 
     static WorkspaceCardViewModel Card(object? p) => (WorkspaceCardViewModel)p!;
 
@@ -337,6 +344,8 @@ public class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(RestoreFraction));
         ShowRestorePanel = true;
         Log($"Starting \"{card.Name}\" — {_restoreTotal} items…");
+        try { WorkspaceStore.MarkOpened(card.Model); } catch (Exception ex) { Log($"Could not note the start: {ex.Message}"); }
+        card.RefreshTimes();
 
         _restoreCts = new CancellationTokenSource();
         var options = new RestoreOptions

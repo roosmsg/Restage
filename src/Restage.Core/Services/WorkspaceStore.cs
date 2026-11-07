@@ -61,11 +61,15 @@ public static class WorkspaceStore
     public static Workspace? Find(string idOrName) =>
         Load(idOrName) ?? List().FirstOrDefault(w => string.Equals(w.Name, idOrName, StringComparison.OrdinalIgnoreCase));
 
-    /// <summary>Writes the workspace (and its thumbnail, when given), assigning an id on first save.</summary>
-    public static void Save(Workspace ws, byte[]? thumbnailPng = null)
+    /// <summary>
+    /// Writes the workspace (and its thumbnail, when given), assigning an id on
+    /// first save. <paramref name="touch"/> false keeps UpdatedAt as it is, for
+    /// bookkeeping writes that are not edits.
+    /// </summary>
+    public static void Save(Workspace ws, byte[]? thumbnailPng = null, bool touch = true)
     {
         if (string.IsNullOrWhiteSpace(ws.Id)) ws.Id = NewId(ws.Name);
-        ws.UpdatedAt = DateTime.Now;
+        if (touch || ws.UpdatedAt == default) ws.UpdatedAt = DateTime.Now;
         if (ws.CreatedAt == default) ws.CreatedAt = ws.UpdatedAt;
         var dir = DirectoryFor(ws.Id);
         Directory.CreateDirectory(dir);
@@ -77,6 +81,13 @@ public static class WorkspaceStore
         File.WriteAllText(tmp, JsonSerializer.Serialize(ws, JsonOptions));
         File.Move(tmp, file, overwrite: true);
         if (thumbnailPng is { Length: > 0 }) File.WriteAllBytes(ThumbnailFor(ws.Id), thumbnailPng);
+    }
+
+    /// <summary>Records that the workspace was started now; not an edit, so UpdatedAt stays.</summary>
+    public static void MarkOpened(Workspace ws)
+    {
+        ws.LastOpenedAt = DateTime.Now;
+        Save(ws, touch: false);
     }
 
     public static void Delete(string id)
