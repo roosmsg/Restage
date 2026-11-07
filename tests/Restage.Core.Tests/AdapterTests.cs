@@ -58,23 +58,93 @@ public class FirefoxAdapterTests
         Assert.Equal("", FirefoxAdapter.ProfileArgs(parsed));
     }
 
+    const string ReaderId = "99a2ced9-01a5-4d0d-8845-61038659e88d";
+    const string Profile = @"C:\Users\x\AppData\Roaming\Mozilla\Firefox\Profiles\qloeq5r3.default-esr";
+
     [Fact]
     public void Match_distinguishes_profiles_and_taskbar_tabs()
     {
         var adapter = new FirefoxAdapter();
         var exe = @"C:\Program Files\Mozilla Firefox\firefox.exe";
         var browser = new WorkspaceItem { Kind = ItemKind.Firefox, Exe = exe, Target = "", Title = "Mozilla Firefox" };
-        var tab = new WorkspaceItem { Kind = ItemKind.FirefoxTaskbarTab, Exe = exe, Target = "abc" };
+        var tab = new WorkspaceItem { Kind = ItemKind.FirefoxTaskbarTab, Exe = exe, Target = ReaderId };
 
         var plain = new CapturedWindow { ProcessName = "firefox", ExePath = exe, Args = "", Title = "Mozilla Firefox" };
         var other = new CapturedWindow { ProcessName = "firefox", ExePath = exe, Args = "-P Werk", Title = "Mozilla Firefox" };
-        var tabWin = new CapturedWindow { ProcessName = "firefox", ExePath = exe, Args = "-taskbar-tab abc -new-window https://x", Title = "X" };
+        // Opened by the app's shortcut while Firefox already ran: the process's arguments say nothing, the window id does.
+        var tabWin = new CapturedWindow { ProcessName = "firefox", ExePath = exe, Args = "", AppUserModelId = ReaderId, Title = "Reader" };
+        // The opposite: Firefox itself was started by the app's shortcut, so every browser window's process carries its arguments.
+        var browserInAppProcess = new CapturedWindow
+        {
+            ProcessName = "firefox", ExePath = exe, AppUserModelId = "308046B0AF4A39CB", Title = "Mozilla Firefox",
+            Args = $"-taskbar-tab {ReaderId} -new-window https://read.readwise.io/ -profile {Profile} -container 0",
+        };
+        var legacyTabWin = new CapturedWindow { ProcessName = "firefox", ExePath = exe, Args = $"-taskbar-tab {ReaderId} -new-window https://x", Title = "X" };
 
         Assert.Equal(3, adapter.Match(browser, plain));
         Assert.Equal(0, adapter.Match(browser, other));
         Assert.Equal(0, adapter.Match(browser, tabWin));
         Assert.Equal(3, adapter.Match(tab, tabWin));
+        Assert.Equal(3, adapter.Match(tab, legacyTabWin));
         Assert.Equal(0, adapter.Match(tab, plain));
+        Assert.Equal(0, adapter.Match(tab, browserInAppProcess));
+        Assert.Equal(ReaderId, FirefoxAdapter.TaskbarTabId(tabWin));
+        Assert.Null(FirefoxAdapter.TaskbarTabId(browserInAppProcess));
+    }
+
+    [Fact]
+    public void Installed_web_apps_are_read_from_Firefoxs_list_and_relaunched_like_their_shortcuts()
+    {
+        var json = """
+            {"version": 1, "taskbarTabs": [
+              {"id": "99a2ced9-01a5-4d0d-8845-61038659e88d", "scopes": [], "userContextId": 0, "startUrl": "https://read.readwise.io/", "name": "Reader", "shortcutRelativePath": "Reader.lnk"},
+              {"id": "broken", "name": "no url"},
+              {"id": "7f3ffd1b-70e8-4124-92c7-9f9e37611f2a", "userContextId": 2, "startUrl": "https://backlog.example.net", "name": ""}
+            ]}
+            """;
+        var tabs = FirefoxAdapter.ParseTaskbarTabs(json, Profile);
+        Assert.Equal(2, tabs.Count);
+        Assert.Equal($"-taskbar-tab {ReaderId} -new-window https://read.readwise.io/ -profile \"{Profile}\" -container 0", tabs[0].LaunchArgs);
+        Assert.Equal(Path.Combine(Profile, "taskbartabs", "icons", ReaderId + ".ico"), tabs[0].IconFile);
+        Assert.Equal(2, tabs[1].ContainerId);
+
+        var window = new CapturedWindow { ProcessName = "firefox", ExePath = "f.exe", AppUserModelId = ReaderId, Title = "Home | Readwise — Reader in Mozilla Firefox" };
+        var item = FirefoxAdapter.TaskbarTabItem(window, tabs[0]);
+        Assert.Equal(ItemKind.FirefoxTaskbarTab, item.Kind);
+        Assert.Equal(ReaderId, item.Target);
+        Assert.Equal("Reader", item.Detail);
+        Assert.Equal(tabs[0].IconFile, new FirefoxAdapter().IconFile(item));
+        Assert.Equal("backlog.example.net", FirefoxAdapter.TaskbarTabItem(window, tabs[1]).Detail);
+    }
+
+    [Fact]
+    public void A_profile_path_that_is_the_default_profile_counts_as_the_default()
+    {
+        var ini = """
+            [Profile1]
+            Name=default
+            IsRelative=1
+            Path=Profiles/d03zwvqi.default
+            Default=1
+
+            [Profile0]
+            Name=default-esr
+            IsRelative=1
+            Path=Profiles/qloeq5r3.default-esr
+
+            [Install308046B0AF4A39CB]
+            Default=Profiles/qloeq5r3.default-esr
+            Locked=1
+            """;
+        var root = @"C:\Users\x\AppData\Roaming\Mozilla\Firefox";
+        Assert.Equal(Profile, FirefoxAdapter.DefaultProfileFromIni(ini, root));
+        // Without an install section the flagged profile is the default.
+        Assert.Equal(Path.Combine(root, @"Profiles\d03zwvqi.default"), FirefoxAdapter.DefaultProfileFromIni(ini[..ini.IndexOf("[Install")], root));
+
+        var parsed = FirefoxAdapter.Parse($"-profile \"{Profile}\" -container 0");
+        Assert.Equal("", FirefoxAdapter.Normalize(parsed, Profile + @"\").ProfileKey);
+        Assert.Equal(Profile, FirefoxAdapter.Normalize(parsed, @"C:\elsewhere").ProfileKey);
+        Assert.Equal(Profile, FirefoxAdapter.Normalize(parsed, null).ProfileKey);
     }
 }
 

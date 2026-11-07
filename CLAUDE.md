@@ -78,9 +78,17 @@ Data: `%LOCALAPPDATA%\Restage\workspaces\<id>\workspace.json` + `thumbnail.png`,
     `%APPDATA%\obsidian\obsidian.json`; note file found by name in the vault.
     Launch `Obsidian.exe "obsidian://open?vault=…&file=…"`; the same URI is
     sent via `ReuseAsync` when the vault is already open.
-  - Firefox: taskbar web apps are their own `firefox.exe -taskbar-tab <id>
-    -new-window <url> -profile <path>`; relaunched verbatim. Browser windows:
-    one launch per profile, Firefox restores tabs itself.
+  - Firefox: a web app ("taskbar tab") window carries the app's GUID as its
+    AppUserModelID (its shortcut has the same id); the app's name, start URL
+    and container come from `<profile>\taskbartabs\taskbartabs.json`, its icon
+    from `taskbartabs\icons\<id>.ico`, and it is relaunched with the
+    shortcut's own arguments (`-taskbar-tab <id> -new-window <url> -profile
+    <path> -container <n>`). Do not trust the process command line: all
+    windows of a profile share one process, so a Firefox started by a web
+    app shortcut carries that app's arguments on every browser window, and
+    an app opened while Firefox ran carries none. A `-profile <path>` equal
+    to the default profile (profiles.ini) counts as the default profile.
+    Browser windows: one launch per profile, Firefox restores tabs itself.
   - Chromium: web apps vs browser windows told apart by the window's
     AppUserModelID (`Chrome._crx_<app id>[.<profile>]`), not the shared
     command line. Chrome caps the id at 64 characters and cuts each component

@@ -159,7 +159,7 @@ static class Program
             var p = i.PlacementFor(profileId);
             var where = p == null ? "" : $"{p.State} {p.Left},{p.Top} {p.Width}x{p.Height}";
             Console.WriteLine($"    [{i.Kind,-17}] {i.Name,-16} {Trunc(i.Detail ?? i.Title, 48),-50} {where}");
-            if (i.Kind is ItemKind.Generic or ItemKind.Terminal or ItemKind.ChromiumApp && i.Args.Length > 0)
+            if (i.Kind is ItemKind.Generic or ItemKind.Terminal or ItemKind.ChromiumApp or ItemKind.FirefoxTaskbarTab && i.Args.Length > 0)
                 Console.WriteLine($"                        args: {Trunc(i.Args, 90)}");
         }
     }
