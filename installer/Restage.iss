@@ -8,7 +8,7 @@
 #define MyAppName "Restage"
 #define MyAppVersion "0.1.0"
 #define MyAppPublisher "Restage"
-#define MyAppURL "https://github.com/roosmsg/Restage"
+#define MyAppURL "https://github.com/roosmsg/Restage-Windows"
 #define MyAppExeName "Restage.exe"
 #define MyCliExeName "restage.exe"
 
