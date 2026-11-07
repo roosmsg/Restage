@@ -4,11 +4,10 @@ namespace Restage.Models;
 public enum DesktopSwitchMode
 {
     /// <summary>Show a prompt with the desktop's name and wait for the user to switch.</summary>
-    Ask,
-    /// <summary>Wait silently (up to a minute) for the user to switch, then continue.</summary>
-    Wait,
+    Ask = 0,
+    // 1 was "wait silently", removed; a settings file holding it falls back to Ask.
     /// <summary>Never wait; restore on whatever desktop is current.</summary>
-    Never,
+    Never = 2,
 }
 
 /// <summary>User preferences persisted to app-settings.json.</summary>
