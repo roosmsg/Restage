@@ -55,9 +55,12 @@ public static class ThemeService
             resources.Remove("AccentTextBrush");
             return;
         }
-        resources["AccentBrush"] = Frozen(accent);
-        resources["AccentHoverBrush"] = Frozen(Scale(accent, 0.86));
-        resources["AccentTextBrush"] = Frozen(Luminance(accent) > 0.62 ? Color.FromRgb(0x14, 0x14, 0x18) : Colors.White);
+        // A notch darker than Windows paints it: the accent fills buttons here,
+        // and the raw colour reads too bright against the dark panels.
+        var baseColor = Scale(accent, 0.80);
+        resources["AccentBrush"] = Frozen(baseColor);
+        resources["AccentHoverBrush"] = Frozen(Scale(accent, 0.68));
+        resources["AccentTextBrush"] = Frozen(Luminance(baseColor) > 0.62 ? Color.FromRgb(0x14, 0x14, 0x18) : Colors.White);
     }
 
     /// <summary>The accent colour Windows paints its own chrome with (Settings › Personalisation › Colours).</summary>
