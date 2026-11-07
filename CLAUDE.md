@@ -137,3 +137,7 @@ them with `EnumWindows` filtered by PID.
   workspace if wanted.
 - Not yet: global hotkeys, named display profiles in the UI, a GitHub release
   with binaries, Hex voice config.
+- A separate "focal/contextual" app is on the wish list; everything learned
+  about OpenWorkspace's FocalContextual mode (public description, what the
+  binary reveals, how to build it with public APIs on top of `Restage.Core`)
+  is in `docs/FOCAL-CONTEXTUAL.md`.
