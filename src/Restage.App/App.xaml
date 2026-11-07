@@ -729,7 +729,8 @@
                 </Setter>
             </Style>
 
-            <!-- Chevron expander for multi-window app cards and the log. -->
+            <!-- Chevron expander for the log at the bottom edge: unchecked (hidden) points
+                 up, where the log will appear; checked (shown) points down, where it goes. -->
             <Style x:Key="ExpandToggle" TargetType="ToggleButton">
                 <Setter Property="Cursor" Value="Hand"/>
                 <Setter Property="Template">
@@ -739,7 +740,7 @@
                                     Width="28" Height="28">
                                 <Viewbox Width="14" Height="14">
                                     <Path x:Name="Glyph" Width="24" Height="24"
-                                          Data="{StaticResource IconChevronDown}"
+                                          Data="{StaticResource IconChevronUp}"
                                           Stroke="{DynamicResource MutedBrush}" StrokeThickness="2.25"
                                           StrokeStartLineCap="Round" StrokeEndLineCap="Round"
                                           StrokeLineJoin="Round"/>
@@ -751,7 +752,7 @@
                                     <Setter TargetName="Glyph" Property="Stroke" Value="{DynamicResource TextBrush}"/>
                                 </Trigger>
                                 <Trigger Property="IsChecked" Value="True">
-                                    <Setter TargetName="Glyph" Property="Data" Value="{StaticResource IconChevronUp}"/>
+                                    <Setter TargetName="Glyph" Property="Data" Value="{StaticResource IconChevronDown}"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
