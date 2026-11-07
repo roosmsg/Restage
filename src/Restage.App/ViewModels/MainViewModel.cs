@@ -626,6 +626,41 @@ public class MainViewModel : ViewModelBase
 
     public RelayCommand ToggleThemeCommand { get; }
 
+    // ---- Voice control: the local API's address and token, to copy into a voice tool ----
+
+    string _apiToken = "";
+
+    /// <summary>Where a voice tool posts what it heard; empty while the API is off.</summary>
+    public string ApiCommandUrl { get; private set; } = "";
+
+    public bool HasApi => ApiCommandUrl.Length > 0;
+
+    /// <summary>The token's last characters, enough to tell which one a voice tool has.</summary>
+    public string ApiTokenHint => _apiToken.Length > 6 ? $"Token ••••{_apiToken[^6..]}" : "Token";
+
+    public RelayCommand CopyApiUrlCommand => _copyApiUrl ??= new RelayCommand(_ => Copy(ApiCommandUrl, "Voice command URL copied."));
+    RelayCommand? _copyApiUrl;
+
+    public RelayCommand CopyApiTokenCommand => _copyApiToken ??= new RelayCommand(_ => Copy(_apiToken, "Token copied."));
+    RelayCommand? _copyApiToken;
+
+    /// <summary>Called once the local API listens.</summary>
+    public void SetApi(int port, string token)
+    {
+        _apiToken = token;
+        ApiCommandUrl = $"http://127.0.0.1:{port}/command";
+        OnPropertyChanged(nameof(ApiCommandUrl));
+        OnPropertyChanged(nameof(HasApi));
+        OnPropertyChanged(nameof(ApiTokenHint));
+    }
+
+    void Copy(string text, string done)
+    {
+        if (text.Length == 0) return;
+        try { System.Windows.Clipboard.SetText(text); Log(done); }
+        catch (Exception ex) { Log($"Copy failed: {ex.Message}"); }
+    }
+
     void ToggleTheme()
     {
         _settings.Theme = IsDarkTheme ? ThemeService.Light : ThemeService.Dark;

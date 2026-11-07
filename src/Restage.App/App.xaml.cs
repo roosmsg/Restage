@@ -76,8 +76,8 @@ public partial class App : Application, IAppHost
 
         _hotkeys = new HotkeyService();
         ViewModel = new MainViewModel(Settings, this, _hotkeys);
-        _api = new LocalApiServer(ViewModel);
-        _api.Start();
+        _api = new LocalApiServer(ViewModel, Settings);
+        if (_api.Start()) ViewModel.SetApi(_api.Port, _api.Token);
 
         _tray = new WinForms.NotifyIcon { Text = $"Restage {AppVersion}" };
         _tray.ContextMenuStrip = BuildTrayMenu();

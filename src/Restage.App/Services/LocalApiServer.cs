@@ -5,14 +5,17 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Windows.Threading;
+using Restage.Models;
 using Restage.Services.Api;
 using Restage.ViewModels;
 
 namespace Restage.Services;
 
 /// <summary>
-/// The local API: HTTP on 127.0.0.1 at a random port, announced with a
-/// per-run bearer token in %LOCALAPPDATA%\Restage\local-api.json, so voice
+/// The local API: HTTP on 127.0.0.1, with a bearer token, announced in
+/// %LOCALAPPDATA%\Restage\local-api.json. Port and token are chosen on the
+/// first run and kept in the settings, so a voice tool set up once keeps
+/// working after Restage restarts. It lets voice
 /// and automation tools on this PC can list, start and capture workspaces,
 /// or hand over what was said as text (POST /command). Loopback only; a
 /// request without the token, or from a web page (an Origin header), is
@@ -32,31 +35,63 @@ public sealed class LocalApiServer : IDisposable
 
     readonly MainViewModel _vm;
     readonly Dispatcher _dispatcher = Dispatcher.CurrentDispatcher;
-    readonly string _token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
+    readonly AppSettings _settings;
+    readonly string _token;
     HttpListener? _listener;
 
     public int Port { get; private set; }
+    public string Token => _token;
 
-    public LocalApiServer(MainViewModel vm) => _vm = vm;
+    public LocalApiServer(MainViewModel vm, AppSettings settings)
+    {
+        _vm = vm;
+        _settings = settings;
+        if (settings.ApiToken.Length < 32)
+        {
+            settings.ApiToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
+            SettingsService.Save(settings);
+        }
+        _token = settings.ApiToken;
+    }
 
-    /// <summary>Takes a free port, listens, and writes the discovery file; false (and logged) when no port could be had.</summary>
+    /// <summary>
+    /// Listens on the saved port, or on a free one picked (and saved) the first
+    /// time, and writes the discovery file. A saved port another program took
+    /// is replaced for this run only, and logged, since the voice tool still
+    /// has the old one. False (and logged) when no port could be had.
+    /// </summary>
     public bool Start()
     {
+        var saved = _settings.ApiPort;
+        if (saved > 0 && TryListen(saved)) return true;
         for (var attempt = 0; attempt < 10; attempt++)
         {
             var port = RandomNumberGenerator.GetInt32(49152, 65535);
-            var listener = new HttpListener();
-            listener.Prefixes.Add($"http://127.0.0.1:{port}/");
-            try { listener.Start(); }
-            catch (HttpListenerException) { listener.Close(); continue; }
-            _listener = listener;
-            Port = port;
-            LocalApiFile.Write(new LocalApiInfo(Version, port, _token, Environment.ProcessId));
-            _ = LoopAsync(listener);
+            if (!TryListen(port)) continue;
+            if (saved > 0)
+                _vm.Log($"Local API: port {saved} is taken by another program; using {port} for this run. Voice tools need the new address (Settings › Voice control).");
+            else
+            {
+                _settings.ApiPort = port;
+                SettingsService.Save(_settings);
+            }
             return true;
         }
         _vm.Log("Local API: no free port found; it is off for this run.");
         return false;
+    }
+
+    bool TryListen(int port)
+    {
+        var listener = new HttpListener();
+        listener.Prefixes.Add($"http://127.0.0.1:{port}/");
+        try { listener.Start(); }
+        catch (HttpListenerException) { listener.Close(); return false; }
+        _listener = listener;
+        Port = port;
+        LocalApiFile.Write(new LocalApiInfo(Version, port, _token, Environment.ProcessId));
+        _ = LoopAsync(listener);
+        return true;
     }
 
     async Task LoopAsync(HttpListener listener)

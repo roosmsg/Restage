@@ -30,6 +30,15 @@ public sealed class AppSettings
 
     public DesktopSwitchMode DesktopSwitch { get; set; } = DesktopSwitchMode.Ask;
 
+    /// <summary>
+    /// The local API's port, kept across runs so voice tools keep reaching it;
+    /// 0 until the first run picks a free one.
+    /// </summary>
+    public int ApiPort { get; set; }
+
+    /// <summary>The local API's bearer token, made on the first run and kept, for the same reason.</summary>
+    public string ApiToken { get; set; } = "";
+
     /// <summary>Height of the bottom panel when the log is expanded, in pixels.</summary>
     public double BottomPanelHeight { get; set; } = 160;
 

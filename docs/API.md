@@ -18,8 +18,12 @@ While the app runs, `%LOCALAPPDATA%\Restage\local-api.json` holds:
 }
 ```
 
-The port is random and the token new for every run; the file is deleted at
-exit. Check that `pid` is alive before trusting a file (a crash leaves it
+The port is picked once, on the first run, and the token made once; both
+are kept in `app-settings.json` (`ApiPort`, `ApiToken`), so a tool set up
+with them keeps working after Restage restarts. Settings › *Voice control*
+shows the command URL and copies it and the token. Only when another
+program has taken the port does a run use another one (the log says so).
+The file is deleted at exit. Check that `pid` is alive before trusting a file (a crash leaves it
 behind). Send the token on every request:
 
 ```text

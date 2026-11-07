@@ -324,6 +324,21 @@
                                     Content="{Binding AppHotkeyLabel}" Command="{Binding EditAppHotkeyCommand}"
                                     Click="SettingsRow_CloseOnClick" Margin="0,0,0,4"/>
 
+                            <!-- What a voice tool (Hex, Handy) needs to send commands; stays the same across restarts. -->
+                            <StackPanel Visibility="{Binding HasApi, Converter={StaticResource BoolToVis}}">
+                                <Border Height="1" Background="{DynamicResource BorderBrush2}" Margin="0,6"/>
+                                <TextBlock Text="VOICE CONTROL" Style="{StaticResource SectionLabel}"
+                                           FontSize="10.5" Margin="7,4,7,4"/>
+                                <TextBlock Text="{Binding ApiCommandUrl}" FontSize="11" Margin="7,0,7,6"
+                                           Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis"
+                                           ToolTip="Send what was said here, as JSON {&quot;text&quot;: &quot;…&quot;}, with the token as a bearer token. It stays the same when Restage restarts."/>
+                                <Button Style="{StaticResource MenuRowButton}" Tag="{StaticResource IconCopy}"
+                                        Content="Copy command URL" Command="{Binding CopyApiUrlCommand}"/>
+                                <Button Style="{StaticResource MenuRowButton}" Tag="{StaticResource IconCopy}"
+                                        Content="{Binding ApiTokenHint}" Command="{Binding CopyApiTokenCommand}"
+                                        ToolTip="Copy the token"/>
+                            </StackPanel>
+
                             <Border Height="1" Background="{DynamicResource BorderBrush2}" Margin="0,6"/>
                             <TextBlock Text="WORKSPACE ON ANOTHER DESKTOP" Style="{StaticResource SectionLabel}"
                                        FontSize="10.5" Margin="7,4,7,8"/>
