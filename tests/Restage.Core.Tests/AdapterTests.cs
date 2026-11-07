@@ -259,7 +259,18 @@ public class VSCodeAdapterTests
     [InlineData("SnapshotService.cs - reverse-engineer - Visual Studio Code", @"C:\Users\x\Projects\reverse-engineer")]
     [InlineData("● README.md - empty - Visual Studio Code", @"C:\Users\x\Projects\empty")]
     [InlineData("Welcome - Visual Studio Code", null)]
-    public void Folder_is_resolved_from_a_title_segment_preferring_the_most_recent(string title, string? expected)
+    // Custom "${rootName} ${focusedView} ${activeEditorLanguageId}" formats keep
+    // the folder in a segment with other words.
+    [InlineData("README.md - reverse-engineer Explorer markdown", @"C:\Users\x\Projects\reverse-engineer")]
+    [InlineData("reverse-engineer Terminal", @"C:\Users\x\Projects\reverse-engineer")]
+    [InlineData("[empty] README.md", @"C:\Users\x\Projects\empty")]
+    [InlineData(@"README.md - C:\Users\x\Projects\empty", @"C:\Users\x\Projects\empty")]
+    // Words are whole words; a segment of its own beats a word, and the later
+    // of two segments is the folder, not the active file.
+    [InlineData("x.cs - reverse-engineering - Visual Studio Code", null)]
+    [InlineData("empty notes.md - reverse-engineer - Visual Studio Code", @"C:\Users\x\Projects\reverse-engineer")]
+    [InlineData("empty - reverse-engineer - Visual Studio Code", @"C:\Users\x\Projects\reverse-engineer")]
+    public void Folder_is_resolved_from_the_title_preferring_segments_then_the_most_recent(string title, string? expected)
     {
         Assert.Equal(expected, VSCodeAdapter.ResolveTarget(title, Known));
     }
@@ -281,6 +292,9 @@ public class VSCodeAdapterTests
         var exe = @"C:\Users\x\AppData\Local\Programs\Microsoft VS Code\Code.exe";
         var item = new WorkspaceItem { Kind = ItemKind.VSCode, Exe = exe, Target = @"C:\Users\x\Projects\reverse-engineer" };
         Assert.Equal(3, adapter.Match(item, new CapturedWindow { ProcessName = "Code", ExePath = exe, Title = "x.cs - reverse-engineer - Visual Studio Code" }));
+        Assert.Equal(3, adapter.Match(item, new CapturedWindow { ProcessName = "Code", ExePath = exe, Title = "reverse-engineer" }));
+        Assert.Equal(2, adapter.Match(item, new CapturedWindow { ProcessName = "Code", ExePath = exe, Title = "x.cs - reverse-engineer Explorer csharp" }));
+        Assert.Equal(0, adapter.Match(item, new CapturedWindow { ProcessName = "Code", ExePath = exe, Title = "x.cs - reverse-engineering - Visual Studio Code" }));
         Assert.Equal(0, adapter.Match(item, new CapturedWindow { ProcessName = "Code", ExePath = exe, Title = "x.cs - other - Visual Studio Code" }));
         Assert.Equal(0, adapter.Match(item, new CapturedWindow { ProcessName = "Code", ExePath = exe, Args = "--type=renderer", Title = "reverse-engineer" }));
     }

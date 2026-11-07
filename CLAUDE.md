@@ -72,10 +72,14 @@ Data: `%LOCALAPPDATA%\Restage\workspaces\<id>\workspace.json` + `thumbnail.png`,
   extension. Command lines and terminal cwds are read from the PEB (fast;
   WMI only as fallback in full captures).
 - **Adapters** (`AdapterRegistry.All`, first `CanDescribe` wins, Generic last):
-  - VS Code: folder resolved from a title segment against
+  - VS Code: folder resolved from the title against
     `%APPDATA%\Code\User\workspaceStorage\*\workspace.json` (most recently
-    written `state.vscdb` wins). `storage.json`'s `openedWindows` is empty
-    while VS Code runs, so it is useless live. Launch `Code.exe -n "<folder>"`.
+    written `state.vscdb` wins): a " - " segment equal to the folder name
+    (default title format) scores above the name as a whole word anywhere
+    (custom `window.title` such as `${rootName} ${focusedView}
+    ${activeEditorLanguageId}`, which the user has). `storage.json`'s
+    `openedWindows` is empty while VS Code runs, so it is useless live.
+    Launch `Code.exe -n "<folder>"`.
   - Obsidian: title `Note - Vault - Obsidian 1.x`; vault path from
     `%APPDATA%\obsidian\obsidian.json`; note file found by name in the vault.
     Launch `Obsidian.exe "obsidian://open?vault=…&file=…"`; the same URI is

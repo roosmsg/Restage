@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Restage.Models;
 using Restage.Services;
 
@@ -51,8 +52,7 @@ public sealed class VSCodeAdapter : AppAdapter
     {
         if (!Same(item.Exe, window.ExePath) || window.Args.Contains("--type=")) return 0;
         if (item.Target == null) return Same(item.Title, window.Title) ? 2 : 1;
-        var name = new KnownWorkspace(item.Target, default).Name;
-        return TitleSegments(window.Title).Any(s => Same(s, name)) ? 3 : 0;
+        return Locate(window.Title, item.Target).Score;
     }
 
     public override Task<LaunchResult> LaunchAsync(IReadOnlyList<WorkspaceItem> group, RestoreContext context, CancellationToken ct)
@@ -137,23 +137,57 @@ public sealed class VSCodeAdapter : AppAdapter
 
     /// <summary>
     /// The folder a window shows, from its title. The title (in any format the
-    /// user configured) contains the folder name as one " - " segment; among
-    /// known folders with that name the most recently active wins. Null when no
-    /// segment matches.
+    /// user configured) contains the folder's name or path; among known folders
+    /// the best <see cref="Locate"/> hit wins: a whole " - " segment over a
+    /// word inside one, then the later segment (the default format puts the
+    /// active file before the folder) or the longer name (more specific than a
+    /// view or language name that shares its segment), then the most recently
+    /// active. Null when nothing matches.
     /// </summary>
     public static string? ResolveTarget(string title, IReadOnlyList<KnownWorkspace> known)
     {
-        var segments = TitleSegments(title);
-        // Walk from the end: the default title puts the folder after the file.
-        for (var i = segments.Length - 1; i >= 0; i--)
+        return known
+            .Select(k => (Workspace: k, Hit: Locate(title, k.Path)))
+            .Where(c => c.Hit.Score > 0)
+            .OrderByDescending(c => c.Hit.Score)
+            .ThenByDescending(c => c.Hit.Score == SegmentScore ? c.Hit.Position : c.Workspace.Name.Length)
+            .ThenByDescending(c => c.Hit.Score == SegmentScore ? c.Workspace.Name.Length : c.Hit.Position)
+            .ThenByDescending(c => c.Workspace.LastActive)
+            .Select(c => c.Workspace.Path)
+            .FirstOrDefault();
+    }
+
+    const int SegmentScore = 3, WordScore = 2;
+
+    /// <summary>
+    /// Where a folder shows up in a window title, as (score, position). The
+    /// default title format ("${activeEditorShort} - ${rootName} - Visual
+    /// Studio Code") gives the folder a " - " segment of its own: score 3.
+    /// Custom formats often keep other variables in the folder's segment
+    /// ("${rootName} ${focusedView} ${activeEditorLanguageId}" shows as
+    /// "afstuderen Explorer markdown"), so the folder's name or full path as
+    /// a whole word anywhere in the title still counts: score 2. Score 0 when
+    /// the title has neither. A word is bounded by anything but a letter or
+    /// digit, so "app" is not found in "application".
+    /// </summary>
+    public static (int Score, int Position) Locate(string title, string folderPath)
+    {
+        var best = (Score: 0, Position: -1);
+        var name = new KnownWorkspace(folderPath, default).Name;
+        foreach (var needle in new[] { folderPath, name })
         {
-            var seg = segments[i];
-            var hit = known
-                .Where(k => Same(k.Name, seg))
-                .OrderByDescending(k => k.LastActive)
-                .FirstOrDefault();
-            if (hit != null) return hit.Path;
+            if (needle.Length == 0) continue;
+            var pattern = $@"(?<![\p{{L}}\p{{N}}]){Regex.Escape(needle)}(?![\p{{L}}\p{{N}}])";
+            foreach (Match m in Regex.Matches(title, pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+            {
+                var before = title[..m.Index].TrimEnd();
+                var after = title[(m.Index + m.Length)..].TrimStart();
+                var wholeSegment = (before.Length == 0 || before.EndsWith(" -", StringComparison.Ordinal))
+                               && (after.Length == 0 || after.StartsWith("- ", StringComparison.Ordinal));
+                var hit = (Score: wholeSegment ? SegmentScore : WordScore, Position: m.Index);
+                if (hit.Score > best.Score || (hit.Score == best.Score && hit.Position > best.Position)) best = hit;
+            }
         }
-        return null;
+        return best;
     }
 }
