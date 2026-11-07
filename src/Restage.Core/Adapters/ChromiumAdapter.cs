@@ -111,10 +111,12 @@ public sealed class ChromiumAdapter : AppAdapter
     public static string? ProfileFromAumid(string? aumid, string? candidate = null)
     {
         if (string.IsNullOrEmpty(aumid)) return null;
-        var core = AppIdPattern.Replace(aumid, "");
-        var dot = core.IndexOf('.');
-        if (dot < 0 || dot == core.Length - 1) return null;
-        var segment = core[(dot + 1)..].TrimEnd('.');
+        // Chrome joins "Chrome", the app name ("_crx_…", web apps only) and the
+        // profile directory without spaces with dots, leaving the default profile
+        // out. Drop the app part; the profile is then whatever follows "Chrome".
+        var parts = AppIdPattern.Replace(aumid, "").Split('.', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 2) return null;
+        var segment = parts[1];
         if (candidate != null && Same(segment, candidate.Replace(" ", ""))) return candidate;
         return segment;
     }

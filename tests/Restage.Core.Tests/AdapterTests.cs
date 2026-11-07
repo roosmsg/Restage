@@ -98,6 +98,8 @@ public class ChromiumAdapterTests
         Assert.Null(ChromiumAdapter.ProfileFromAumid("Chrome._crx_abcdefghijklmnopabcdefghijklmnop"));
         Assert.Equal("Profile1", ChromiumAdapter.ProfileFromAumid("Chrome.Profile1"));
         Assert.Equal("Profile 1", ChromiumAdapter.ProfileFromAumid("Chrome.Profile1._crx_abcdefghijklmnopabcdefghijklmnop", "Profile 1"));
+        // Chrome's real order for web apps: base id, app name, then the profile.
+        Assert.Equal("Profile 1", ChromiumAdapter.ProfileFromAumid("Chrome._crx_abcdefghijklmnopabcdefghijklmnop.Profile1", "Profile 1"));
     }
 
     [Fact]
