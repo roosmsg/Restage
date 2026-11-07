@@ -105,10 +105,6 @@
                                         ToolTip="Update from the current desktop"
                                         Command="{Binding DataContext.UpdateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                         CommandParameter="{Binding}"/>
-                                <Button Style="{StaticResource SubtleIconButton}" Tag="{StaticResource IconTrash}"
-                                        ToolTip="Delete"
-                                        Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                        CommandParameter="{Binding}"/>
                             </StackPanel>
                         </Grid>
                     </Grid>
