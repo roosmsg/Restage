@@ -708,6 +708,14 @@ public class MainViewModel : ViewModelBase
         set { if (SetProperty(ref _editName, value)) EditSaveCommand.RaiseCanExecuteChanged(); }
     }
 
+    bool _editApplyWallpaper;
+    /// <summary>The edit panel's "apply the wallpaper" box, a copy until Save.</summary>
+    public bool EditApplyWallpaper { get => _editApplyWallpaper; set => SetProperty(ref _editApplyWallpaper, value); }
+
+    bool _editHasWallpaper;
+    /// <summary>The box only shows for a workspace that saved a wallpaper.</summary>
+    public bool EditHasWallpaper { get => _editHasWallpaper; private set => SetProperty(ref _editHasWallpaper, value); }
+
     HotkeyRowViewModel? _editHotkey;
     /// <summary>The shortcut being edited, a copy of the workspace's until Save.</summary>
     public HotkeyRowViewModel? EditHotkey { get => _editHotkey; private set => SetProperty(ref _editHotkey, value); }
@@ -739,6 +747,8 @@ public class MainViewModel : ViewModelBase
         EditingApp = false;
         _editingId = card.Id;
         EditName = card.Name;
+        EditHasWallpaper = card.HasWallpaper;
+        EditApplyWallpaper = card.ApplyWallpaper;
         EditHotkey = new HotkeyRowViewModel(card.Hotkey.Action, card.Hotkey.Text);
         ShowEdit = true;
     }
@@ -772,6 +782,13 @@ public class MainViewModel : ViewModelBase
         }
         if (EditHotkey is not { } edited || Workspaces.FirstOrDefault(w => w.Id == _editingId) is not { } card) { CloseEdit(); return; }
         Rename(card, EditName);
+        if (card.HasWallpaper && card.ApplyWallpaper != EditApplyWallpaper)
+        {
+            card.ApplyWallpaper = EditApplyWallpaper;
+            Log(EditApplyWallpaper
+                ? $"\"{card.Name}\" puts its wallpaper back on start."
+                : $"\"{card.Name}\" leaves the wallpaper as it is.");
+        }
         if (edited.Text != card.Hotkey.Text)
         {
             if (edited.Text.Length == 0) _settings.Hotkeys.Remove(card.Hotkey.Action);

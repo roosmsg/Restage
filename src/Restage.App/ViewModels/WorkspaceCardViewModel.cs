@@ -32,10 +32,11 @@ public class WorkspaceCardViewModel : ViewModelBase
 
     public bool HasDesktop => Model.Desktop != null;
     public string DesktopName => Model.Desktop?.DisplayName ?? "Any desktop";
-    public string WallpaperName => string.IsNullOrEmpty(Model.Wallpaper) ? "none" : System.IO.Path.GetFileName(Model.Wallpaper);
+    public string WallpaperName => string.IsNullOrEmpty(Model.Wallpaper) ? "none"
+        : System.IO.Path.GetFileName(Model.Wallpaper) + (Model.ApplyWallpaper ? "" : " (not applied)");
     public bool HasWallpaper => !string.IsNullOrEmpty(Model.Wallpaper);
 
-    /// <summary>The details pane's switch on the wallpaper row; saved at once.</summary>
+    /// <summary>Whether Start puts the wallpaper back; set in the edit panel, saved at once.</summary>
     public bool ApplyWallpaper
     {
         get => Model.ApplyWallpaper;
@@ -45,6 +46,7 @@ public class WorkspaceCardViewModel : ViewModelBase
             Model.ApplyWallpaper = value;
             _save(this);
             OnPropertyChanged();
+            OnPropertyChanged(nameof(WallpaperName));
         }
     }
 

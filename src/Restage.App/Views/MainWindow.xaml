@@ -517,20 +517,13 @@
                             <DockPanel Margin="0,0,0,6" Background="Transparent">
                                 <DockPanel.ToolTip>
                                     <views:InfoTip Title="Wallpaper"
-                                                   Text="The desktop background saved with this workspace. The switch decides whether Start puts it back."/>
+                                                   Text="The desktop background saved with this workspace, put back on start unless switched off in the edit panel (pencil)."/>
                                 </DockPanel.ToolTip>
                                 <Viewbox Width="13" Height="13" VerticalAlignment="Center" Margin="0,0,9,0">
                                     <Path Width="24" Height="24" Data="{StaticResource IconImage}"
                                           Stroke="{DynamicResource MutedBrush}" StrokeThickness="2.25"
                                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
                                 </Viewbox>
-                                <!-- Whether a start applies this workspace's wallpaper. -->
-                                <CheckBox DockPanel.Dock="Right" Style="{StaticResource SwitchCheckBox}"
-                                          HorizontalAlignment="Right" VerticalAlignment="Center"
-                                          IsChecked="{Binding ApplyWallpaper}"
-                                          Visibility="{Binding HasWallpaper, Converter={StaticResource BoolToVis}}"
-                                          ToolTip="Apply this wallpaper when the workspace starts"
-                                          AutomationProperties.Name="Apply the wallpaper"/>
                                 <TextBlock Text="{Binding WallpaperName}" FontSize="12" VerticalAlignment="Center"
                                            TextTrimming="CharacterEllipsis">
                                     <TextBlock.Style>
@@ -824,6 +817,14 @@
                             <TextBox MaxLength="48" Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}"
                                      AutomationProperties.Name="Workspace name"
                                      IsVisibleChanged="OverlayInput_IsVisibleChanged" KeyDown="EditName_KeyDown"/>
+                            <CheckBox Style="{StaticResource SwitchCheckBox}" IsChecked="{Binding EditApplyWallpaper}" Margin="0,14,0,0"
+                                      Visibility="{Binding EditHasWallpaper, Converter={StaticResource BoolToVis}}">
+                                <StackPanel>
+                                    <TextBlock Text="Apply the saved wallpaper" FontSize="12.5"/>
+                                    <TextBlock Text="when the workspace starts" FontSize="11"
+                                               Foreground="{DynamicResource MutedBrush}"/>
+                                </StackPanel>
+                            </CheckBox>
                         </StackPanel>
                         <TextBlock Text="KEYBOARD SHORTCUT" Style="{StaticResource SectionLabel}" Margin="0,16,0,6"/>
                         <!-- The box never takes text: it records the keys pressed while it has focus. -->
