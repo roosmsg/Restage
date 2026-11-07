@@ -10,7 +10,8 @@ A Windows 11 app that saves the desktop you are working in as a *workspace*
 (editors with their folders, Obsidian vaults with the open note, browser
 profiles and web apps, Explorer folders, terminals, other apps, the virtual
 desktop and its wallpaper, window placement per monitor arrangement) and
-brings it back with one click. Fork of Rewake (MIT, see `NOTICE.md`). Not a
+brings it back with one click, a hotkey or a voice command (through the
+local API). Fork of Rewake (MIT, see `NOTICE.md`). Not a
 window manager; no telemetry, no animations, no sounds.
 
 Repo: `roosmsg/Restage` (a plain copy of the earlier fork

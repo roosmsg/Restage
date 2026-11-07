@@ -2,7 +2,7 @@
 
 # Restage
 
-*Workspace manager. Save your active applications as a workspace. Come back to them with one click.*
+*Workspace manager. Save your active applications as a workspace. Come back to them with one click or voice command.*
 
 Restage saves the applications you have open — VS Code folders, Obsidian
 vaults, Firefox and Chrome profiles and web apps, Explorer folders, terminals,
