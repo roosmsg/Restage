@@ -130,6 +130,12 @@ them with `EnumWindows` filtered by PID.
 - Explorer tabs come back as separate windows (no public API).
 - Browser tabs are the browser's own session restore; a profile per workspace
   is the intended way to get per-workspace tabs.
+- Chrome/Edge tabs cannot be read from disk during a capture: the browser
+  holds `<profile>\Sessions\Session_<timestamp>` exclusively while it runs
+  (the previous run's file is readable: SNSS v3, 16-bit size + 8-bit command
+  id per record, marker command 255). Decided with the user to leave it;
+  if wanted later, the supported route is a companion extension plus a
+  native messaging host. See `docs/DECISIONS.md`.
 - Only the current virtual desktop's windows are captured.
 - Elevated apps cannot be read or moved.
 - Rewake's auto-capture history, "Last session before shutdown" and Stay

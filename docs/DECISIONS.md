@@ -92,6 +92,22 @@ open (`AppAdapter.ReuseAsync`). The per-item `OpenContent` checkbox ("note",
 "folder", "arguments") lets a user ask for a bare start instead; it was
 removed once on request and reinstated the same evening.
 
+## Chrome tabs: profile only, for now (7 November 2026)
+
+The wish was to record a Chrome window's tabs and let the per-item checkbox
+decide whether a restore opens them. Chrome writes its windows and tabs to
+`<profile>\Sessions\Session_<timestamp>` (SNSS version 3: a 16-bit record
+size, an 8-bit command id, a payload; command 255 marks the end of the
+initial state). A probe of the previous run's file parsed cleanly, but Chrome
+opens the *current* file with exclusive access while it runs, so every read
+during a capture fails with a sharing violation. That lock is deliberate and
+is not worked around. Decision with the user: Chrome stays as it is (the
+profile is relaunched and Chrome restores its own session); a companion
+extension talking to Restage through the browsers' native messaging API, the
+supported way to see a running browser's tabs, may follow later. Reading only
+the address bar through UI Automation was rejected: it yields the active tab
+alone and would duplicate what Chrome restores itself.
+
 ## Repository
 
 GitHub `roosmsg/Restage-Windows` (renamed from `Restage`), description
