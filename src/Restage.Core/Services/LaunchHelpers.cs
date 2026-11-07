@@ -112,6 +112,16 @@ public static class LaunchHelpers
         return Process.Start(psi);
     }
 
+    /// <summary>
+    /// Starts a console program without a console window: for CLI scripts
+    /// that hand the real work to a GUI application and exit.
+    /// </summary>
+    public static Process? StartHidden(string fileName, string args)
+    {
+        var psi = new ProcessStartInfo { FileName = fileName, Arguments = args, UseShellExecute = false, CreateNoWindow = true };
+        return Process.Start(psi);
+    }
+
     /// <summary>Case-insensitive "contains" for arguments.</summary>
     public static bool HasFlag(string args, string flag) =>
         Regex.IsMatch(args, $@"(^|\s){Regex.Escape(flag)}(\s|=|$)", RegexOptions.IgnoreCase);

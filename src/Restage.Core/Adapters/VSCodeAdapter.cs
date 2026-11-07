@@ -67,7 +67,15 @@ public sealed class VSCodeAdapter : AppAdapter
         var args = !item.OpenContent ? "" : item.Target == null ? "-n" : $"-n \"{item.Target}\"";
         try
         {
-            LaunchHelpers.Start(item.Exe, args);
+            // VS Code 1.145 (Code.exe at the install root, the app in a
+            // per-commit folder) ignores a direct `Code.exe <folder>` while an
+            // instance is running: no window, no error. The CLI next to it
+            // (bin\code.cmd, what the `code` command runs) hands the folder to
+            // the running instance or starts one, so that is the launch path;
+            // the exe stays the fallback for installs without a CLI.
+            var cli = CliFor(item.Exe);
+            if (cli != null) LaunchHelpers.StartHidden("cmd.exe", $"/d /s /c \"\"{cli}\" {args}\"");
+            else LaunchHelpers.Start(item.Exe, args);
             return Task.FromResult(new LaunchResult(true, $"opened {item.Target ?? "a new window"}")
             {
                 WindowWait = LaunchHelpers.HeavyWait,
@@ -75,6 +83,26 @@ public sealed class VSCodeAdapter : AppAdapter
             });
         }
         catch (Exception ex) { return Task.FromResult(LaunchResult.Failed(ex.Message)); }
+    }
+
+    /// <summary>
+    /// The CLI script of the install the executable belongs to (bin\code.cmd
+    /// next to Code.exe; code-insiders.cmd and codium.cmd for the others), or
+    /// null when the install has none.
+    /// </summary>
+    public static string? CliFor(string exePath)
+    {
+        var bin = Path.Combine(Path.GetDirectoryName(exePath) ?? "", "bin");
+        if (!Directory.Exists(bin)) return null;
+        var preferred = Path.GetFileNameWithoutExtension(exePath).ToLowerInvariant() switch
+        {
+            "code" => "code.cmd",
+            "code - insiders" => "code-insiders.cmd",
+            "vscodium" => "codium.cmd",
+            _ => null,
+        };
+        if (preferred != null && File.Exists(Path.Combine(bin, preferred))) return Path.Combine(bin, preferred);
+        return Directory.EnumerateFiles(bin, "*.cmd").FirstOrDefault();
     }
 
     static string UserDataDir(CapturedWindow window)

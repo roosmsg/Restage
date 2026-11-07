@@ -79,7 +79,11 @@ Data: `%LOCALAPPDATA%\Restage\workspaces\<id>\workspace.json` + `thumbnail.png`,
     (custom `window.title` such as `${rootName} ${focusedView}
     ${activeEditorLanguageId}`, which the user has). `storage.json`'s
     `openedWindows` is empty while VS Code runs, so it is useless live.
-    Launch `Code.exe -n "<folder>"`.
+    Launch through the CLI next to the exe, `bin\code.cmd -n "<folder>"`,
+    hidden via `cmd.exe /c`: since VS Code 1.145 (Code.exe at the install
+    root, the app in a per-commit folder) a direct `Code.exe -n "<folder>"`
+    does nothing while an instance runs (verified: no window in 30 s; the
+    CLI shows one in under a second).
   - Obsidian: title `Note - Vault - Obsidian 1.x`; vault path from
     `%APPDATA%\obsidian\obsidian.json`; note file found by name in the vault.
     Launch `Obsidian.exe "obsidian://open?vault=…&file=…"`; the same URI is

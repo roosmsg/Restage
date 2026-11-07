@@ -286,6 +286,21 @@ public class VSCodeAdapterTests
     }
 
     [Fact]
+    public void Cli_script_is_found_next_to_the_executable()
+    {
+        var install = Path.Combine(Path.GetTempPath(), "restage-cli-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var exe = Path.Combine(install, "Code.exe");
+            Assert.Null(VSCodeAdapter.CliFor(exe));
+            Directory.CreateDirectory(Path.Combine(install, "bin"));
+            File.WriteAllText(Path.Combine(install, "bin", "code.cmd"), "@echo off");
+            Assert.Equal(Path.Combine(install, "bin", "code.cmd"), VSCodeAdapter.CliFor(exe));
+        }
+        finally { Directory.Delete(install, recursive: true); }
+    }
+
+    [Fact]
     public void Match_requires_the_folder_name_in_the_title()
     {
         var adapter = new VSCodeAdapter();
