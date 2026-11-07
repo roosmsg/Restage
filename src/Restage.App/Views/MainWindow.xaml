@@ -304,14 +304,6 @@
                                                Foreground="{DynamicResource MutedBrush}"/>
                                 </StackPanel>
                             </RadioButton>
-                            <RadioButton Style="{StaticResource DotRadio}" GroupName="DesktopSwitch" Margin="7,0,7,7"
-                                         IsChecked="{Binding DesktopSwitchText, Converter={StaticResource EqualsParam}, ConverterParameter=Wait}">
-                                <StackPanel>
-                                    <TextBlock Text="Wait silently" FontSize="12.5"/>
-                                    <TextBlock Text="up to a minute, then continue here" FontSize="11"
-                                               Foreground="{DynamicResource MutedBrush}"/>
-                                </StackPanel>
-                            </RadioButton>
                             <RadioButton Style="{StaticResource DotRadio}" GroupName="DesktopSwitch" Margin="7,0,7,6"
                                          IsChecked="{Binding DesktopSwitchText, Converter={StaticResource EqualsParam}, ConverterParameter=Never}">
                                 <StackPanel>

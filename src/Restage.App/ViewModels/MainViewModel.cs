@@ -27,6 +27,7 @@ public class MainViewModel : ViewModelBase
         _settings = settings;
         _host = host;
         _currentProfileId = DisplayProfiles.Current().Id;
+        if (!Enum.IsDefined(_settings.DesktopSwitch)) _settings.DesktopSwitch = DesktopSwitchMode.Ask;
 
         NewWorkspaceCommand = new RelayCommand(async _ => await BeginCaptureAsync(null), _ => !IsBusy);
         SelectCommand = new RelayCommand(p => Select(p as WorkspaceCardViewModel));
@@ -392,35 +393,26 @@ public class MainViewModel : ViewModelBase
     /// <summary>
     /// Called by the restore service (on a worker thread) when the workspace
     /// lives on another desktop. Windows has no public API to switch, so the
-    /// user does it: either silently awaited, or with a prompt. Returns true
-    /// once that desktop is current; our own window follows it.
+    /// user does it, guided by a prompt. Returns true once that desktop is
+    /// current; our own window follows it.
     /// </summary>
     async Task<bool> SwitchDesktopAsync(DesktopRef desktop, CancellationToken ct)
     {
         if (desktop.Id is not { } id) return false;
         var dispatcher = Application.Current.Dispatcher;
-        var wait = VirtualDesktops.WaitUntilCurrentAsync(id, TimeSpan.FromMinutes(_settings.DesktopSwitch == DesktopSwitchMode.Wait ? 1 : 5), ct);
+        var wait = VirtualDesktops.WaitUntilCurrentAsync(id, TimeSpan.FromMinutes(5), ct);
 
-        bool switched;
-        if (_settings.DesktopSwitch == DesktopSwitchMode.Wait)
+        var choice = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        await dispatcher.InvokeAsync(() =>
         {
-            await dispatcher.InvokeAsync(() => Log($"Waiting for you to switch to desktop \"{desktop.DisplayName}\" (Win+Ctrl+←/→)…"));
-            switched = await wait;
-        }
-        else
-        {
-            var choice = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            await dispatcher.InvokeAsync(() =>
-            {
-                _desktopChoice = choice;
-                DesktopPromptName = desktop.DisplayName;
-                ShowDesktopPrompt = true;
-                _host.ShowMain();
-            });
-            var first = await Task.WhenAny(choice.Task, wait);
-            switched = first == wait ? await wait : await choice.Task && VirtualDesktops.IsCurrent(id);
-            await dispatcher.InvokeAsync(() => { ShowDesktopPrompt = false; _desktopChoice = null; });
-        }
+            _desktopChoice = choice;
+            DesktopPromptName = desktop.DisplayName;
+            ShowDesktopPrompt = true;
+            _host.ShowMain();
+        });
+        var first = await Task.WhenAny(choice.Task, wait);
+        var switched = first == wait ? await wait : await choice.Task && VirtualDesktops.IsCurrent(id);
+        await dispatcher.InvokeAsync(() => { ShowDesktopPrompt = false; _desktopChoice = null; });
 
         if (switched && VirtualDesktops.IsCurrent(id))
         {

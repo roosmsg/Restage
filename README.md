@@ -57,8 +57,8 @@ workspaces too. Right-click the tray icon → **Exit** to quit for real.
 Windows has no public API to switch virtual desktops, so Restage never does it
 behind your back. If a workspace lives on another desktop, a prompt names it
 and offers Task View; press <kbd>Win</kbd>+<kbd>Ctrl</kbd>+<kbd>←</kbd>/<kbd>→</kbd>
-and the restore continues the moment you arrive. The gear menu can make this
-silent (wait up to a minute) or turn it off (restore on the current desktop).
+and the restore continues the moment you arrive. The gear menu can turn this
+off (restore on the current desktop).
 
 ### Items and policies
 
