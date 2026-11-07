@@ -56,13 +56,13 @@ public static class ThemeService
             resources.Remove("AccentTextBrush");
             return;
         }
-        // The accent as Windows paints it for text, check marks, progress and
-        // outlines; well below it for button fills, which read too bright
-        // against the dark panels at full strength.
-        var fill = Scale(accent, 0.54);
-        resources["AccentBrush"] = Frozen(accent);
+        // A touch lighter than Windows paints it for text, check marks, progress
+        // and outlines; below it for button fills, which read too bright against
+        // the dark panels at full strength.
+        var fill = Scale(accent, 0.62);
+        resources["AccentBrush"] = Frozen(Lighten(accent, 0.18));
         resources["AccentFillBrush"] = Frozen(fill);
-        resources["AccentHoverBrush"] = Frozen(Scale(accent, 0.44));
+        resources["AccentHoverBrush"] = Frozen(Scale(accent, 0.52));
         resources["AccentTextBrush"] = Frozen(Luminance(fill) > 0.62 ? Color.FromRgb(0x14, 0x14, 0x18) : Colors.White);
     }
 
@@ -88,6 +88,10 @@ public static class ThemeService
         b.Freeze();
         return b;
     }
+
+    /// <summary>Mixes the colour toward white by the given fraction (0 = unchanged, 1 = white).</summary>
+    static Color Lighten(Color c, double f) =>
+        Color.FromRgb((byte)(c.R + (255 - c.R) * f), (byte)(c.G + (255 - c.G) * f), (byte)(c.B + (255 - c.B) * f));
 
     static Color Scale(Color c, double f) =>
         Color.FromRgb((byte)Math.Clamp(c.R * f, 0, 255), (byte)Math.Clamp(c.G * f, 0, 255), (byte)Math.Clamp(c.B * f, 0, 255));
