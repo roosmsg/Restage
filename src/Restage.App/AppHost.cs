@@ -12,6 +12,9 @@ public interface IAppHost
     /// <summary>Native handle of the main window, or zero when it does not exist.</summary>
     IntPtr MainHandle { get; }
 
+    /// <summary>True while the main window is on screen (not hidden to the tray).</summary>
+    bool IsMainVisible { get; }
+
     /// <summary>Removes the tray icon and exits for real.</summary>
     void ExitApp();
 }

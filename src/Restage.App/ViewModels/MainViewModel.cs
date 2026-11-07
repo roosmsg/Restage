@@ -335,14 +335,18 @@ public class MainViewModel : ViewModelBase
         await RestoreAsync(card);
     }
 
-    Task RestoreAsync(WorkspaceCardViewModel card, bool fromHotkey = false)
+    Task RestoreAsync(WorkspaceCardViewModel card, bool bringToFront = false, bool? force = null, bool here = false)
     {
         if (IsBusy) return Task.CompletedTask;
-        return _restoreTask = RunRestoreAsync(card, fromHotkey);
+        return _restoreTask = RunRestoreAsync(card, bringToFront, force, here);
     }
 
-    /// <summary>A hotkey start also raises the workspace's windows: that is what switching to it means.</summary>
-    async Task RunRestoreAsync(WorkspaceCardViewModel card, bool fromHotkey)
+    /// <summary>
+    /// A start by hotkey or command also raises the workspace's windows: that
+    /// is what switching to it means. Force and here override the settings
+    /// for this run (the API and the CLI ask for them per call).
+    /// </summary>
+    async Task RunRestoreAsync(WorkspaceCardViewModel card, bool bringToFront, bool? force, bool here)
     {
         Selected = card;
         IsBusy = true;
@@ -366,10 +370,10 @@ public class MainViewModel : ViewModelBase
         _restoreCts = new CancellationTokenSource();
         var options = new RestoreOptions
         {
-            Force = _settings.ForceLaunch,
+            Force = force ?? _settings.ForceLaunch,
             ApplyWallpaper = _settings.ApplyWallpaper,
-            SwitchDesktop = _settings.DesktopSwitch == DesktopSwitchMode.Never ? null : SwitchDesktopAsync,
-            BringToFront = fromHotkey,
+            SwitchDesktop = here || _settings.DesktopSwitch == DesktopSwitchMode.Never ? null : SwitchDesktopAsync,
+            BringToFront = bringToFront,
         };
         var progress = new Progress<RestoreEvent>(OnRestoreEvent);
         var ws = card.Model;
@@ -706,20 +710,60 @@ public class MainViewModel : ViewModelBase
         row.Text = text;
     }
 
-    /// <summary>
-    /// A workspace hotkey. A start still running is cancelled first, so pressing
-    /// one hotkey after another switches without waiting; a capture is not interrupted.
-    /// </summary>
     async void OnHotkey(string action)
     {
-        if (HotkeyActions.WorkspaceId(action) is not { } id || Workspaces.FirstOrDefault(w => w.Id == id) is not { } card) return;
+        if (HotkeyActions.WorkspaceId(action) is { } id && Workspaces.FirstOrDefault(w => w.Id == id) is { } card)
+            await StartByCommandAsync(card, bringToFront: true);
+    }
+
+    // ---- Commands from outside: hotkeys and the local API ----------------------
+
+    /// <summary>
+    /// A start by hotkey or API. A start still running is cancelled first, so
+    /// one after another switches without waiting; a capture is not interrupted.
+    /// </summary>
+    public async Task StartByCommandAsync(WorkspaceCardViewModel card, bool bringToFront, bool force = false, bool here = false)
+    {
         if (IsRestoring && _restoreTask != null)
         {
             _restoreCts?.Cancel();
             try { await _restoreTask; } catch { }
         }
         if (IsBusy) { Log($"Busy with a capture; \"{card.Name}\" not started."); return; }
-        await RestoreAsync(card, fromHotkey: true);
+        await RestoreAsync(card, bringToFront, force ? true : null, here);
+    }
+
+    /// <summary>
+    /// A capture asked for over the API: every window, saved at once without
+    /// the review step. Null when a capture or start is already running.
+    /// </summary>
+    public async Task<Workspace?> CaptureByCommandAsync(string name)
+    {
+        if (IsBusy) return null;
+        IsBusy = true;
+        IsCapturing = true;
+        var wasVisible = _host.IsMainVisible;
+        try
+        {
+            if (wasVisible) { _host.HideMain(); await Task.Delay(450); }
+            var result = await Task.Run(() => WorkspaceCaptureService.Capture(name));
+            WorkspaceStore.Save(result.Workspace, result.ThumbnailPng);
+            Log($"Saved \"{result.Workspace.Name}\" with {result.Workspace.Items.Count} items.");
+            RefreshWorkspaces();
+            Selected = Workspaces.FirstOrDefault(w => w.Id == result.Workspace.Id);
+            return result.Workspace;
+        }
+        catch (Exception ex)
+        {
+            Log($"Capture failed: {ex.Message}");
+            throw;
+        }
+        finally
+        {
+            if (wasVisible) _host.ShowMain();
+            IsCapturing = false;
+            IsBusy = false;
+        }
     }
 
     // ---- Confirmation / prompt overlay ---------------------------------------

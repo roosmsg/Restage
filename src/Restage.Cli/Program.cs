@@ -1,12 +1,15 @@
 using Restage.Models;
 using Restage.Native;
 using Restage.Services;
+using Restage.Services.Api;
 
 namespace Restage.Cli;
 
 /// <summary>
 /// restage capture &lt;name&gt; | update &lt;name|id&gt; | list | show &lt;name|id&gt; |
-/// restore &lt;name|id&gt; [--force] [--here] | delete &lt;id&gt; | inspect
+/// restore &lt;name|id&gt; [--force] [--here] [--local] | delete &lt;id&gt; | inspect |
+/// command &lt;text&gt; | api. Restore and command go through the running app's
+/// local API when it is up (docs/API.md); restore falls back to doing it here.
 /// </summary>
 static class Program
 {
@@ -23,6 +26,8 @@ static class Program
                 "list" => List(),
                 "show" => Show(args.ElementAtOrDefault(1)),
                 "restore" => await Restore(args.Skip(1).ToArray()),
+                "command" => await Command(string.Join(' ', args.Skip(1)).Trim()),
+                "api" => await Api(),
                 "delete" => Delete(args.ElementAtOrDefault(1)),
                 "inspect" => Inspect(args.Skip(1).Contains("--windows")),
                 _ => Usage(2),
@@ -46,7 +51,13 @@ static class Program
               restage show <name|id>              print a workspace's items
               restage restore <name|id> [--force] [--here]
                                                   bring a workspace back; --force relaunches apps that
-                                                  are already open, --here skips the desktop switch
+                                                  are already open, --here skips the desktop switch.
+                                                  Through the running app when it is up (its window
+                                                  shows the progress), else done here; --local forces
+                                                  the latter
+              restage command <text>              hand what was said to the running app, as a voice
+                                                  tool would: "open afstuderen", "save as Thesis"
+              restage api                         where the running app's local API is, and its status
               restage delete <id>                 delete a workspace
               restage inspect [--windows]         print what a capture would record, without saving;
                                                   --windows also lists every window with its
@@ -124,6 +135,18 @@ static class Program
         var ws = WorkspaceStore.Find(idOrName);
         if (ws == null) { Console.Error.WriteLine($"no workspace \"{idOrName}\""); return 1; }
 
+        // The running app knows the hotkey rules (cancel a start in progress,
+        // raise the windows) and shows the progress; use it when it is there.
+        if (!rest.Contains("--local") && LocalApiClient.Connect() is { } api)
+        {
+            using (api)
+            {
+                var (status, body) = await api.PostAsync("/restore", new { workspace = ws.Id, force, here });
+                Console.WriteLine(status == 202 ? $"Started \"{ws.Name}\" in the running Restage." : body);
+                return status < 300 ? 0 : 1;
+            }
+        }
+
         var names = ws.Items.ToDictionary(i => i.Id, i => i.Name);
         var progress = new Progress<RestoreEvent>(e =>
         {
@@ -145,6 +168,30 @@ static class Program
         await WorkspaceRestoreService.RestoreAsync(ws, options, progress, cts.Token);
         // Progress<T> posts to the thread pool; give the last lines a moment.
         await Task.Delay(100);
+        return 0;
+    }
+
+    static async Task<int> Command(string text)
+    {
+        if (text.Length == 0) return Usage(2);
+        using var api = LocalApiClient.Connect();
+        if (api == null) { Console.Error.WriteLine("Restage is not running; commands need the app."); return 3; }
+        var (status, body) = await api.PostAsync("/command", new { text });
+        Console.WriteLine(body);
+        return status < 300 ? 0 : 1;
+    }
+
+    static async Task<int> Api()
+    {
+        var info = LocalApiFile.Read();
+        if (info == null) { Console.WriteLine($"Restage is not running (no live {LocalApiFile.Path})."); return 3; }
+        Console.WriteLine($"base url:  {info.BaseUrl}");
+        Console.WriteLine($"token:     {info.Token}");
+        Console.WriteLine($"file:      {LocalApiFile.Path}");
+        using var api = LocalApiClient.Connect();
+        if (api == null) return 3;
+        var (_, body) = await api.GetAsync("/status");
+        Console.WriteLine(body);
         return 0;
     }
 

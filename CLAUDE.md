@@ -157,6 +157,19 @@ Data: `%LOCALAPPDATA%\Restage\workspaces\<id>\workspace.json` + `thumbnail.png`,
   windows are raised (first item on top and activated; WM_HOTKEY gives the
   process the right to take the foreground) — that is "switching" to an
   open workspace. A start still running is cancelled by the next hotkey.
+- **Local API:** `LocalApiServer` (App) is an `HttpListener` on
+  `http://127.0.0.1:<random port>/` (loopback prefixes need no URL ACL),
+  bearer token per run, discovery file `%LOCALAPPDATA%\Restage\local-api.json`
+  (`LocalApiFile`, Core; readers check the pid). Routes in `docs/API.md`:
+  status, workspaces, restore, capture, command. Requests are handled on the
+  UI thread (`Dispatcher.InvokeAsync`), a restore answers 202 at once. The
+  text route is `CommandParser` (verb + name, EN/NL, keeps casing) then
+  `NameMatcher` (normalise, score exact > contains > prefix > edit distance;
+  a win needs ≥ 60 and a lead of 8), both pure and tested. `restage.exe`
+  is a client (`LocalApiClient`): `restore` goes through the app when it
+  runs, `command` and `api` need it. Voice: Restage has no dictation of its
+  own, by decision (see DECISIONS.md); a voice tool sends what it heard to
+  `POST /command`.
 - **WindowChrome gotcha:** the `WM_GETMINMAXINFO` hook in `MainWindow` must
   restate `MinTrackSize`, or WPF's MinWidth/MinHeight are not enforced.
 
@@ -200,7 +213,9 @@ them with `EnumWindows` filtered by PID.
   Awake were removed on purpose; "Last session" could return as an automatic
   workspace if wanted.
 - Not yet: named display profiles in the UI, a GitHub release
-  with binaries, Hex voice config.
+  with binaries, a Hex plugin (or any voice tool's side) that calls the
+  local API; `AllowSetForegroundWindow` from the caller is what would let a
+  started workspace take the focus (docs/API.md).
 - A separate "focal/contextual" app is on the wish list; everything learned
   about OpenWorkspace's FocalContextual mode (public description, what the
   binary reveals, how to build it with public APIs on top of `Restage.Core`)

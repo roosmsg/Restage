@@ -116,6 +116,23 @@ supported way to see a running browser's tabs, may follow later. Reading only
 the address bar through UI Automation was rejected: it yields the active tab
 alone and would duplicate what Chrome restores itself.
 
+## Voice control: an API to receive commands, not a dictation of its own (7 November 2026)
+
+First built and undone the same day: a voice hotkey in Restage that drove
+the installed speech app (Hex's `dictation start` / `stop --print`,
+Handy's `--toggle-transcription`) and matched the words. It worked with
+Hex on this PC, but it put Restage in charge of the dictation (its own
+hotkey, hold-or-tap timing, a listening window) where the user already has
+an app for exactly that, with its own shortcut and habits. Decision: the
+speech app listens its own way and *sends Restage a command*. Restage
+offers a local HTTP API (loopback, random port, token in
+`local-api.json`, the pattern Hex itself uses) with a text route that takes
+the transcript as it is; parsing the verb and matching the name with
+tolerance stay in Restage, since every caller would need them. The CLI
+became a client of the same API. A Hex plugin that calls it is the next
+step, when Hex offers a way to run one; until then any tool that can run a
+command or a web request can drive Restage.
+
 ## Repository
 
 GitHub `roosmsg/Restage`: first a fork of Rewake named `Restage`, renamed

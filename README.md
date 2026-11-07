@@ -88,25 +88,45 @@ restage show <name|id>              print a workspace's items
 restage restore <name|id> [--force] [--here]
 restage delete <id>
 restage inspect                     print what a capture would record, without saving
+restage command <text>              hand what was said to the running app ("open afstuderen")
+restage api                         where the running app's local API is
 ```
 
 The app itself answers `Restage.exe --restore <name>` and the URI
-`restage://restore/<name>`, both of which reach the running instance. That is
-the hook for hotkey tools and voice assistants such as
-[Hex](https://github.com/anomalyco/hex) or [Handy](https://github.com/cjpais/Handy):
-a spoken command that opens `restage://restore/Werk` starts the workspace
-named *Werk*.
+`restage://restore/<name>`, both of which reach the running instance.
+
+## Keyboard shortcuts
+
+Each workspace can have a global shortcut (the pencil in its details pane):
+pressing it anywhere in Windows starts the workspace, or brings its windows
+back to their places and to the front when they are already open. Nothing is
+bound until you set it.
+
+## Voice control and automation: the local API
+
+Restage does not listen to the microphone. Voice tools such as
+[Hex](https://anoma.ly/hex) or [Handy](https://handy.computer) do that their
+own way; what Restage offers them is a small local API to send commands to.
+While the app runs it listens on `127.0.0.1` at a random port, with a token,
+both announced in `%LOCALAPPDATA%\Restage\local-api.json`. It lists, starts
+and captures workspaces, and `POST /command` takes a spoken sentence as it
+came out of the transcriber ("open afstuderen", "ga naar research", "save
+this as Thesis") and works out the rest, with some tolerance for names heard
+slightly wrong. [docs/API.md](docs/API.md) has every route and examples;
+`restage command "<text>"` tries one from a shell.
 
 ## Your data and privacy
 
-Everything stays on your machine. Restage makes no network connections.
-Data lives in `%LOCALAPPDATA%\Restage`:
+Everything stays on your machine. Restage makes no network connections; its
+local API listens on the loopback address only, with a token that only your
+own processes can read. Data lives in `%LOCALAPPDATA%\Restage`:
 
 | Path | Contents |
 | --- | --- |
 | `workspaces\<id>\workspace.json` | the workspace: items, placements, virtual desktop, wallpaper |
 | `workspaces\<id>\thumbnail.png` | the screenshot shown on its card |
 | `app-settings.json` | preferences |
+| `local-api.json` | where the running app's local API is (port, token); gone when it exits |
 | `crash.log` | written only if something goes wrong |
 
 Workspaces are plain JSON: back them up, diff them, edit them by hand.

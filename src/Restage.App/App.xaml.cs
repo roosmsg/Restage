@@ -28,6 +28,7 @@ public partial class App : Application, IAppHost
     WinForms.NotifyIcon? _tray;
     Views.MainWindow? _mainWindow;
     HotkeyService? _hotkeys;
+    LocalApiServer? _api;
 
     public AppSettings Settings { get; private set; } = new();
     public MainViewModel ViewModel { get; private set; } = null!;
@@ -73,6 +74,8 @@ public partial class App : Application, IAppHost
 
         _hotkeys = new HotkeyService();
         ViewModel = new MainViewModel(Settings, this, _hotkeys);
+        _api = new LocalApiServer(ViewModel);
+        _api.Start();
 
         _tray = new WinForms.NotifyIcon
         {
@@ -243,10 +246,14 @@ public partial class App : Application, IAppHost
 
     public IntPtr MainHandle => _mainWindow == null ? IntPtr.Zero : new WindowInteropHelper(_mainWindow).Handle;
 
+    public bool IsMainVisible => _mainWindow?.IsVisible == true;
+
     /// <summary>Removes the tray icon and shuts the application down for real.</summary>
     public void ExitApp()
     {
         if (_tray != null) { _tray.Visible = false; _tray.Dispose(); _tray = null; }
+        _api?.Dispose();
+        _api = null;
         _hotkeys?.Dispose();
         _hotkeys = null;
         Shutdown();
