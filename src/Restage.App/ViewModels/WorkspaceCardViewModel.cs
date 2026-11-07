@@ -34,15 +34,8 @@ public class WorkspaceCardViewModel : ViewModelBase
 
     public int EnabledCount => Model.Items.Count(i => i.Enabled && i.Policy != LaunchPolicy.Skip);
 
-    public string Subtitle
-    {
-        get
-        {
-            var n = EnabledCount;
-            var items = $"{n} {(n == 1 ? "item" : "items")}";
-            return HasDesktop ? $"{items} · {DesktopName}" : items;
-        }
-    }
+    /// <summary>Card line one: "Opened 5 minutes ago · Misc" (the item count is not interesting there).</summary>
+    public string Subtitle => HasDesktop ? $"{OpenedText} · {DesktopName}" : OpenedText;
 
     /// <summary>"Opened 5 minutes ago", or "Never opened".</summary>
     public string OpenedText => Model.LastOpenedAt is { } t ? $"Opened {RelativeTime.Ago(t, DateTime.Now)}" : "Never opened";
@@ -50,8 +43,8 @@ public class WorkspaceCardViewModel : ViewModelBase
     /// <summary>"Created today", "Created 7 Nov".</summary>
     public string CreatedText => $"Created {RelativeTime.Date(Model.CreatedAt, DateTime.Now)}";
 
-    /// <summary>Both on one line, for the card.</summary>
-    public string TimesText => $"{OpenedText} · {CreatedText}";
+    /// <summary>Card line two.</summary>
+    public string TimesText => CreatedText;
 
     /// <summary>Re-evaluates the "ago" texts; called after a start and by a minute clock.</summary>
     public void RefreshTimes()
@@ -59,6 +52,7 @@ public class WorkspaceCardViewModel : ViewModelBase
         OnPropertyChanged(nameof(OpenedText));
         OnPropertyChanged(nameof(CreatedText));
         OnPropertyChanged(nameof(TimesText));
+        OnPropertyChanged(nameof(Subtitle));
     }
 
     /// <summary>"Updated today 14:22" style line for the details pane.</summary>
