@@ -91,6 +91,13 @@ public static class LaunchHelpers
     public static string Quote(string token) =>
         token.Length == 0 || token.Any(char.IsWhiteSpace) ? $"\"{token}\"" : token;
 
+    /// <summary>
+    /// True when the arguments carry something to open (a file, a folder, a
+    /// URL) rather than switches only: "--updated" is not content, "C:\notes.txt" is.
+    /// </summary>
+    public static bool HasContentArgs(string? args) =>
+        !string.IsNullOrWhiteSpace(args) && Tokenize(args).Any(t => t.Length > 0 && t[0] != '-' && t[0] != '/');
+
     /// <summary>Starts a program (or URI) through the shell; returns the process when one was created.</summary>
     public static Process? Start(string fileName, string args, string? workingDirectory = null)
     {

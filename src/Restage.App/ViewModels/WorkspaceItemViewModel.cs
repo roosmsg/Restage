@@ -43,24 +43,29 @@ public class WorkspaceItemViewModel : ViewModelBase
         }
     }
 
-    /// <summary>Whether the item has content to open beyond the app itself (a note, folder, file…).</summary>
+    /// <summary>
+    /// Whether the item has content to open beyond the app itself (a note,
+    /// folder, file…). A plain app only counts when its arguments carry
+    /// something to open; switches alone ("--updated") are launch details, not
+    /// something a user would want to tick on or off.
+    /// </summary>
     public bool HasContent => Item.Kind switch
     {
         ItemKind.Obsidian => Item.Args.Contains("&file=", StringComparison.Ordinal),
         ItemKind.VSCode => Item.Target != null,
         ItemKind.Explorer => true,
-        ItemKind.Terminal => Item.Cwds is { Count: > 0 } || Item.Args.Length > 0,
-        ItemKind.Generic => Item.Args.Length > 0,
+        ItemKind.Terminal => Item.Cwds is { Count: > 0 } || LaunchHelpers.HasContentArgs(Item.Args),
+        ItemKind.Generic => LaunchHelpers.HasContentArgs(Item.Args),
         _ => false,
     };
 
-    /// <summary>What the content checkbox opens: "note", "folder", "folders", "arguments".</summary>
+    /// <summary>What the content checkbox opens: "note", "folder", "folders", "file", "arguments".</summary>
     public string ContentLabel => Item.Kind switch
     {
         ItemKind.Obsidian => "note",
         ItemKind.VSCode or ItemKind.Explorer => "folder",
         ItemKind.Terminal => "folders",
-        _ => "arguments",
+        _ => LaunchHelpers.Tokenize(Item.Args).Any(t => t.Contains('\\') || t.Contains('.')) ? "file" : "arguments",
     };
 
     public bool OpenContent

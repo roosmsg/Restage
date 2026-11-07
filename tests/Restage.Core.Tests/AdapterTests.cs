@@ -25,6 +25,19 @@ public class LaunchHelpersTests
     {
         Assert.Equal(expected, LaunchHelpers.SanitizeArgs(args));
     }
+
+    [Theory]
+    [InlineData("--updated", false)]
+    [InlineData("--no-remote --start-in-tray", false)]
+    [InlineData("/n", false)]
+    [InlineData("", false)]
+    [InlineData(null, false)]
+    [InlineData("\"C:\\My Docs\\notes.txt\"", true)]
+    [InlineData("--flag https://example.org", true)]
+    public void Switches_alone_are_not_content(string? args, bool expected)
+    {
+        Assert.Equal(expected, LaunchHelpers.HasContentArgs(args));
+    }
 }
 
 public class FirefoxAdapterTests
