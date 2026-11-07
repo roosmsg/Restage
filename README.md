@@ -2,12 +2,13 @@
 
 # Restage
 
-*Workspace manager. Save a desktop as a workspace. Come back to it with one click.*
+*Workspace manager. Save your active applications as a workspace. Come back to them with one click.*
 
-Restage saves what you have open — VS Code folders, Obsidian vaults, Firefox
-and Chrome profiles and web apps, Explorer folders, terminals, any other app —
-together with the Windows 11 virtual desktop it lives on, its wallpaper and
-the position of every window. A workspace is a card with a screenshot in a
+Restage saves the applications you have open — VS Code folders, Obsidian
+vaults, Firefox and Chrome profiles and web apps, Explorer folders, terminals,
+any other app — together with the position of every window and, if you use
+Windows 11 virtual desktops, the virtual desktop they live on and its
+wallpaper. A workspace is a card with a screenshot in a
 gallery; **Start** brings it all back, on every monitor arrangement you have
 saved a layout for.
 
@@ -42,16 +43,12 @@ them and puts them back. Restage does the same, with the same public Windows
 APIs, and goes one step further: it also remembers what each window had open
 and brings that back too.
 
-What PowerToys has and Restage does not: launching apps as administrator
-(Restage cannot see elevated windows at all) and FancyZones. Restage is not a
-window manager and has no zones; it puts windows back where they were.
-
 ## Quick start
 
-1. Arrange a desktop the way you work.
-2. Open Restage and press **New workspace**. The window hides, the desktop is
-   photographed, and you see the windows that were found. Untick what you do
-   not want, give it a name, **Save workspace**.
+1. Open and arrange the applications the way you work.
+2. Open Restage and press **New workspace**. The window hides, a screenshot is
+   taken for the card, and you see the applications that were found. Untick
+   what you do not want, give it a name, **Save workspace**.
 3. Later: press **Start** on the card. Apps open one at a time; windows that
    are already open are reused and moved into place.
 
@@ -61,10 +58,10 @@ workspaces too. Right-click the tray icon → **Exit** to quit for real.
 ### Virtual desktops
 
 Windows has no public API to switch virtual desktops, so Restage never does it
-behind your back. If a workspace lives on another desktop, a prompt names it
+behind your back. If a workspace lives on another virtual desktop, a prompt names it
 and offers Task View; press <kbd>Win</kbd>+<kbd>Ctrl</kbd>+<kbd>←</kbd>/<kbd>→</kbd>
 and the workspace starts the moment you arrive. The settings panel can turn
-this off (start on the current desktop).
+this off (start on the current virtual desktop).
 
 ### Items and policies
 
@@ -84,7 +81,7 @@ arguments are mere switches get no such checkbox.
 `restage.exe` is installed beside the app:
 
 ```text
-restage capture <name>              save the desktop as a new workspace
+restage capture <name>              save the active applications as a new workspace
 restage update <name|id>            re-capture an existing workspace (keeps its settings)
 restage list                        list workspaces
 restage show <name|id>              print a workspace's items
@@ -107,7 +104,7 @@ Data lives in `%LOCALAPPDATA%\Restage`:
 
 | Path | Contents |
 | --- | --- |
-| `workspaces\<id>\workspace.json` | the workspace: items, placements, desktop, wallpaper |
+| `workspaces\<id>\workspace.json` | the workspace: items, placements, virtual desktop, wallpaper |
 | `workspaces\<id>\thumbnail.png` | the screenshot shown on its card |
 | `app-settings.json` | preferences |
 | `crash.log` | written only if something goes wrong |
