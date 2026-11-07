@@ -93,6 +93,12 @@ public partial class MainWindow : Window
         mmi.MaxSize.X = info.Work.Width;
         mmi.MaxSize.Y = info.Work.Height;
         mmi.MaxTrackSize = mmi.MaxSize;
+        // Answering this message ourselves skips WPF's own answer, which is
+        // where MinWidth/MinHeight are normally enforced; restate them here (in
+        // physical pixels) or the window can be dragged narrower than its layout.
+        var dpi = VisualTreeHelper.GetDpi(this);
+        mmi.MinTrackSize.X = (int)Math.Ceiling(MinWidth * dpi.DpiScaleX);
+        mmi.MinTrackSize.Y = (int)Math.Ceiling(MinHeight * dpi.DpiScaleY);
         Marshal.StructureToPtr(mmi, lParam, false);
 
         handled = true;
