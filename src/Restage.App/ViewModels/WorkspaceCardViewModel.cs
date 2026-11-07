@@ -34,8 +34,8 @@ public class WorkspaceCardViewModel : ViewModelBase
 
     public int EnabledCount => Model.Items.Count(i => i.Enabled && i.Policy != LaunchPolicy.Skip);
 
-    /// <summary>Card line one: "Opened 5 minutes ago · Misc" (the item count is not interesting there).</summary>
-    public string Subtitle => HasDesktop ? $"{OpenedText} · {DesktopName}" : OpenedText;
+    /// <summary>Card line one: "Opened 5 minutes ago". The desktop name is already on the preview's badge.</summary>
+    public string Subtitle => OpenedText;
 
     /// <summary>"Opened 5 minutes ago", or "Never opened".</summary>
     public string OpenedText => Model.LastOpenedAt is { } t ? $"Opened {RelativeTime.Ago(t, DateTime.Now)}" : "Never opened";
