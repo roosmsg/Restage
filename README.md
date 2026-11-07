@@ -67,6 +67,11 @@ through how it comes back: **reuse if open** (default) · **always launch** ·
 **only if open** · **skip**. *Always relaunch* in the gear menu overrides the
 first for one session.
 
+Items with content of their own (an Obsidian note, a VS Code or Explorer
+folder, a terminal's folders, a file passed as an argument) have a second
+checkbox — *note*, *folder*, *arguments* — that is on by default. Untick it
+and the app just starts, without that note, folder or file.
+
 ## Command line
 
 `restage.exe` is installed beside the app:
