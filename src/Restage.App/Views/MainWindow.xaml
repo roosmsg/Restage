@@ -887,7 +887,7 @@
                         </DockPanel>
 
                         <TextBlock Style="{StaticResource SubtleText}" FontSize="11" TextWrapping="Wrap" Margin="0,10,0,0"
-                                   Text="Send what should happen as JSON, {}{&quot;text&quot;: &quot;{text}&quot;}, with the token as a bearer token. Both stay the same when Restage restarts. docs/API.md lists every route."/>
+                                   Text="Send what should happen as JSON, {&quot;text&quot;: &quot;{text}&quot;}, with the token as a bearer token. Both stay the same when Restage restarts. docs/API.md lists every route."/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
                             <Button Style="{StaticResource QuietButton}" Content="Close" Command="{Binding CloseConnectCommand}"/>
                         </StackPanel>
