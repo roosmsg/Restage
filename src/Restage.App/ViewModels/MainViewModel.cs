@@ -60,7 +60,6 @@ public class MainViewModel : ViewModelBase
         RestoreHereCommand = new RelayCommand(_ => _desktopChoice?.TrySetResult(false));
         CancelDesktopCommand = new RelayCommand(_ => { _desktopChoice?.TrySetResult(false); _restoreCts?.Cancel(); });
 
-        OpenDataFolderCommand = new RelayCommand(_ => OpenFolder(Paths.DataDir));
         ToggleThemeCommand = new RelayCommand(_ => ToggleTheme());
         ClearLogCommand = new RelayCommand(_ => ClearLog(), _ => LogEntries.Count > 0);
         ConfirmAcceptCommand = new RelayCommand(_ => AcceptConfirm());
@@ -631,7 +630,6 @@ public class MainViewModel : ViewModelBase
         }
     }
 
-    public RelayCommand OpenDataFolderCommand { get; }
     public RelayCommand ToggleThemeCommand { get; }
 
     void ToggleTheme()

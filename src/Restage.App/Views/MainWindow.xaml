@@ -372,8 +372,6 @@
                                     </Style>
                                 </Button.Style>
                             </Button>
-                            <Button Style="{StaticResource MenuRowButton}" Tag="{StaticResource IconFolderOpen}"
-                                    Content="Open data folder" Command="{Binding OpenDataFolderCommand}"/>
                         </StackPanel>
                     </Border>
                     </Grid>
