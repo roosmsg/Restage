@@ -6,20 +6,31 @@ using Color = System.Windows.Media.Color;
 namespace Restage.Services;
 
 /// <summary>
-/// Swaps the application's theme ResourceDictionary at runtime and paints the
-/// accent in the user's Windows accent colour, following it when it changes.
+/// Swaps the application's theme ResourceDictionary at runtime, follows the
+/// Windows light/dark setting when asked to, and paints the accent in the
+/// user's Windows accent colour, following it when it changes.
 /// </summary>
 public static class ThemeService
 {
-    static bool _hooked;
+    public const string System = "System", Dark = "Dark", Light = "Light";
 
-    /// <summary>Applies "Light" or "Dark" (anything else falls back to Dark), then the Windows accent.</summary>
+    static bool _hooked;
+    static string _theme = System;
+
+    /// <summary>True while the dark dictionary is in use (after resolving "System").</summary>
+    public static bool IsDark { get; private set; } = true;
+
+    /// <summary>Raised after a theme was applied, including a system-driven switch.</summary>
+    public static event Action? Applied;
+
+    /// <summary>Applies "System", "Light" or "Dark" (anything else counts as System), then the Windows accent.</summary>
     public static void Apply(string? theme)
     {
-        var name = string.Equals(theme, "Light", StringComparison.OrdinalIgnoreCase) ? "Light" : "Dark";
+        _theme = theme is Light or Dark ? theme : System;
+        IsDark = ResolveDark(_theme);
         var dict = new ResourceDictionary
         {
-            Source = new Uri($"pack://application:,,,/Themes/{name}.xaml")
+            Source = new Uri($"pack://application:,,,/Themes/{(IsDark ? Dark : Light)}.xaml")
         };
         var dicts = Application.Current.Resources.MergedDictionaries;
         var old = dicts.FirstOrDefault(d =>
@@ -32,11 +43,36 @@ public static class ThemeService
         {
             SystemEvents.UserPreferenceChanged += (_, e) =>
             {
-                if (e.Category is UserPreferenceCategory.General or UserPreferenceCategory.Color or UserPreferenceCategory.VisualStyle)
-                    Application.Current?.Dispatcher.BeginInvoke(ApplyAccent);
+                if (e.Category is not (UserPreferenceCategory.General or UserPreferenceCategory.Color or UserPreferenceCategory.VisualStyle)) return;
+                Application.Current?.Dispatcher.BeginInvoke(() =>
+                {
+                    // A light/dark flip in Windows re-applies the whole theme;
+                    // anything else (accent colour) only repaints the accent.
+                    if (_theme == System && ResolveDark(System) != IsDark) Apply(System);
+                    else ApplyAccent();
+                });
             };
             _hooked = true;
         }
+        Applied?.Invoke();
+    }
+
+    static bool ResolveDark(string theme) => theme switch
+    {
+        Light => false,
+        Dark => true,
+        _ => !SystemUsesLightTheme(),
+    };
+
+    /// <summary>Windows' "Choose your default app mode" setting (Settings › Personalisation › Colours).</summary>
+    public static bool SystemUsesLightTheme()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+            return key?.GetValue("AppsUseLightTheme") is int v && v != 0;
+        }
+        catch { return false; }
     }
 
     /// <summary>

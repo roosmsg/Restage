@@ -28,6 +28,12 @@ public class MainViewModel : ViewModelBase
         _host = host;
         _currentProfileId = DisplayProfiles.Current().Id;
         if (!Enum.IsDefined(_settings.DesktopSwitch)) _settings.DesktopSwitch = DesktopSwitchMode.Ask;
+        ThemeService.Applied += () =>
+        {
+            OnPropertyChanged(nameof(IsDarkTheme));
+            OnPropertyChanged(nameof(ThemeTooltip));
+            OnPropertyChanged(nameof(FollowSystemTheme));
+        };
 
         NewWorkspaceCommand = new RelayCommand(async _ => await BeginCaptureAsync(null), _ => !IsBusy);
         SelectCommand = new RelayCommand(p => Select(p as WorkspaceCardViewModel));
@@ -516,19 +522,32 @@ public class MainViewModel : ViewModelBase
         }
     }
 
-    public bool IsDarkTheme => !string.Equals(_settings.Theme, "Light", StringComparison.OrdinalIgnoreCase);
+    public bool IsDarkTheme => ThemeService.IsDark;
     public string ThemeTooltip => IsDarkTheme ? "Switch to light mode" : "Switch to dark mode";
+
+    /// <summary>Follow Windows' light/dark setting; off keeps whichever mode is showing now, as a fixed choice.</summary>
+    public bool FollowSystemTheme
+    {
+        get => _settings.Theme is not (ThemeService.Light or ThemeService.Dark);
+        set
+        {
+            var wanted = value ? ThemeService.System : IsDarkTheme ? ThemeService.Dark : ThemeService.Light;
+            if (_settings.Theme == wanted) return;
+            _settings.Theme = wanted;
+            SettingsService.Save(_settings);
+            ThemeService.Apply(wanted);
+            OnPropertyChanged();
+        }
+    }
 
     public RelayCommand OpenDataFolderCommand { get; }
     public RelayCommand ToggleThemeCommand { get; }
 
     void ToggleTheme()
     {
-        _settings.Theme = IsDarkTheme ? "Light" : "Dark";
+        _settings.Theme = IsDarkTheme ? ThemeService.Light : ThemeService.Dark;
         SettingsService.Save(_settings);
         ThemeService.Apply(_settings.Theme);
-        OnPropertyChanged(nameof(IsDarkTheme));
-        OnPropertyChanged(nameof(ThemeTooltip));
     }
 
     static void OpenFolder(string path)

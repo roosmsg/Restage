@@ -13,8 +13,8 @@ public enum DesktopSwitchMode
 /// <summary>User preferences persisted to app-settings.json.</summary>
 public sealed class AppSettings
 {
-    /// <summary>"Dark" or "Light".</summary>
-    public string Theme { get; set; } = "Dark";
+    /// <summary>"System" (follow Windows), "Dark" or "Light".</summary>
+    public string Theme { get; set; } = "System";
 
     /// <summary>Closing the window hides to the tray instead of exiting.</summary>
     public bool MinimizeToTray { get; set; } = true;

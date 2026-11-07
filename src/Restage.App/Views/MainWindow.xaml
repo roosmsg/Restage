@@ -314,6 +314,10 @@
                             </RadioButton>
 
                             <Border Height="1" Background="{DynamicResource BorderBrush2}" Margin="0,6"/>
+                            <CheckBox Content="Follow the Windows theme" FontSize="12.5"
+                                      IsChecked="{Binding FollowSystemTheme}" Margin="7,4,7,8"
+                                      ToolTip="Light or dark, as set in Windows › Personalisation › Colours"/>
+                            <!-- Manual light/dark switch; hidden while following Windows. -->
                             <Button Command="{Binding ToggleThemeCommand}">
                                 <Button.Style>
                                     <Style TargetType="Button" BasedOn="{StaticResource MenuRowButton}">
@@ -322,6 +326,9 @@
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding IsDarkTheme}" Value="False">
                                                 <Setter Property="Tag" Value="{StaticResource IconMoon}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding FollowSystemTheme}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
