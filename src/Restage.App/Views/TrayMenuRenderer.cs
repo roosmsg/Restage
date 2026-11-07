@@ -60,7 +60,9 @@ internal sealed class TrayMenuRenderer : WinForms.ToolStripRenderer
     {
         // Items opt into the accent (the running Stay Awake row) via Tag; the
         // renderer has no other channel into per-item state.
-        e.TextColor = !e.Item.Enabled ? C("MutedBrush")
+        // The shortcut column (a workspace's hotkey) comes through here too, with its own text.
+        var isShortcut = e.Item is WinForms.ToolStripMenuItem { ShortcutKeyDisplayString: { Length: > 0 } s } && e.Text == s;
+        e.TextColor = !e.Item.Enabled || isShortcut ? C("MutedBrush")
             : Equals(e.Item.Tag, "accent") ? C("AccentBrush")
             : C("TextBrush");
         var r = e.TextRectangle;

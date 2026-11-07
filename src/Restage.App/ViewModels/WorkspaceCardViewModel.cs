@@ -27,6 +27,9 @@ public class WorkspaceCardViewModel : ViewModelBase
     public bool NoThumbnail => Thumbnail == null;
     public ObservableCollection<WorkspaceItemViewModel> Items { get; } = new();
 
+    /// <summary>The workspace's global hotkey; set by the main view model, which owns the bindings.</summary>
+    public HotkeyRowViewModel Hotkey { get; init; } = null!;
+
     public bool HasDesktop => Model.Desktop != null;
     public string DesktopName => Model.Desktop?.DisplayName ?? "Any desktop";
     public string WallpaperName => string.IsNullOrEmpty(Model.Wallpaper) ? "none" : System.IO.Path.GetFileName(Model.Wallpaper);

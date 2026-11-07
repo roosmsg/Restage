@@ -27,6 +27,7 @@ public partial class App : Application, IAppHost
     static EventWaitHandle? _signal;
     WinForms.NotifyIcon? _tray;
     Views.MainWindow? _mainWindow;
+    HotkeyService? _hotkeys;
 
     public AppSettings Settings { get; private set; } = new();
     public MainViewModel ViewModel { get; private set; } = null!;
@@ -70,7 +71,8 @@ public partial class App : Application, IAppHost
         ThemeService.Apply(Settings.Theme);
         UriScheme.Register();
 
-        ViewModel = new MainViewModel(Settings, this);
+        _hotkeys = new HotkeyService();
+        ViewModel = new MainViewModel(Settings, this, _hotkeys);
 
         _tray = new WinForms.NotifyIcon
         {
@@ -186,7 +188,11 @@ public partial class App : Application, IAppHost
                 menu.Items.Add(new WinForms.ToolStripMenuItem("No workspaces yet") { Enabled = false });
             foreach (var ws in workspaces)
             {
-                var row = new WinForms.ToolStripMenuItem(ws.Name) { Image = Views.TrayIcons.Render("IconLayoutGrid", "MutedBrush", px) };
+                var row = new WinForms.ToolStripMenuItem(ws.Name)
+                {
+                    Image = Views.TrayIcons.Render("IconLayoutGrid", "MutedBrush", px),
+                    ShortcutKeyDisplayString = ViewModel.HotkeyTextFor(ws.Id),
+                };
                 var id = ws.Id;
                 row.Click += (_, _) => _ = ViewModel.RestoreByNameAsync(id);
                 menu.Items.Add(row);
@@ -241,6 +247,8 @@ public partial class App : Application, IAppHost
     public void ExitApp()
     {
         if (_tray != null) { _tray.Visible = false; _tray.Dispose(); _tray = null; }
+        _hotkeys?.Dispose();
+        _hotkeys = null;
         Shutdown();
     }
 }

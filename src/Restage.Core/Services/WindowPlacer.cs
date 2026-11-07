@@ -39,6 +39,24 @@ public static class WindowPlacer
         };
     }
 
+    /// <summary>
+    /// Raises windows above all others, keeping their order (first = top) and
+    /// activating the first. Minimized windows are left alone. Activation only
+    /// succeeds while Windows lets this process take the foreground, as right
+    /// after it received a hotkey; otherwise the z-order still changes.
+    /// </summary>
+    public static void BringToFront(IReadOnlyList<IntPtr> topFirst)
+    {
+        var shown = topFirst.Where(h => Win32.IsWindow(h) && !Win32.IsIconic(h)).ToList();
+        if (shown.Count == 0) return;
+        // Bottom-up: each window placed at the top lands above the ones before it.
+        for (var i = shown.Count - 1; i >= 0; i--)
+            Win32.SetWindowPos(shown[i], HwndTop, 0, 0, 0, 0, Win32.SWP_NOMOVE | Win32.SWP_NOSIZE | Win32.SWP_NOACTIVATE);
+        Win32.SetForegroundWindow(shown[0]);
+    }
+
+    static readonly IntPtr HwndTop = IntPtr.Zero;
+
     /// <summary>Moves a window to a saved placement; clamps to the nearest monitor when its own is gone.</summary>
     public static bool Apply(IntPtr hWnd, WindowPlacement p)
     {

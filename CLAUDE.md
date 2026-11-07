@@ -144,6 +144,19 @@ Data: `%LOCALAPPDATA%\Restage\workspaces\<id>\workspace.json` + `thumbnail.png`,
   and the `restage://restore/<name>` URI (registered in HKCU at every start)
   both route there — this is the hook for voice tools (Hex, Handy) and
   hotkey tools.
+- **Global hotkeys:** one per workspace. `AppSettings.Hotkeys` maps
+  `workspace:<id>` (`HotkeyActions`) to text such as `Ctrl+Alt+R` (`Models/Hotkey.cs` parses and prints it; Ctrl, Alt or Win is
+  required). `HotkeyService` registers them with `RegisterHotKey` on a
+  message-only `HwndSource`, so they work with the window closed. The details
+  pane shows it; the pencil opens an edit panel (name + shortcut, saved
+  together). Its box records while it has keyboard focus and all hotkeys are
+  unregistered meanwhile, or an already bound combination would fire instead
+  of being recorded; a trial `RegisterHotKey` then tells whether another app
+  or the shell holds the combination ("Taken by another app or by Windows"). Empty by default. A hotkey start
+  passes `RestoreOptions.BringToFront`: after placing, the workspace's
+  windows are raised (first item on top and activated; WM_HOTKEY gives the
+  process the right to take the foreground) — that is "switching" to an
+  open workspace. A start still running is cancelled by the next hotkey.
 - **WindowChrome gotcha:** the `WM_GETMINMAXINFO` hook in `MainWindow` must
   restate `MinTrackSize`, or WPF's MinWidth/MinHeight are not enforced.
 
@@ -186,7 +199,7 @@ them with `EnumWindows` filtered by PID.
 - Rewake's auto-capture history, "Last session before shutdown" and Stay
   Awake were removed on purpose; "Last session" could return as an automatic
   workspace if wanted.
-- Not yet: global hotkeys, named display profiles in the UI, a GitHub release
+- Not yet: named display profiles in the UI, a GitHub release
   with binaries, Hex voice config.
 - A separate "focal/contextual" app is on the wish list; everything learned
   about OpenWorkspace's FocalContextual mode (public description, what the

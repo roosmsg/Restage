@@ -19,6 +19,13 @@ public sealed class RestoreOptions
     /// on where we are. Null skips the desktop step entirely.
     /// </summary>
     public Func<DesktopRef, CancellationToken, Task<bool>>? SwitchDesktop { get; init; }
+
+    /// <summary>
+    /// Raise the workspace's windows above everything else once they are placed,
+    /// the first item on top and active: switching to a workspace whose apps are
+    /// already open. Windows left minimized stay minimized.
+    /// </summary>
+    public bool BringToFront { get; init; }
 }
 
 /// <summary>Progress of one item (or of the run when <see cref="ItemId"/> is null).</summary>
@@ -65,6 +72,7 @@ public static class WorkspaceRestoreService
         var context = new RestoreContext { Workspace = ws, ProfileId = profileId ?? profile.Id };
         var claimed = new HashSet<IntPtr>();
         var placed = new List<(IntPtr Handle, WindowPlacement Placement)>();
+        var windowOf = new Dictionary<string, IntPtr>(); // item id -> its window
 
         var groups = ws.Items
             .Where(i => i.Enabled && i.Policy != LaunchPolicy.Skip)
@@ -89,6 +97,7 @@ public static class WorkspaceRestoreService
                 if (hit != null)
                 {
                     claimed.Add(hit.Handle);
+                    windowOf[item.Id] = hit.Handle;
                     Place(item, hit, context.ProfileId, placed);
                     try { await adapter.ReuseAsync(item, hit, context, ct); }
                     catch (Exception ex) { context.Log?.Invoke($"{item.Name}: {ex.Message}"); }
@@ -126,6 +135,7 @@ public static class WorkspaceRestoreService
                     var hit = BestMatch(adapter, item, fresh, claimed);
                     if (hit == null) continue;
                     claimed.Add(hit.Handle);
+                    windowOf[item.Id] = hit.Handle;
                     fresh.Remove(hit);
                     Place(item, hit, context.ProfileId, placed);
                     Report(item.Id, RestoreStatus.Opened, "opened and placed");
@@ -137,6 +147,11 @@ public static class WorkspaceRestoreService
 
             try { await Task.Delay(result.Gap, ct); } catch (TaskCanceledException) { return; }
         }
+
+        // Before the settle pass below, so switching to an open workspace is instant;
+        // that pass does not touch the z-order.
+        if (options.BringToFront)
+            WindowPlacer.BringToFront(ws.Items.Where(i => windowOf.ContainsKey(i.Id)).Select(i => windowOf[i.Id]).ToList());
 
         // Apps that restore their own window bounds after showing (editors,
         // browsers) can undo a placement made a moment too early; one more pass

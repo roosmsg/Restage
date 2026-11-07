@@ -264,6 +264,95 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
+    // ---- Edit panel: name and keyboard shortcut -----------------------------------
+
+    void EditBackdrop_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (ReferenceEquals(e.OriginalSource, sender)) RunIfAllowed((DataContext as MainViewModel)?.EditCancelCommand);
+    }
+
+    void EditName_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter || DataContext is not MainViewModel vm) return;
+        RunIfAllowed(vm.EditSaveCommand);
+        e.Handled = true;
+    }
+
+
+    static HotkeyRowViewModel? RowOf(object sender) => (sender as FrameworkElement)?.DataContext as HotkeyRowViewModel;
+
+    // A box records while it has keyboard focus; giving the focus to the panel ends it.
+    void HotkeyBox_GotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (RowOf(sender) is { } row && DataContext is MainViewModel vm) vm.BeginRecording(row);
+    }
+
+    void HotkeyBox_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm) vm.EndRecording();
+    }
+
+
+    void HotkeyBox_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (RowOf(sender) is not { } row || DataContext is not MainViewModel vm) return;
+        var key = PressedKey(e);
+        var mods = HeldModifiers();
+        if (mods == HotkeyModifiers.None && key == Key.Tab) return; // keyboard navigation goes on
+        e.Handled = true;
+
+        if (IsModifierKey(key)) { row.Partial = Hotkey.ModifierText(mods) + "+"; return; }
+        if (mods == HotkeyModifiers.None && key == Key.Escape) { EditPanel.Focus(); return; }
+        if (mods == HotkeyModifiers.None && key is Key.Back or Key.Delete)
+        {
+            vm.RecordHotkey(row, null);
+            EditPanel.Focus();
+            return;
+        }
+
+        var hotkey = new Hotkey(mods, KeyInterop.VirtualKeyFromKey(key));
+        if (!hotkey.IsValid)
+        {
+            row.Problem = Hotkey.KeyName(hotkey.Key) == null ? "That key cannot be used" : "Add Ctrl, Alt or Win";
+            return;
+        }
+        vm.RecordHotkey(row, hotkey);
+        if (!row.HasProblem) EditPanel.Focus();
+    }
+
+    // Letting go of a modifier before any key: show what is still held.
+    void HotkeyBox_PreviewKeyUp(object sender, KeyEventArgs e)
+    {
+        if (RowOf(sender) is not { } row || !IsModifierKey(PressedKey(e))) return;
+        var mods = HeldModifiers();
+        row.Partial = mods == HotkeyModifiers.None ? "" : Hotkey.ModifierText(mods) + "+";
+        e.Handled = true;
+    }
+
+    // Alt turns keys into "system" keys, an IME or a dead key (' and ` on the
+    // US-International layout) hides the real key behind a placeholder.
+    static Key PressedKey(KeyEventArgs e) => e.Key switch
+    {
+        Key.System => e.SystemKey,
+        Key.ImeProcessed => e.ImeProcessedKey,
+        Key.DeadCharProcessed => e.DeadCharProcessedKey,
+        _ => e.Key,
+    };
+
+    static bool IsModifierKey(Key key) => key is Key.LeftCtrl or Key.RightCtrl or Key.LeftAlt or Key.RightAlt
+        or Key.LeftShift or Key.RightShift or Key.LWin or Key.RWin;
+
+    static HotkeyModifiers HeldModifiers()
+    {
+        var m = Keyboard.Modifiers;
+        var mods = HotkeyModifiers.None;
+        if (m.HasFlag(ModifierKeys.Control)) mods |= HotkeyModifiers.Ctrl;
+        if (m.HasFlag(ModifierKeys.Alt)) mods |= HotkeyModifiers.Alt;
+        if (m.HasFlag(ModifierKeys.Shift)) mods |= HotkeyModifiers.Shift;
+        if (m.HasFlag(ModifierKeys.Windows)) mods |= HotkeyModifiers.Win;
+        return mods;
+    }
+
     // Pixels moved per wheel notch. WPF's default is three "lines" — about 48px
     // — which overshoots on dense lists.
     const double WheelStep = 48;

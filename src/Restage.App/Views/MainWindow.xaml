@@ -482,6 +482,33 @@
                                        Style="{StaticResource SubtleText}" FontSize="11" Margin="22,4,0,0" TextWrapping="Wrap"
                                        Foreground="{DynamicResource DangerBrush}"
                                        Visibility="{Binding LacksCurrentProfile, Converter={StaticResource BoolToVis}}"/>
+
+                            <!-- The workspace's global hotkey, shown like the rows above; set in the edit panel (pencil). -->
+                            <DockPanel Margin="0,6,0,0" DataContext="{Binding Hotkey}">
+                                <Viewbox Width="13" Height="13" VerticalAlignment="Center" Margin="0,0,9,0">
+                                    <Path Width="24" Height="24" Data="{StaticResource IconKeyboard}"
+                                          Stroke="{DynamicResource MutedBrush}" StrokeThickness="2.25"
+                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+                                </Viewbox>
+                                <TextBlock FontSize="12" VerticalAlignment="Center"
+                                           ToolTip="Starts this workspace from anywhere in Windows, or brings it to the front when it is open">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="{Binding Text}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasHotkey}" Value="False">
+                                                    <Setter Property="Text" Value="No keyboard shortcut"/>
+                                                    <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </DockPanel>
+                            <TextBlock DataContext="{Binding Hotkey}" Text="{Binding Problem}"
+                                       Style="{StaticResource SubtleText}" FontSize="11" Margin="22,4,0,0" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource DangerBrush}"
+                                       Visibility="{Binding HasProblem, Converter={StaticResource BoolToVis}}"/>
                         </StackPanel>
 
                         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,16,0,14">
@@ -493,8 +520,9 @@
                                     Command="{Binding DataContext.UpdateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                     CommandParameter="{Binding}"/>
                             <Button Style="{StaticResource IconButton}" Tag="{StaticResource IconPencil}"
-                                    ToolTip="Rename" Margin="0,0,8,0"
-                                    Command="{Binding DataContext.RenameCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    ToolTip="Edit name and keyboard shortcut" Margin="0,0,8,0"
+                                    AutomationProperties.Name="Edit"
+                                    Command="{Binding DataContext.EditCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                     CommandParameter="{Binding}"/>
                             <Button Style="{StaticResource IconButton}" Tag="{StaticResource IconFolderOpen}"
                                     ToolTip="Open the workspace's folder" Margin="0,0,8,0"
@@ -692,7 +720,49 @@
                 </Border>
             </Border>
 
-            <!-- ============ Confirmation / rename prompt ============ -->
+            <!-- ============ Edit workspace: name and keyboard shortcut ============ -->
+            <!-- A click on the dimmed backdrop is a cancel; nothing is saved before Save. -->
+            <Border Grid.RowSpan="2" Background="{DynamicResource OverlayDimBrush}" Panel.ZIndex="13"
+                    Visibility="{Binding ShowEdit, Converter={StaticResource BoolToVis}}"
+                    MouseDown="EditBackdrop_MouseDown">
+                <Border x:Name="EditPanel" Style="{StaticResource OverlayPanel}" Width="420" Padding="24,20,24,18"
+                        Focusable="True" FocusVisualStyle="{x:Null}">
+                    <StackPanel>
+                        <TextBlock Text="Edit workspace" FontSize="15" FontWeight="SemiBold"/>
+                        <TextBlock Text="NAME" Style="{StaticResource SectionLabel}" Margin="0,16,0,6"/>
+                        <TextBox MaxLength="48" Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.Name="Workspace name"
+                                 IsVisibleChanged="OverlayInput_IsVisibleChanged" KeyDown="EditName_KeyDown"/>
+                        <TextBlock Text="KEYBOARD SHORTCUT" Style="{StaticResource SectionLabel}" Margin="0,16,0,6"/>
+                        <!-- The box never takes text: it records the keys pressed while it has focus. -->
+                        <DockPanel DataContext="{Binding EditHotkey}">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource SubtleIconButton}" Tag="{StaticResource IconClose}"
+                                    Margin="6,0,0,0" ToolTip="Remove the shortcut" AutomationProperties.Name="Remove shortcut"
+                                    Command="{Binding DataContext.ClearHotkeyCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding}"
+                                    Visibility="{Binding HasHotkey, Converter={StaticResource BoolToVis}}"/>
+                            <TextBox IsReadOnly="True" IsReadOnlyCaretVisible="False" IsUndoEnabled="False"
+                                     Text="{Binding Display, Mode=OneWay}" Cursor="Hand"
+                                     AutomationProperties.Name="Keyboard shortcut"
+                                     PreviewKeyDown="HotkeyBox_PreviewKeyDown" PreviewKeyUp="HotkeyBox_PreviewKeyUp"
+                                     GotKeyboardFocus="HotkeyBox_GotKeyboardFocus" LostKeyboardFocus="HotkeyBox_LostKeyboardFocus"/>
+                        </DockPanel>
+                        <TextBlock DataContext="{Binding EditHotkey}" Text="{Binding Problem}" FontSize="11" Margin="0,4,0,0"
+                                   TextWrapping="Wrap" Foreground="{DynamicResource DangerBrush}"
+                                   Visibility="{Binding HasProblem, Converter={StaticResource BoolToVis}}"/>
+                        <TextBlock Style="{StaticResource SubtleText}" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"
+                                   Text="Starts the workspace from anywhere in Windows, or brings it to the front when it is already open. Click the box, then press Ctrl, Alt or Win plus a key; Backspace clears it."/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+                            <Button Style="{StaticResource QuietButton}" Content="Cancel"
+                                    Command="{Binding EditCancelCommand}" Margin="0,0,8,0"/>
+                            <Button Style="{StaticResource AccentButton}" Padding="16,9" FontSize="12.5"
+                                    Content="Save" Command="{Binding EditSaveCommand}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Border>
+
+            <!-- ============ Confirmation prompt ============ -->
             <!-- A click on the dimmed backdrop is a cancel. -->
             <Border Grid.RowSpan="2" Background="{DynamicResource OverlayDimBrush}" Panel.ZIndex="13"
                     Visibility="{Binding ShowConfirm, Converter={StaticResource BoolToVis}}"

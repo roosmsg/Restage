@@ -35,4 +35,27 @@ public sealed class AppSettings
 
     /// <summary>User-given names for display profiles, keyed by profile id.</summary>
     public Dictionary<string, string> ProfileNames { get; set; } = new();
+
+    /// <summary>
+    /// Global hotkeys as text ("Ctrl+Alt+R"), keyed by action: see
+    /// <see cref="HotkeyActions"/>. Empty by default, so Restage never takes a
+    /// key combination the user did not give it. Unknown actions are ignored.
+    /// </summary>
+    public Dictionary<string, string> Hotkeys { get; set; } = new();
+}
+
+/// <summary>
+/// The actions a global hotkey can trigger; the keys of <see cref="AppSettings.Hotkeys"/>.
+/// One kind for now: start (or switch to) a workspace, "workspace:&lt;id&gt;".
+/// </summary>
+public static class HotkeyActions
+{
+    const string WorkspacePrefix = "workspace:";
+
+    /// <summary>Start the workspace with this id.</summary>
+    public static string Workspace(string id) => WorkspacePrefix + id;
+
+    /// <summary>The workspace id of a <see cref="Workspace"/> action, or null for any other action.</summary>
+    public static string? WorkspaceId(string action) =>
+        action.StartsWith(WorkspacePrefix, StringComparison.Ordinal) ? action[WorkspacePrefix.Length..] : null;
 }

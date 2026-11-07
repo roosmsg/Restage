@@ -16,16 +16,20 @@ public class MainViewModel : ViewModelBase
 {
     readonly AppSettings _settings;
     readonly IAppHost _host;
+    readonly HotkeyService _hotkeys;
     readonly string _currentProfileId;
     CancellationTokenSource? _restoreCts;
+    Task? _restoreTask;
     WorkspaceCaptureService.Result? _pendingCapture;
     WorkspaceCardViewModel? _pendingUpdateTarget;
     TaskCompletionSource<bool>? _desktopChoice;
 
-    public MainViewModel(AppSettings settings, IAppHost host)
+    public MainViewModel(AppSettings settings, IAppHost host, HotkeyService hotkeys)
     {
         _settings = settings;
         _host = host;
+        _hotkeys = hotkeys;
+        _hotkeys.Pressed += OnHotkey;
         _currentProfileId = DisplayProfiles.Current().Id;
         if (!Enum.IsDefined(_settings.DesktopSwitch)) _settings.DesktopSwitch = DesktopSwitchMode.Ask;
         ThemeService.Applied += () =>
@@ -39,7 +43,6 @@ public class MainViewModel : ViewModelBase
         SelectCommand = new RelayCommand(p => Select(p as WorkspaceCardViewModel));
         RestoreCommand = new RelayCommand(async p => await RestoreAsync(Card(p)), _ => !IsBusy);
         UpdateCommand = new RelayCommand(async p => await BeginCaptureAsync(Card(p)), _ => !IsBusy);
-        RenameCommand = new RelayCommand(p => AskRename(Card(p)));
         DeleteCommand = new RelayCommand(p => AskDelete(Card(p)));
         OpenFolderCommand = new RelayCommand(p => OpenFolder(WorkspaceStore.DirectoryFor(Card(p).Id)));
         NextPolicyCommand = new RelayCommand(p => (p as WorkspaceItemViewModel)?.NextPolicy());
@@ -57,6 +60,10 @@ public class MainViewModel : ViewModelBase
         ClearLogCommand = new RelayCommand(_ => ClearLog(), _ => LogEntries.Count > 0);
         ConfirmAcceptCommand = new RelayCommand(_ => AcceptConfirm());
         ConfirmCancelCommand = new RelayCommand(_ => CloseConfirm());
+        ClearHotkeyCommand = new RelayCommand(p => { if (p is HotkeyRowViewModel row) RecordHotkey(row, null); });
+        EditCommand = new RelayCommand(p => OpenEdit(Card(p)));
+        EditSaveCommand = new RelayCommand(_ => SaveEdit(), _ => !string.IsNullOrWhiteSpace(EditName));
+        EditCancelCommand = new RelayCommand(_ => CloseEdit());
 
         RefreshWorkspaces();
         Log("Ready. Closing the window keeps Restage in the system tray.");
@@ -104,7 +111,6 @@ public class MainViewModel : ViewModelBase
     public RelayCommand SelectCommand { get; }
     public RelayCommand RestoreCommand { get; }
     public RelayCommand UpdateCommand { get; }
-    public RelayCommand RenameCommand { get; }
     public RelayCommand DeleteCommand { get; }
     public RelayCommand OpenFolderCommand { get; }
     public RelayCommand NextPolicyCommand { get; }
@@ -117,8 +123,12 @@ public class MainViewModel : ViewModelBase
         var selectedId = Selected?.Id;
         Workspaces.Clear();
         foreach (var ws in WorkspaceStore.List())
-            Workspaces.Add(new WorkspaceCardViewModel(ws, _currentProfileId, SaveWorkspace));
+            Workspaces.Add(new WorkspaceCardViewModel(ws, _currentProfileId, SaveWorkspace)
+            {
+                Hotkey = new HotkeyRowViewModel(HotkeyActions.Workspace(ws.Id), HotkeyTextFor(ws.Id)),
+            });
         Selected = Workspaces.FirstOrDefault(w => w.Id == selectedId);
+        ApplyHotkeys(); // also marks the new cards' hotkeys Windows refuses
         OnPropertyChanged(nameof(HasWorkspaces));
         OnPropertyChanged(nameof(WorkspaceCountText));
     }
@@ -325,9 +335,15 @@ public class MainViewModel : ViewModelBase
         await RestoreAsync(card);
     }
 
-    async Task RestoreAsync(WorkspaceCardViewModel card)
+    Task RestoreAsync(WorkspaceCardViewModel card, bool fromHotkey = false)
     {
-        if (IsBusy) return;
+        if (IsBusy) return Task.CompletedTask;
+        return _restoreTask = RunRestoreAsync(card, fromHotkey);
+    }
+
+    /// <summary>A hotkey start also raises the workspace's windows: that is what switching to it means.</summary>
+    async Task RunRestoreAsync(WorkspaceCardViewModel card, bool fromHotkey)
+    {
         Selected = card;
         IsBusy = true;
         IsRestoring = true;
@@ -353,6 +369,7 @@ public class MainViewModel : ViewModelBase
             Force = _settings.ForceLaunch,
             ApplyWallpaper = _settings.ApplyWallpaper,
             SwitchDesktop = _settings.DesktopSwitch == DesktopSwitchMode.Never ? null : SwitchDesktopAsync,
+            BringToFront = fromHotkey,
         };
         var progress = new Progress<RestoreEvent>(OnRestoreEvent);
         var ws = card.Model;
@@ -457,20 +474,17 @@ public class MainViewModel : ViewModelBase
         catch { }
     }
 
-    // ---- Rename / delete ----------------------------------------------------
+    // ---- Rename / delete ------------------------------------------------------
 
-    void AskRename(WorkspaceCardViewModel card)
+    /// <summary>Renames a workspace (edit panel); an empty or unchanged name is ignored.</summary>
+    public void Rename(WorkspaceCardViewModel card, string name)
     {
-        Prompt("Rename workspace", "The name is how you pick it in the gallery, the tray menu and from the command line.",
-            card.Name, "Save", name =>
-            {
-                name = name.Trim();
-                if (name.Length == 0 || name == card.Name) return;
-                card.Model.Name = name;
-                SaveWorkspace(card);
-                card.Reload();
-                Log($"Renamed to \"{name}\".");
-            });
+        name = name.Trim();
+        if (name.Length == 0 || name == card.Name) return;
+        card.Model.Name = name;
+        SaveWorkspace(card);
+        card.Reload();
+        Log($"Renamed to \"{name}\".");
     }
 
     void AskDelete(WorkspaceCardViewModel card)
@@ -482,6 +496,8 @@ public class MainViewModel : ViewModelBase
                 {
                     WorkspaceStore.Delete(card.Id);
                     Log($"Deleted \"{card.Name}\".");
+                    if (_settings.Hotkeys.Remove(HotkeyActions.Workspace(card.Id)))
+                        SettingsService.Save(_settings);
                 }
                 catch (Exception ex) { Log($"Delete failed: {ex.Message}"); }
                 if (Selected == card) Selected = null;
@@ -569,10 +585,147 @@ public class MainViewModel : ViewModelBase
         catch { }
     }
 
+    // ---- Global hotkeys --------------------------------------------------------
+    // One per workspace, set in its edit panel, kept in AppSettings.Hotkeys
+    // and registered with Windows at startup and after every change. Pressing
+    // it starts the workspace, or switches to it: open windows are placed and raised.
+
+    IEnumerable<HotkeyRowViewModel> HotkeyRows => Workspaces.Select(w => w.Hotkey);
+
+    public RelayCommand ClearHotkeyCommand { get; }
+
+    /// <summary>The bound combination of a workspace as text, or "" (also for garbage in a hand-edited file).</summary>
+    public string HotkeyTextFor(string workspaceId) =>
+        _settings.Hotkeys.TryGetValue(HotkeyActions.Workspace(workspaceId), out var text) && Hotkey.TryParse(text, out var hk)
+            ? hk.ToString() : "";
+
+    /// <summary>
+    /// Registers every bound hotkey with Windows and marks the rows Windows
+    /// refused. Hotkeys of workspaces that no longer exist are skipped.
+    /// </summary>
+    public void ApplyHotkeys()
+    {
+        _hotkeys.UnregisterAll();
+        var ids = Workspaces.Select(w => w.Id).ToHashSet();
+        var refused = new HashSet<string>();
+        foreach (var (action, text) in _settings.Hotkeys)
+        {
+            if (HotkeyActions.WorkspaceId(action) is not { } id || !ids.Contains(id)) continue;
+            if (!Hotkey.TryParse(text, out var hk)) continue;
+            if (!_hotkeys.Register(action, hk)) refused.Add(action);
+        }
+        foreach (var row in HotkeyRows)
+            row.Problem = refused.Contains(row.Action) ? "Taken by another app or by Windows" : "";
+    }
+
+    // ---- Edit panel: name and keyboard shortcut ---------------------------------
+    // Works on copies; Save writes both, Cancel drops both.
+
+    WorkspaceCardViewModel? _editing;
+
+    bool _showEdit;
+    public bool ShowEdit { get => _showEdit; private set => SetProperty(ref _showEdit, value); }
+
+    string _editName = "";
+    public string EditName
+    {
+        get => _editName;
+        set { if (SetProperty(ref _editName, value)) EditSaveCommand.RaiseCanExecuteChanged(); }
+    }
+
+    HotkeyRowViewModel? _editHotkey;
+    /// <summary>The shortcut being edited, a copy of the workspace's until Save.</summary>
+    public HotkeyRowViewModel? EditHotkey { get => _editHotkey; private set => SetProperty(ref _editHotkey, value); }
+
+    public RelayCommand EditCommand { get; }
+    public RelayCommand EditSaveCommand { get; }
+    public RelayCommand EditCancelCommand { get; }
+
+    void OpenEdit(WorkspaceCardViewModel card)
+    {
+        _editing = card;
+        EditName = card.Name;
+        EditHotkey = new HotkeyRowViewModel(card.Hotkey.Action, card.Hotkey.Text);
+        ShowEdit = true;
+    }
+
+    void SaveEdit()
+    {
+        if (_editing is not { } card || EditHotkey is not { } edited) return;
+        Rename(card, EditName);
+        if (edited.Text != card.Hotkey.Text)
+        {
+            if (edited.Text.Length == 0) _settings.Hotkeys.Remove(card.Hotkey.Action);
+            else _settings.Hotkeys[card.Hotkey.Action] = edited.Text;
+            SettingsService.Save(_settings);
+            card.Hotkey.Text = edited.Text;
+            ApplyHotkeys();
+            Log(edited.Text.Length == 0
+                ? $"\"{card.Name}\" no longer has a keyboard shortcut."
+                : $"\"{card.Name}\" now starts with {edited.Text}.");
+        }
+        CloseEdit();
+    }
+
+    void CloseEdit()
+    {
+        ShowEdit = false;
+        _editing = null;
+    }
+
+    /// <summary>
+    /// While the box records, Restage's own hotkeys are released, or pressing a
+    /// combination that is already bound would trigger it instead of reaching the box.
+    /// </summary>
+    public void BeginRecording(HotkeyRowViewModel row)
+    {
+        row.IsRecording = true;
+        _hotkeys.UnregisterAll();
+    }
+
+    public void EndRecording()
+    {
+        if (EditHotkey != null) EditHotkey.IsRecording = false;
+        ApplyHotkeys();
+    }
+
+    /// <summary>
+    /// Takes a recorded combination into the edit copy (null clears it). Refused
+    /// when another workspace has it, or when Windows will not give it: while
+    /// recording Restage holds no hotkeys, so a failed trial registration means
+    /// another app or the shell has it.
+    /// </summary>
+    public void RecordHotkey(HotkeyRowViewModel row, Hotkey? hotkey)
+    {
+        row.Problem = "";
+        if (hotkey is not { } hk) { row.Text = ""; return; }
+        var text = hk.ToString();
+        var owner = Workspaces.FirstOrDefault(w => w != _editing && w.Hotkey.Text == text);
+        if (owner != null) { row.Problem = $"Already used for \"{owner.Name}\""; return; }
+        if (!_hotkeys.IsAvailable(hk)) { row.Problem = "Taken by another app or by Windows"; return; }
+        row.Text = text;
+    }
+
+    /// <summary>
+    /// A workspace hotkey. A start still running is cancelled first, so pressing
+    /// one hotkey after another switches without waiting; a capture is not interrupted.
+    /// </summary>
+    async void OnHotkey(string action)
+    {
+        if (HotkeyActions.WorkspaceId(action) is not { } id || Workspaces.FirstOrDefault(w => w.Id == id) is not { } card) return;
+        if (IsRestoring && _restoreTask != null)
+        {
+            _restoreCts?.Cancel();
+            try { await _restoreTask; } catch { }
+        }
+        if (IsBusy) { Log($"Busy with a capture; \"{card.Name}\" not started."); return; }
+        await RestoreAsync(card, fromHotkey: true);
+    }
+
     // ---- Confirmation / prompt overlay ---------------------------------------
-    // One overlay for yes/no questions and single-line text input, reused by
-    // rename and delete: a MessageBox would arrive as a light-mode system
-    // window on top of a dark, custom-chromed one.
+    // One overlay for yes/no questions (delete) and single-line text input: a
+    // MessageBox would arrive as a light-mode system window on top of a dark,
+    // custom-chromed one.
 
     Action? _confirmAction;
     Action<string>? _promptAction;
