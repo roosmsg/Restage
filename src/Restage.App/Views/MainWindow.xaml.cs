@@ -36,6 +36,16 @@ public partial class MainWindow : Window
         Loaded += (_, _) => { ApplyTitleBarTheme(); ApplyTitleIcon(); };
         DpiChanged += (_, _) => ApplyTitleIcon();
         ContentRendered += (_, _) => ApplyTitleBarTheme();
+        // The settings panel closes on any click that is not on it: clicks on
+        // the panel never reach this window (it is its own HWND), so every
+        // mouse-down here is "outside"; so is a click on another app.
+        PreviewMouseDown += (_, _) => CloseSettingsIfOpen();
+        Deactivated += (_, _) => CloseSettingsIfOpen();
+    }
+
+    void CloseSettingsIfOpen()
+    {
+        if (SettingsPopup.IsOpen) SettingsPopup.IsOpen = false;
     }
 
     void HookLogAutoScroll()
@@ -81,7 +91,9 @@ public partial class MainWindow : Window
     /// </summary>
     IntPtr WindowProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        const int WM_GETMINMAXINFO = 0x0024;
+        const int WM_GETMINMAXINFO = 0x0024, WM_NCLBUTTONDOWN = 0x00A1, WM_NCRBUTTONDOWN = 0x00A4;
+        // Title-bar clicks are non-client messages, not WPF mouse events.
+        if (msg is WM_NCLBUTTONDOWN or WM_NCRBUTTONDOWN) { CloseSettingsIfOpen(); return IntPtr.Zero; }
         if (msg != WM_GETMINMAXINFO) return IntPtr.Zero;
 
         var monitor = Win32.MonitorFromWindow(hwnd, Win32.MONITOR_DEFAULTTONEAREST);
