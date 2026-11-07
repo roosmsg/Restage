@@ -119,6 +119,10 @@ public partial class MainWindow : Window
         if (hwnd == IntPtr.Zero) return;
         var dark = (DataContext as MainViewModel)?.IsDarkTheme != false ? 1 : 0;
         _ = Win32.DwmSetWindowAttribute(hwnd, Win32.DWMWA_USE_IMMERSIVE_DARK_MODE, ref dark, sizeof(int));
+        // Without a DWM frame (GlassFrameThickness 0) Windows 11 leaves the corners
+        // square unless asked; ask, so the window looks like any other app's.
+        var round = Win32.DWMWCP_ROUND;
+        _ = Win32.DwmSetWindowAttribute(hwnd, Win32.DWMWA_WINDOW_CORNER_PREFERENCE, ref round, sizeof(int));
     }
 
     static AppSettings Settings => ((App)Application.Current).Settings;
