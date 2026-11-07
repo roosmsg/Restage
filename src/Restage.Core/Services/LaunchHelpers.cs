@@ -93,10 +93,15 @@ public static class LaunchHelpers
 
     /// <summary>
     /// True when the arguments carry something to open (a file, a folder, a
-    /// URL) rather than switches only: "--updated" is not content, "C:\notes.txt" is.
+    /// URL): "--updated" is not content, nor is a switch's bare value ("-P Werk");
+    /// "C:\notes.txt" and "https://…" are.
     /// </summary>
     public static bool HasContentArgs(string? args) =>
-        !string.IsNullOrWhiteSpace(args) && Tokenize(args).Any(t => t.Length > 0 && t[0] != '-' && t[0] != '/');
+        !string.IsNullOrWhiteSpace(args) && Tokenize(args).Any(LooksLikeContent);
+
+    static bool LooksLikeContent(string token) =>
+        token.Length > 0 && token[0] != '-' && token[0] != '/' &&
+        (token.Contains('\\') || token.Contains('/') || token.Contains('.') || (token.Length > 1 && token[1] == ':'));
 
     /// <summary>Starts a program (or URI) through the shell; returns the process when one was created.</summary>
     public static Process? Start(string fileName, string args, string? workingDirectory = null)

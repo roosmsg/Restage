@@ -59,13 +59,13 @@ public class WorkspaceItemViewModel : ViewModelBase
         _ => false,
     };
 
-    /// <summary>What the content checkbox opens: "note", "folder", "folders", "file", "arguments".</summary>
+    /// <summary>What the content checkbox opens: "note", "folder", "folders", or "file" for a plain app's path or URL.</summary>
     public string ContentLabel => Item.Kind switch
     {
         ItemKind.Obsidian => "note",
         ItemKind.VSCode or ItemKind.Explorer => "folder",
-        ItemKind.Terminal => "folders",
-        _ => LaunchHelpers.Tokenize(Item.Args).Any(t => t.Contains('\\') || t.Contains('.')) ? "file" : "arguments",
+        ItemKind.Terminal when Item.Cwds is { Count: > 0 } => "folders",
+        _ => "file",
     };
 
     public bool OpenContent
