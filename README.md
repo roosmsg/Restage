@@ -9,8 +9,6 @@ the position of every window. A workspace is a card with a screenshot in a
 gallery; **Restore** brings it all back, on every monitor arrangement you have
 saved a layout for.
 
-**Version:** 0.1.0 · **Requires:** Windows 11 (64-bit) · **Stack:** C# / .NET 10, WPF
-
 ---
 
 ## What a workspace brings back
