@@ -167,6 +167,20 @@ them with `EnumWindows` filtered by PID.
   id per record, marker command 255). Decided with the user to leave it;
   if wanted later, the supported route is a companion extension plus a
   native messaging host. See `docs/DECISIONS.md`.
+- VS Code windows are tied to their folder through the window title only
+  (folder name or path as a " - " segment or a whole word, see Adapters).
+  The user wants more than that: a `window.title` without `${rootName}` or
+  `${rootPath}` defeats it, and the format differs per VS Code profile.
+  Public alternatives checked on 2026-11-07: `code --status` lists every
+  open window as `Window (title)` plus `Folder (name)` whatever the title
+  format, but gives only the folder *name* (still resolved via
+  workspaceStorage by name and recency) and scans the folder's files
+  first (seconds). The launch IPC behind it (`getMainProcessInfo`) carries
+  the folder URIs but is private and version-bound. Renderer and extension
+  host command lines, environments and `storage.json` carry nothing usable
+  live. The reliable route is a small companion extension that writes
+  window (title, pid) → folder path to `%LOCALAPPDATA%\Restage`, with
+  `--status` as a fallback when the title yields nothing.
 - Only the current virtual desktop's windows are captured.
 - Elevated apps cannot be read or moved.
 - Rewake's auto-capture history, "Last session before shutdown" and Stay
