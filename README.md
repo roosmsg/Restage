@@ -1,188 +1,161 @@
-# Rewake (beta)
+# Restage
 
-*Your workspace, back the way you left it.*
+*Save a desktop. Come back to it with one click.*
 
-Rewake remembers what you have open — applications, terminals (with their
-folders), and File Explorer windows — and brings it all back after a power cut,
-restart, or accidental shutdown. It sits in the system tray and snapshots your
-workspace every 2 minutes.
+Restage saves what you have open — VS Code folders, Obsidian vaults, Firefox
+and Chrome profiles and web apps, Explorer folders, terminals, any other app —
+together with the Windows 11 virtual desktop it lives on, its wallpaper and
+the position of every window. A workspace is a card with a screenshot in a
+gallery; **Restore** brings it all back, on every monitor arrangement you have
+saved a layout for.
 
-**Version:** 1.0.0-beta.2 · **Requires:** Windows 11 (64-bit), nothing else to install
+Restage is a fork of [Rewake](https://github.com/Anurag-patil-26/Rewake-Windows)
+by Anurag Patil (MIT), which it keeps as its foundation: the capture of
+command lines, terminal working directories and Explorer folders, the WPF
+shell and the design language all come from there.
+
+**Version:** 0.1.0 · **Requires:** Windows 11 (64-bit) · **Stack:** C# / .NET 10, WPF
 
 ---
 
-## Install (testers)
+## What a workspace brings back
 
-1. Copy `Rewake.exe` to a folder that won't move (e.g. `C:\Tools\Rewake\`).
-   Avoid running it from Downloads if you plan to enable "Run at startup" —
-   the startup entry points at wherever the exe was when you ticked the box.
-2. Double-click `Rewake.exe`.
-3. **Windows SmartScreen will warn you** ("Windows protected your PC") because
-   the app isn't code-signed yet. Click **More info → Run anyway**.
-4. Some antivirus tools may flag it: Rewake reads other programs' data
-   (window titles, command lines, terminal working folders) to do its job,
-   which can look suspicious to an AV. Allow it if you're comfortable.
+| Item | Saved as | Restored by |
+| --- | --- | --- |
+| VS Code window | the folder or `.code-workspace` it shows | `code -n <folder>`; VS Code reopens the editors itself |
+| Obsidian window | the vault | `obsidian://open?vault=…`; Obsidian reopens its notes itself |
+| Firefox window | the profile | starting that profile once; Firefox restores windows and tabs |
+| Firefox web app on the taskbar | its exact launch arguments | the same arguments |
+| Chrome / Edge / Brave window | the profile | starting that profile once; the browser restores its tabs |
+| Chrome / Edge / Brave web app | profile + app id | `--profile-directory=… --app-id=…` |
+| Explorer window | the folder path | `explorer.exe <path>` |
+| Terminal | the shells' working directories | `wt -d … ; new-tab -d …` |
+| Anything else | exe path + cleaned-up arguments | starting it (Store apps through their execution alias) |
+
+Plus, per workspace: the virtual desktop (by id, then by name), the wallpaper,
+and one window layout per **display profile** (your monitor arrangement). Dock
+the laptop, press *Update*, and the workspace knows both layouts.
+
+The principle: Restage stores *identity and placement* and lets every
+application restore its own session. No hooks, no reading other processes'
+memory, no browser extension.
 
 ## Quick start
 
-- The window opens with your **capture history** on the left. Captures happen
-  automatically every 2 minutes; press the **camera** button to capture now.
-- Pick a capture, tick the apps/windows/folders you want back, and press
-  **Restore Workspace**. Apps launch one at a time (so the PC doesn't choke),
-  each window returning to its saved position — a progress card shows each
-  app's status live.
-- **Closing the window does not exit** — Rewake keeps capturing from the
-  system tray. Right-click the tray icon → **Exit** to quit for real.
-- After a power cut, restore the pinned **Last Session · BEFORE SHUTDOWN**
-  entry at the top of the history — that's everything you had open.
-- The title bar holds a **sidebar toggle** on the left (hide the history for a
-  wider capture list) and a **gear** on the right, next to the window buttons.
-  The gear has your preferences — auto capture, run at startup, force
-  relaunch — plus the theme switch, **Open data folder**, and **Stay awake…**.
-- Tick **Run at startup** under the gear so Rewake is already running after a
-  reboot.
+1. Arrange a desktop the way you work.
+2. Open Restage and press **New workspace**. The window hides, the desktop is
+   photographed, and you see the windows that were found. Untick what you do
+   not want, give it a name, **Save workspace**.
+3. Later: press **Restore** on the card. Apps open one at a time; windows that
+   are already open are reused and moved into place.
 
-## Good to know
+Closing the window keeps Restage in the system tray; the tray menu lists the
+workspaces too. Right-click the tray icon → **Exit** to quit for real.
 
-- **Terminals reopen in their last folder** (Windows Terminal, PowerShell,
-  cmd, WSL…) — multi-tab windows come back with one tab per saved path.
-- **Browsers** reopen and restore their own tabs — enable your browser's
-  "Continue where you left off" setting for full effect.
-- **Force relaunch** (under the gear): normally an app is skipped when one of
-  its windows is already open, and a folder is skipped when Explorer is already
-  showing it; tick this to open them anyway.
-- **Stay awake** (gear → Stay awake…) nudges the mouse or taps F15 on an
-  interval so the PC doesn't sleep or go idle. "Only when I'm idle" means it
-  never interferes while you're actually working, and it keeps running after
-  the window closes — a green dot on the gear (and the tray menu's
-  "Stay awake — on") shows it's active. Stop it from the dialog or the tray.
-  Note: it keeps the machine unlocked and the display on, so mind your
-  battery and your workplace's policy on idle timeouts.
+### Virtual desktops
 
-## Known limitations (V1)
+Windows has no public API to switch virtual desktops, so Restage never does it
+behind your back. If a workspace lives on another desktop, a prompt names it
+and offers Task View; press <kbd>Win</kbd>+<kbd>Ctrl</kbd>+<kbd>←</kbd>/<kbd>→</kbd>
+and the restore continues the moment you arrive. The gear menu can make this
+silent (wait up to a minute) or turn it off (restore on the current desktop).
 
-- Terminals running **as administrator** reopen at the default folder — their
-  path can't be read from an elevated process.
-- Some Microsoft Store apps can't be relaunched and are skipped (the Activity
-  Log will say so).
-- Unsaved document content can't be recovered — Rewake restores windows, not
-  file contents. Enable each app's own recovery (browser session restore,
-  editor auto-save) for the rest.
-- Windows are restored to their saved monitor; if that monitor is no longer
-  attached, the window is placed on the nearest screen instead.
+### Items and policies
 
-## Your data & privacy
+Select a card to see its items. Each can be ticked off, and its label cycles
+through how it comes back: **reuse if open** (default) · **always launch** ·
+**only if open** · **skip**. *Always relaunch* in the gear menu overrides the
+first for one session.
 
-Everything stays on your machine — Rewake makes no network connections.
-Data lives in `%LOCALAPPDATA%\Rewake`:
+## Command line
 
-| File | Contents |
+`restage.exe` is installed beside the app:
+
+```text
+restage capture <name>              save the desktop as a new workspace
+restage update <name|id>            re-capture an existing workspace (keeps its settings)
+restage list                        list workspaces
+restage show <name|id>              print a workspace's items
+restage restore <name|id> [--force] [--here]
+restage delete <id>
+restage inspect                     print what a capture would record, without saving
+```
+
+The app itself answers `Restage.exe --restore <name>` and the URI
+`restage://restore/<name>`, both of which reach the running instance. That is
+the hook for hotkey tools and voice assistants such as
+[Hex](https://github.com/anomalyco/hex): a spoken command that opens
+`restage://restore/Werk` restores the workspace named *Werk*.
+
+## Your data and privacy
+
+Everything stays on your machine. Restage makes no network connections.
+Data lives in `%LOCALAPPDATA%\Restage`:
+
+| Path | Contents |
 | --- | --- |
-| `snapshots\` | the last 30 captures (window titles, exe paths, command lines, folder paths) |
-| `last-session.json` | the pinned pre-reboot capture |
-| `capture-meta.json` | names and favourite flags you've given captures |
-| `app-settings.json` | your preferences |
+| `workspaces\<id>\workspace.json` | the workspace: items, placements, desktop, wallpaper |
+| `workspaces\<id>\thumbnail.png` | the screenshot shown on its card |
+| `app-settings.json` | preferences |
 | `crash.log` | written only if something goes wrong |
 
-## Reporting a problem
+Workspaces are plain JSON: back them up, diff them, edit them by hand.
 
-Please include:
+## Known limitations
 
-1. What you did and what you expected to happen.
-2. The version — hover the tray icon (e.g. "Rewake 1.0.0-beta.2").
-3. `%LOCALAPPDATA%\Rewake\crash.log`, if it exists.
-4. A screenshot of the Activity Log at the bottom of the window, if relevant.
+- Windows of **elevated** (administrator) apps cannot be read or moved.
+- **Explorer tabs** come back as separate windows.
+- **Chrome web apps** opened after the browser started are recognised by their
+  AppUserModelID; a browser that does not set one is treated as a plain window.
+- Only the **current** virtual desktop's windows are captured.
+- Antivirus tools may flag Restage: it reads window titles, command lines and
+  terminal working folders to do its job.
+
+## Building
+
+Requires the .NET 10 SDK. The repository pins nuget.org in `nuget.config`.
+
+```powershell
+dotnet build Restage.slnx -c Release
+dotnet test  tests/Restage.Core.Tests/Restage.Core.Tests.csproj -c Release
+```
+
+Self-contained publish (no runtime needed on the target machine):
+
+```powershell
+dotnet publish src/Restage.App/Restage.App.csproj -c Release -r win-x64 --self-contained true `
+    /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true -o publish
+dotnet publish src/Restage.Cli/Restage.Cli.csproj -c Release -r win-x64 --self-contained true `
+    /p:PublishSingleFile=true -o publish
+```
+
+`installer\Restage.iss` builds a per-user Inno Setup installer from `publish\`.
+
+### Layout
+
+```text
+src/Restage.Core   models, capture and restore, Win32/COM interop — no UI
+  Adapters/        one per kind of app: VS Code, Obsidian, Firefox, Chromium, Explorer, Generic
+  Native/          Win32, VirtualDesktops (public API + registry), DesktopWallpaper
+  Services/        WindowEnumerator, WindowPlacer, DisplayProfiles, Thumbnails,
+                   WorkspaceStore, WorkspaceCaptureService, WorkspaceRestoreService
+src/Restage.App    WPF: gallery, details pane, overlays, tray, settings
+src/Restage.Cli    restage.exe
+tests/             xUnit tests for the pure parts (parsers, matching, merging, store)
+```
+
+Two details worth knowing: window rectangles are captured from the DWM
+extended frame bounds and restored with border compensation, so a saved
+window lands on the same pixels instead of drifting; and the process is
+per-monitor DPI aware, so every coordinate is a physical pixel on every
+monitor.
 
 ## Third-party
 
-- **[Inter](https://github.com/rsms/inter)** by Rasmus Andersson — SIL Open Font
-  License 1.1. Bundled in `Assets\Fonts\`; full licence in `Inter-OFL.txt`.
-- **[Lucide](https://lucide.dev)** icon paths — ISC License.
+- [Rewake](https://github.com/Anurag-patil-26/Rewake-Windows) by Anurag Patil — MIT. Restage's foundation; see `LICENSE`.
+- [Inter](https://github.com/rsms/inter) by Rasmus Andersson — SIL Open Font License 1.1, bundled in `src/Restage.App/Assets/Fonts`.
+- [Lucide](https://lucide.dev) icon paths — ISC License.
 
-## Uninstall
+## License
 
-1. Untick **Run at startup** under the app's gear icon.
-2. Right-click the tray icon → **Exit**.
-3. Delete `Rewake.exe` and the `%LOCALAPPDATA%\Rewake` folder.
-
----
-
-## Developer notes
-
-### Architecture (MVVM)
-
-```
-Rewake.csproj               net9.0-windows, WPF (+ WinForms for the tray icon)
-App.xaml / App.xaml.cs      composition root: settings, tray icon, capture
-                            timer, single-instance guard, crash logging
-Models\                     Snapshot/AppEntry/WindowInfo JSON models,
-                            AppSettings, RestoreStatus
-Views\MainWindow.xaml       pure XAML bindings; code-behind has view-only
-                            concerns (log auto-scroll, title-bar theme, tray)
-ViewModels\                 MainViewModel (commands + state), item VMs,
-                            RelayCommand, ViewModelBase
-Services\                   SnapshotService (capture/persist), RestoreService
-                            (staggered relaunch + progress), CaptureMetaService
-                            (names/favourites), StayAwakeService (keep-awake
-                            timer), SettingsService, ThemeService, IconCache,
-                            Paths, NativeMethods
-Themes\                     Dark.xaml / Light.xaml swappable dictionaries
-Assets\                     icon (.ico, 8 sizes) + SVG sources + build-icon.ps1
-Assets\Fonts\               Inter (Regular/Medium/SemiBold) + its OFL licence
-```
-
-### UI conventions
-
-- **Icons are Lucide geometry, not an icon font.** Each is a `Geometry` resource
-  in App.xaml, converted from the official SVG at
-  [lucide-icons/lucide](https://github.com/lucide-icons/lucide/tree/main/icons)
-  and kept in Lucide's 24x24 box. Buttons hand one to their template via `Tag`,
-  and a `Viewbox` scales the whole box so every icon keeps its intended optical
-  size. One stroke weight throughout, and nothing extra to ship.
-  When adding one, note that Lucide splits an icon across several `<path>`
-  elements: concatenating them into one geometry turns a leading relative `m`
-  into a move relative to the *previous* subpath's endpoint, so it has to be
-  rewritten absolute first.
-- **Inter is vendored**, not assumed installed. Static weights rather than the
-  variable TTF — WPF renders only a variable font's default instance, so Medium
-  and SemiBold would silently come out Regular.
-- One type scale (`TitleText` / `BodyText` / `SubtleText` / `SectionLabel`), each
-  `BasedOn` the implicit `TextBlock` style. That `BasedOn` is load-bearing: an
-  explicit `Style` replaces the implicit one outright, so a heading that skips it
-  loses `Foreground` and renders black on a black background.
-- **Square corners throughout** — buttons, cards, list rows, badges, checkboxes,
-  menus. Only the scrollbar thumbs stay rounded.
-- The **activity log sits inside the content column**, not across the window, so
-  the capture history runs the full height and the log starts at the seam.
-- **Accent green means one thing: the action.** Restore Workspace is the only
-  filled accent button; capture and delete are transparent with an accent
-  outline, and their icon turns accent on hover.
-
-### Feature highlights
-
-- EnumWindows-based capture: every visible window of every app is its own
-  entry; excluded system processes and cloaked/tool windows are filtered.
-- Terminal working directories are read from each shell process's PEB and
-  restored via `wt -w new -d … ; new-tab -d …`.
-- First capture after a new boot preserves the newest pre-reboot snapshot as
-  the pinned "Last Session".
-- Restore launches sequentially (0.7 s gap, 2 s after heavy apps), waits up to
-  4 s per window, repositions it (clamped to attached monitors), and reports
-  per-item progress to the overlay UI.
-
-### Build & publish
-
-Requires the .NET 9 SDK. Tester build (self-contained, no runtime needed):
-
-```powershell
-dotnet publish Rewake.csproj -c Release -r win-x64 --self-contained true `
-    /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true `
-    /p:EnableCompressionInSingleFile=true -o publish
-```
-
-Dev build (smaller, needs .NET 9 Desktop Runtime installed):
-
-```powershell
-dotnet publish Rewake.csproj -c Release -r win-x64 --self-contained false `
-    /p:PublishSingleFile=true -o publish
-```
+MIT. See `LICENSE`.
