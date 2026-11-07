@@ -145,7 +145,9 @@ Data: `%LOCALAPPDATA%\Restage\workspaces\<id>\workspace.json` + `thumbnail.png`,
   draws the SVG's frame and card as thin outlines in one colour (1 px at
   16 px; the frame is cut back 40 units around the card) into an in-memory PNG .ico, white or black by the taskbar's mode
   (`SystemUsesLightTheme`, not the apps' `AppsUseLightTheme`), redrawn on
-  `UserPreferenceChanged`.
+  `UserPreferenceChanged`. While `IsRestoring`, `TrayGlyph.WithBusyBadge`
+  adds a still loading ring (no animation, by rule) bottom right, on either
+  icon, and the tooltip names the workspace.
 - **Single instance / hooks:** mutex `Local\Restage.SingleInstance`; a second
   launch writes `restore-request.txt` and signals the first. `--restore <name>`
   and the `restage://restore/<name>` URI (registered in HKCU at every start)

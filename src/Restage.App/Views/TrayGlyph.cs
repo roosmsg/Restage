@@ -1,10 +1,14 @@
 using System.IO;
+using System.Windows;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Drawing = System.Drawing;
 using Brush = System.Windows.Media.Brush;
 using Brushes = System.Windows.Media.Brushes;
 using Pen = System.Windows.Media.Pen;
+using Point = System.Windows.Point;
+using Size = System.Windows.Size;
 
 namespace Restage.Views;
 
@@ -44,6 +48,59 @@ internal static class TrayGlyph
         var brush = lightTaskbar ? Brushes.Black : Brushes.White;
         var frames = Sizes.Select(px => (px, png: RenderPng(brush, px))).ToList();
         return new Drawing.Icon(new MemoryStream(BuildIco(frames)));
+    }
+
+    /// <summary>
+    /// The icon with a "starting apps" badge: a still loading ring in the
+    /// bottom-right corner, white or black by the taskbar, with a thin gap cut
+    /// out of the icon around it so it reads at 16 px. Still on purpose (no
+    /// animations); it is there while Restage launches a workspace.
+    /// </summary>
+    public static Drawing.Icon WithBusyBadge(Drawing.Icon icon, bool lightTaskbar)
+    {
+        var brush = lightTaskbar ? Brushes.Black : Brushes.White;
+        var frames = Sizes.Select(px => (px, png: RenderBadged(icon, brush, px))).ToList();
+        return new Drawing.Icon(new MemoryStream(BuildIco(frames)));
+    }
+
+    static byte[] RenderBadged(Drawing.Icon icon, Brush brush, int px)
+    {
+        using var sized = new Drawing.Icon(icon, px, px);
+        var source = Imaging.CreateBitmapSourceFromHIcon(sized.Handle, Int32Rect.Empty, BitmapSizeOptions.FromWidthAndHeight(px, px));
+
+        var stroke = Math.Max(1.5, px / 9.0);
+        var outer = px * 0.26;                       // badge radius, outer edge of the ring
+        var centre = new Point(px - outer, px - outer);
+        var ring = outer - stroke / 2;
+        var cutout = new EllipseGeometry(centre, outer + px / 16.0, outer + px / 16.0);
+
+        var visual = new DrawingVisual();
+        using (var dc = visual.RenderOpen())
+        {
+            var keep = Geometry.Combine(new RectangleGeometry(new Rect(0, 0, px, px)), cutout, GeometryCombineMode.Exclude, null);
+            dc.PushClip(keep);
+            dc.DrawImage(source, new Rect(0, 0, px, px));
+            dc.Pop();
+
+            // Three quarters of a circle, open at the top right, like a paused spinner.
+            var start = new Point(centre.X, centre.Y - ring);
+            var end = new Point(centre.X + ring, centre.Y);
+            var arc = new StreamGeometry();
+            using (var g = arc.Open())
+            {
+                g.BeginFigure(start, false, false);
+                g.ArcTo(end, new Size(ring, ring), 0, true, SweepDirection.Counterclockwise, true, false);
+            }
+            var pen = new Pen(brush, stroke) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+            dc.DrawGeometry(null, pen, arc);
+        }
+        var target = new RenderTargetBitmap(px, px, 96, 96, PixelFormats.Pbgra32);
+        target.Render(visual);
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(target));
+        using var ms = new MemoryStream();
+        encoder.Save(ms);
+        return ms.ToArray();
     }
 
     static void Build()

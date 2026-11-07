@@ -27,7 +27,7 @@ public partial class App : Application, IAppHost
     static EventWaitHandle? _signal;
     WinForms.NotifyIcon? _tray;
     Drawing.Icon? _trayIcon;
-    bool? _trayIconLight;
+    (bool? Light, bool Busy, bool TaskbarLight)? _trayIconKey;
     Views.MainWindow? _mainWindow;
     HotkeyService? _hotkeys;
     LocalApiServer? _api;
@@ -83,7 +83,12 @@ public partial class App : Application, IAppHost
         _tray.ContextMenuStrip = BuildTrayMenu();
         _tray.DoubleClick += (_, _) => ShowMain();
         RefreshTray();
-        // The monochrome icon follows the taskbar's light/dark mode.
+        // The badge shows while a workspace's apps are being launched.
+        ViewModel.PropertyChanged += (_, ev) =>
+        {
+            if (ev.PropertyName is nameof(MainViewModel.IsRestoring)) RefreshTray();
+        };
+        // The monochrome icon and the badge follow the taskbar's light/dark mode.
         Microsoft.Win32.SystemEvents.UserPreferenceChanged += (_, ev) =>
         {
             if (ev.Category is Microsoft.Win32.UserPreferenceCategory.General or Microsoft.Win32.UserPreferenceCategory.VisualStyle)
@@ -220,22 +225,34 @@ public partial class App : Application, IAppHost
     }
 
     /// <summary>
-    /// Applies the tray settings: shown or hidden, colour or monochrome. The
-    /// monochrome icon is redrawn only when the taskbar's mode changed; the old
-    /// icon is disposed after the new one is in place.
+    /// Applies the tray settings: shown or hidden, colour or monochrome, and the
+    /// busy badge while a workspace starts. The icon is redrawn only when one of
+    /// those, or the taskbar's mode, changed; the old icon is disposed after the
+    /// new one is in place.
     /// </summary>
     public void RefreshTray()
     {
         if (_tray == null) return;
-        bool? light = Settings.MonochromeTrayIcon ? ThemeService.TaskbarUsesLightTheme() : null;
-        if (_trayIcon == null || light != _trayIconLight)
+        var taskbarLight = ThemeService.TaskbarUsesLightTheme();
+        bool? light = Settings.MonochromeTrayIcon ? taskbarLight : null;
+        var busy = ViewModel.IsRestoring;
+        var key = (light, busy, taskbarLight);
+        if (_trayIcon == null || key != _trayIconKey)
         {
             var old = _trayIcon;
-            _trayIcon = light is { } l ? Views.TrayGlyph.Render(l) : LoadTrayIcon();
-            _trayIconLight = light;
+            var plain = light is { } l ? Views.TrayGlyph.Render(l) : LoadTrayIcon();
+            if (busy)
+            {
+                _trayIcon = Views.TrayGlyph.WithBusyBadge(plain, taskbarLight);
+                plain.Dispose();
+            }
+            else _trayIcon = plain;
+            _trayIconKey = key;
             _tray.Icon = _trayIcon;
             old?.Dispose();
         }
+        var text = busy ? $"Restage: starting {ViewModel.RestoreTitle}…" : $"Restage {AppVersion}";
+        _tray.Text = text.Length > 127 ? text[..126] + "…" : text;
         _tray.Visible = Settings.ShowTrayIcon;
     }
 

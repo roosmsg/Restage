@@ -54,8 +54,9 @@ and brings that back too.
 
 Closing the window keeps Restage in the system tray; the tray menu lists the
 workspaces too. Right-click the tray icon → **Exit** to quit for real.
-Settings can make the tray icon monochrome, white or black to match the
-taskbar, or hide it. Hidden, Restage keeps running (hotkeys, local API);
+While a workspace's apps are being launched, the tray icon carries a small
+loading ring. Settings can make the tray icon monochrome, white or black to
+match the taskbar, or hide it. Hidden, Restage keeps running (hotkeys, local API);
 start it again from the Start menu to open the window.
 
 ### Virtual desktops
