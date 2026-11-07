@@ -140,6 +140,12 @@ Data: `%LOCALAPPDATA%\Restage\workspaces\<id>\workspace.json` + `thumbnail.png`,
   version). `src/Restage.App/Assets/Restage.ico`, `Restage-256.png` and
   `Restage.svg` are copies of those; there is no icon build script any
   more. The title bar picks the ICO frame that is 1:1 at the window's DPI.
+- **Tray icon:** `AppSettings.ShowTrayIcon` (hidden: the app keeps running;
+  a second launch opens the window) and `MonochromeTrayIcon`: `TrayGlyph`
+  draws the SVG's frame and card in one colour (a 30-unit gap cuts the card
+  free) into an in-memory PNG .ico, white or black by the taskbar's mode
+  (`SystemUsesLightTheme`, not the apps' `AppsUseLightTheme`), redrawn on
+  `UserPreferenceChanged`.
 - **Single instance / hooks:** mutex `Local\Restage.SingleInstance`; a second
   launch writes `restore-request.txt` and signals the first. `--restore <name>`
   and the `restage://restore/<name>` URI (registered in HKCU at every start)

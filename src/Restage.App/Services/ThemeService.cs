@@ -76,6 +76,20 @@ public static class ThemeService
     }
 
     /// <summary>
+    /// Windows' "Choose your default Windows mode" setting: the taskbar's and
+    /// notification area's light or dark look, which can differ from the apps'.
+    /// </summary>
+    public static bool TaskbarUsesLightTheme()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+            return key?.GetValue("SystemUsesLightTheme") is int v && v != 0;
+        }
+        catch { return false; }
+    }
+
+    /// <summary>
     /// Overrides the theme's accent brushes with the Windows accent colour.
     /// Entries set directly on the application's resources win over the merged
     /// theme dictionary, so the theme files keep their fallback green for a

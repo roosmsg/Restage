@@ -26,6 +26,8 @@ public partial class App : Application, IAppHost
     static Mutex? _singleInstance;
     static EventWaitHandle? _signal;
     WinForms.NotifyIcon? _tray;
+    Drawing.Icon? _trayIcon;
+    bool? _trayIconLight;
     Views.MainWindow? _mainWindow;
     HotkeyService? _hotkeys;
     LocalApiServer? _api;
@@ -77,14 +79,16 @@ public partial class App : Application, IAppHost
         _api = new LocalApiServer(ViewModel);
         _api.Start();
 
-        _tray = new WinForms.NotifyIcon
-        {
-            Icon = LoadTrayIcon(),
-            Visible = true,
-            Text = $"Restage {AppVersion}",
-        };
+        _tray = new WinForms.NotifyIcon { Text = $"Restage {AppVersion}" };
         _tray.ContextMenuStrip = BuildTrayMenu();
         _tray.DoubleClick += (_, _) => ShowMain();
+        RefreshTray();
+        // The monochrome icon follows the taskbar's light/dark mode.
+        Microsoft.Win32.SystemEvents.UserPreferenceChanged += (_, ev) =>
+        {
+            if (ev.Category is Microsoft.Win32.UserPreferenceCategory.General or Microsoft.Win32.UserPreferenceCategory.VisualStyle)
+                Dispatcher.BeginInvoke(RefreshTray);
+        };
 
         if (request != null)
             _ = ViewModel.RestoreByNameAsync(request);
@@ -215,6 +219,26 @@ public partial class App : Application, IAppHost
         return menu;
     }
 
+    /// <summary>
+    /// Applies the tray settings: shown or hidden, colour or monochrome. The
+    /// monochrome icon is redrawn only when the taskbar's mode changed; the old
+    /// icon is disposed after the new one is in place.
+    /// </summary>
+    public void RefreshTray()
+    {
+        if (_tray == null) return;
+        bool? light = Settings.MonochromeTrayIcon ? ThemeService.TaskbarUsesLightTheme() : null;
+        if (_trayIcon == null || light != _trayIconLight)
+        {
+            var old = _trayIcon;
+            _trayIcon = light is { } l ? Views.TrayGlyph.Render(l) : LoadTrayIcon();
+            _trayIconLight = light;
+            _tray.Icon = _trayIcon;
+            old?.Dispose();
+        }
+        _tray.Visible = Settings.ShowTrayIcon;
+    }
+
     /// <summary>The embedded app icon, falling back to the generic system icon.</summary>
     static Drawing.Icon LoadTrayIcon()
     {
@@ -252,6 +276,8 @@ public partial class App : Application, IAppHost
     public void ExitApp()
     {
         if (_tray != null) { _tray.Visible = false; _tray.Dispose(); _tray = null; }
+        _trayIcon?.Dispose();
+        _trayIcon = null;
         _api?.Dispose();
         _api = null;
         _hotkeys?.Dispose();

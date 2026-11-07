@@ -15,6 +15,9 @@ public interface IAppHost
     /// <summary>True while the main window is on screen (not hidden to the tray).</summary>
     bool IsMainVisible { get; }
 
+    /// <summary>Shows, hides or repaints the tray icon after its settings changed.</summary>
+    void RefreshTray();
+
     /// <summary>Removes the tray icon and exits for real.</summary>
     void ExitApp();
 }

@@ -66,7 +66,9 @@ public class MainViewModel : ViewModelBase
         EditCancelCommand = new RelayCommand(_ => CloseEdit());
 
         RefreshWorkspaces();
-        Log("Ready. Closing the window keeps Restage in the system tray.");
+        Log(_settings.ShowTrayIcon
+            ? "Ready. Closing the window keeps Restage in the system tray."
+            : "Ready. Closing the window keeps Restage running; start it again to open this window.");
 
         // "Opened 5 minutes ago" has to age; once a minute is plenty.
         _clock = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
@@ -556,6 +558,33 @@ public class MainViewModel : ViewModelBase
                 Log(value ? "Restage will run at startup (in the tray)." : "Removed from startup.");
             }
             catch (Exception ex) { Log($"Startup setting failed: {ex.Message}"); }
+            OnPropertyChanged();
+        }
+    }
+
+    public bool ShowTrayIcon
+    {
+        get => _settings.ShowTrayIcon;
+        set
+        {
+            if (_settings.ShowTrayIcon == value) return;
+            _settings.ShowTrayIcon = value;
+            SettingsService.Save(_settings);
+            _host.RefreshTray();
+            if (!value) Log("Tray icon hidden. Start Restage again (Start menu) to open this window.");
+            OnPropertyChanged();
+        }
+    }
+
+    public bool MonochromeTrayIcon
+    {
+        get => _settings.MonochromeTrayIcon;
+        set
+        {
+            if (_settings.MonochromeTrayIcon == value) return;
+            _settings.MonochromeTrayIcon = value;
+            SettingsService.Save(_settings);
+            _host.RefreshTray();
             OnPropertyChanged();
         }
     }

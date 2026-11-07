@@ -19,6 +19,15 @@ public sealed class AppSettings
     /// <summary>Closing the window hides to the tray instead of exiting.</summary>
     public bool MinimizeToTray { get; set; } = true;
 
+    /// <summary>
+    /// Show Restage's icon in the notification area. Hidden, the app still runs
+    /// (hotkeys, local API); starting Restage again opens the window.
+    /// </summary>
+    public bool ShowTrayIcon { get; set; } = true;
+
+    /// <summary>A one-colour tray icon that matches the taskbar's light or dark mode.</summary>
+    public bool MonochromeTrayIcon { get; set; }
+
     public DesktopSwitchMode DesktopSwitch { get; set; } = DesktopSwitchMode.Ask;
 
     /// <summary>Apply the workspace's wallpaper when restoring.</summary>

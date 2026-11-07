@@ -305,6 +305,21 @@
                             <TextBlock Text="SETTINGS" Style="{StaticResource SectionLabel}" Margin="7,4,7,10"/>
                             <CheckBox Content="Run at startup" FontSize="12.5"
                                       IsChecked="{Binding StartWithWindows}" Margin="7,0,7,10"/>
+                            <CheckBox IsChecked="{Binding ShowTrayIcon}" Margin="7,0,7,10">
+                                <StackPanel>
+                                    <TextBlock Text="Show the tray icon" FontSize="12.5"/>
+                                    <TextBlock Text="hidden, start Restage again to open it" FontSize="11"
+                                               Foreground="{DynamicResource MutedBrush}"/>
+                                </StackPanel>
+                            </CheckBox>
+                            <CheckBox IsChecked="{Binding MonochromeTrayIcon}" Margin="7,0,7,10"
+                                      IsEnabled="{Binding ShowTrayIcon}">
+                                <StackPanel>
+                                    <TextBlock Text="Monochrome tray icon" FontSize="12.5"/>
+                                    <TextBlock Text="matches the Windows theme" FontSize="11"
+                                               Foreground="{DynamicResource MutedBrush}"/>
+                                </StackPanel>
+                            </CheckBox>
                             <CheckBox Content="Apply the saved wallpaper" FontSize="12.5"
                                       IsChecked="{Binding ApplyWallpaper}" Margin="7,0,7,10"/>
                             <CheckBox IsChecked="{Binding ForceLaunch}" Margin="7,0,7,6">
