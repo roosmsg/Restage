@@ -12,6 +12,42 @@
             <BooleanToVisibilityConverter x:Key="BoolToVis"/>
             <views:EqualsConverter x:Key="EqualsParam"/>
 
+            <!-- Toggle switch: a CheckBox drawn as a pill with a knob, label on
+                 the left and the switch at the row's right edge, as Windows
+                 draws its own. State changes are instant; nothing animates. -->
+            <Style x:Key="SwitchCheckBox" TargetType="CheckBox">
+                <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="CheckBox">
+                            <DockPanel Background="Transparent" LastChildFill="True">
+                                <Border x:Name="Track" DockPanel.Dock="Right" Width="36" Height="18" CornerRadius="9"
+                                        BorderBrush="{DynamicResource BorderBrush2}" BorderThickness="1.5"
+                                        Background="Transparent" VerticalAlignment="Center" Margin="10,0,0,0">
+                                    <Ellipse x:Name="Knob" Width="10" Height="10" Fill="{DynamicResource MutedBrush}"
+                                             HorizontalAlignment="Left" VerticalAlignment="Center" Margin="3,0,0,0"/>
+                                </Border>
+                                <ContentPresenter VerticalAlignment="Center" RecognizesAccessKey="True"/>
+                            </DockPanel>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Track" Property="Background" Value="{DynamicResource AccentFillBrush}"/>
+                                    <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource AccentFillBrush}"/>
+                                    <Setter TargetName="Knob" Property="Fill" Value="{DynamicResource AccentTextBrush}"/>
+                                    <Setter TargetName="Knob" Property="HorizontalAlignment" Value="Right"/>
+                                    <Setter TargetName="Knob" Property="Margin" Value="0,0,3,0"/>
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <!-- ===================== Type =====================
                  Inter ships in Assets\Fonts (SIL OFL 1.1). Static weights are
                  referenced by one family name; WPF picks the face off

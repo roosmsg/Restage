@@ -314,8 +314,8 @@
                             </RadioButton>
 
                             <Border Height="1" Background="{DynamicResource BorderBrush2}" Margin="0,6"/>
-                            <CheckBox Content="Follow the Windows theme" FontSize="12.5"
-                                      IsChecked="{Binding FollowSystemTheme}" Margin="7,4,7,8"
+                            <CheckBox Style="{StaticResource SwitchCheckBox}" Content="Follow the Windows theme" FontSize="12.5"
+                                      IsChecked="{Binding FollowSystemTheme}" Margin="7,4,7,10"
                                       ToolTip="Light or dark, as set in Windows › Personalisation › Colours"/>
                             <!-- Manual light/dark switch; hidden while following Windows. -->
                             <Button Command="{Binding ToggleThemeCommand}">
