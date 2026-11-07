@@ -416,7 +416,7 @@
                             <TextBlock Text="Arrange your desktop, then save it" FontSize="15" FontWeight="SemiBold"
                                        HorizontalAlignment="Center"/>
                             <TextBlock Style="{StaticResource SubtleText}" TextWrapping="Wrap" TextAlignment="Center" Margin="0,8,0,0"
-                                       Text="New workspace photographs what is open right now: editors with their folders, Obsidian vaults, browser profiles and web apps, Explorer folders, the virtual desktop and its wallpaper. Restore brings it all back with one click."/>
+                                       Text="New workspace saves what is open right now: your editors and their folders, your notes, browser windows and web apps, open folders, and the virtual desktop with its wallpaper. Restore brings it all back with one click."/>
                         </StackPanel>
                         <ScrollViewer VerticalScrollBarVisibility="Auto" PreviewMouseWheel="Scrollable_PreviewMouseWheel"
                                       Visibility="{Binding HasWorkspaces, Converter={StaticResource BoolToVis}}">
