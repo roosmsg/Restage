@@ -265,12 +265,11 @@
                             Click="CloseWindow_Click" ToolTip="Close" AutomationProperties.Name="Close"/>
                 </StackPanel>
 
-                <!-- Settings panel, anchored to the gear. Popup offsets from the
-                     target's left edge, so right-aligning means shifting by the
-                     width difference: 34 (gear) - 276 (260 border + 8 shadow
-                     margin each side) = -242. -->
+                <!-- Settings panel, anchored to the gear in the bottom-left corner:
+                     it opens upward, its left edge on the gear's. The border has an
+                     8px shadow margin, hence the offsets. -->
                 <Popup x:Name="SettingsPopup" PlacementTarget="{Binding ElementName=SettingsToggle}"
-                       Placement="Bottom" HorizontalOffset="-242" VerticalOffset="2"
+                       Placement="Top" HorizontalOffset="-8" VerticalOffset="6"
                        StaysOpen="False" AllowsTransparency="True"
                        IsOpen="{Binding IsChecked, ElementName=SettingsToggle, Mode=TwoWay}"
                        Opened="SettingsPopup_Opened" Closed="SettingsPopup_Closed">
@@ -363,9 +362,7 @@
                             <TextBlock Text="Workspaces" Style="{StaticResource TitleText}"/>
                             <TextBlock Text="{Binding WorkspaceCountText}" Style="{StaticResource SubtleText}" Margin="0,4,0,0"/>
                         </StackPanel>
-                        <!-- The gear sits with the primary action, not among the window buttons. -->
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                        <Button Style="{StaticResource BusyAccentButton}" Padding="16,9"
+                        <Button Style="{StaticResource BusyAccentButton}" Padding="16,9" HorizontalAlignment="Right"
                                 VerticalAlignment="Center" Command="{Binding NewWorkspaceCommand}"
                                 ToolTip="Save everything open right now as a new workspace">
                             <Grid>
@@ -397,10 +394,6 @@
                                 </StackPanel>
                             </Grid>
                         </Button>
-                        <ToggleButton x:Name="SettingsToggle" Style="{StaticResource IconToggle}"
-                                      Tag="{StaticResource IconSettings}" VerticalAlignment="Center" Margin="10,0,0,0"
-                                      AutomationProperties.Name="Settings" ToolTip="Settings"/>
-                        </StackPanel>
                     </Grid>
 
                     <Grid>
@@ -525,7 +518,14 @@
                     Padding="26,10,26,12">
                 <DockPanel>
                     <Grid DockPanel.Dock="Top" Margin="2,0,0,4">
-                        <TextBlock Text="ACTIVITY LOG" Style="{StaticResource SectionLabel}" VerticalAlignment="Center"/>
+                        <!-- The settings gear lives in the bottom-left corner, before the log label. -->
+                        <!-- -9: the 14px glyph sits 7px inside its 28px button, so the gear lines up with the Workspaces title. -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="-9,-6,0,-6">
+                            <ToggleButton x:Name="SettingsToggle" Style="{StaticResource IconToggle}" Width="28" Height="28" FontSize="14"
+                                          Tag="{StaticResource IconSettings}" VerticalAlignment="Center" Margin="0,0,10,0"
+                                          AutomationProperties.Name="Settings" ToolTip="Settings"/>
+                            <TextBlock Text="ACTIVITY LOG" Style="{StaticResource SectionLabel}" VerticalAlignment="Center"/>
+                        </StackPanel>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,-6,0,-6">
                             <Button Style="{StaticResource SubtleIconButton}" Tag="{StaticResource IconEraser}"
                                     Command="{Binding ClearLogCommand}" ToolTip="Clear activity log"
