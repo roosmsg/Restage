@@ -103,8 +103,6 @@ public static class WorkspaceRestoreService
                     catch (Exception ex) { context.Log?.Invoke($"{item.Name}: {ex.Message}"); }
                     Report(item.Id, RestoreStatus.Opened, "already open; placed");
                 }
-                else if (item.Policy == LaunchPolicy.FocusOnly)
-                    Report(item.Id, RestoreStatus.Skipped, "not open (focus-only)");
                 else
                     pending.Add(item);
             }

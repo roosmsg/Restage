@@ -70,7 +70,7 @@ this off (start on the current virtual desktop).
 
 Select a card to see its items. Each can be ticked off, and its label cycles
 through how it comes back: **reuse if open** (default) · **always launch** ·
-**only if open** · **skip**. *Always relaunch* in the gear menu overrides the
+**skip**. *Always relaunch* in the gear menu overrides the
 first for one session.
 
 Items with content of their own (an Obsidian note, a VS Code or Explorer

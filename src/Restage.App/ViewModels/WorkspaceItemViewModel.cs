@@ -88,8 +88,7 @@ public class WorkspaceItemViewModel : ViewModelBase
         Item.Policy = Item.Policy switch
         {
             LaunchPolicy.IfNotRunning => LaunchPolicy.AlwaysNew,
-            LaunchPolicy.AlwaysNew => LaunchPolicy.FocusOnly,
-            LaunchPolicy.FocusOnly => LaunchPolicy.Skip,
+            LaunchPolicy.AlwaysNew => LaunchPolicy.Skip,
             _ => LaunchPolicy.IfNotRunning,
         };
         OnPropertyChanged(nameof(PolicyLabel));
@@ -132,7 +131,6 @@ public class WorkspaceItemViewModel : ViewModelBase
     {
         LaunchPolicy.IfNotRunning => "reuse if open",
         LaunchPolicy.AlwaysNew => "always launch",
-        LaunchPolicy.FocusOnly => "only if open",
         _ => "skip",
     };
 }

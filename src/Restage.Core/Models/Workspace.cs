@@ -32,7 +32,11 @@ public enum LaunchPolicy
     IfNotRunning,
     /// <summary>Always launch a new instance, even when a matching window is open.</summary>
     AlwaysNew,
-    /// <summary>Only focus and place an existing window; never launch.</summary>
+    /// <summary>
+    /// Was "only if open" (place an open window, never launch); removed. Kept
+    /// so files holding it still load: <see cref="WorkspaceItem.Policy"/> reads
+    /// it as <see cref="IfNotRunning"/>.
+    /// </summary>
     FocusOnly,
     /// <summary>Leave this item alone.</summary>
     Skip,
@@ -95,7 +99,13 @@ public sealed class WorkspaceItem
     /// <summary>Unticked items stay in the workspace but are not restored.</summary>
     public bool Enabled { get; set; } = true;
 
-    public LaunchPolicy Policy { get; set; } = LaunchPolicy.IfNotRunning;
+    /// <summary>How the item comes back; the removed FocusOnly reads as IfNotRunning.</summary>
+    public LaunchPolicy Policy
+    {
+        get => _policy;
+        set => _policy = value == LaunchPolicy.FocusOnly ? LaunchPolicy.IfNotRunning : value;
+    }
+    LaunchPolicy _policy = LaunchPolicy.IfNotRunning;
 
     /// <summary>
     /// Open the saved content (the note, folder, file or arguments) when

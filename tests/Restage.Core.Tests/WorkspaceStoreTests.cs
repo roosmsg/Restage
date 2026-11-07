@@ -43,6 +43,14 @@ public class WorkspaceStoreTests
     }
 
     [Fact]
+    public void Removed_only_if_open_policy_loads_as_reuse_if_open()
+    {
+        const string json = """{ "name": "Old", "items": [ { "kind": "generic", "name": "App", "policy": "focusOnly" } ] }""";
+        var ws = JsonSerializer.Deserialize<Workspace>(json, WorkspaceStore.JsonOptions)!;
+        Assert.Equal(LaunchPolicy.IfNotRunning, ws.Items[0].Policy);
+    }
+
+    [Fact]
     public void PlacementFor_falls_back_to_any_profile()
     {
         var item = new WorkspaceItem { Placements = { ["old"] = new WindowPlacement { Left = 5 } } };
