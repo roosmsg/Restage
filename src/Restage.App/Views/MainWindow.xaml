@@ -622,8 +622,6 @@
                                 <TextBlock Text="{Binding Items.Count}" Style="{StaticResource NumericText}" FontSize="11"
                                            Margin="7,0,0,0" Foreground="{DynamicResource MutedBrush}"/>
                             </StackPanel>
-                            <TextBlock Text="tick to include · click the label to change how it opens"
-                                       Style="{StaticResource SubtleText}" FontSize="10.5" HorizontalAlignment="Right"/>
                         </Grid>
                         <ScrollViewer VerticalScrollBarVisibility="Auto" PreviewMouseWheel="Scrollable_PreviewMouseWheel">
                             <ItemsControl ItemsSource="{Binding Items}" ItemTemplate="{StaticResource ItemRowTemplate}" Margin="0,0,6,0"/>
