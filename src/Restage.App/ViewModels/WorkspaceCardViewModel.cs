@@ -35,6 +35,19 @@ public class WorkspaceCardViewModel : ViewModelBase
     public string WallpaperName => string.IsNullOrEmpty(Model.Wallpaper) ? "none" : System.IO.Path.GetFileName(Model.Wallpaper);
     public bool HasWallpaper => !string.IsNullOrEmpty(Model.Wallpaper);
 
+    /// <summary>The details pane's switch on the wallpaper row; saved at once.</summary>
+    public bool ApplyWallpaper
+    {
+        get => Model.ApplyWallpaper;
+        set
+        {
+            if (Model.ApplyWallpaper == value) return;
+            Model.ApplyWallpaper = value;
+            _save(this);
+            OnPropertyChanged();
+        }
+    }
+
     public int EnabledCount => Model.Items.Count(i => i.Enabled && i.Policy != LaunchPolicy.Skip);
 
     /// <summary>Card line one: "Opened 5 minutes ago". The desktop name is already on the preview's badge.</summary>
@@ -87,7 +100,7 @@ public class WorkspaceCardViewModel : ViewModelBase
         foreach (var name in new[]
                  {
                      nameof(Name), nameof(Thumbnail), nameof(NoThumbnail), nameof(Subtitle), nameof(HasDesktop),
-                     nameof(DesktopName), nameof(WallpaperName), nameof(HasWallpaper), nameof(UpdatedText),
+                     nameof(DesktopName), nameof(WallpaperName), nameof(HasWallpaper), nameof(ApplyWallpaper), nameof(UpdatedText),
                      nameof(ProfilesText), nameof(LacksCurrentProfile), nameof(EnabledCount),
                      nameof(OpenedText), nameof(CreatedText), nameof(TimesText),
                  })

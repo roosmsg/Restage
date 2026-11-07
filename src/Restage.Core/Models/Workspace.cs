@@ -177,6 +177,9 @@ public sealed class Workspace
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Wallpaper { get; set; }
 
+    /// <summary>Apply <see cref="Wallpaper"/> when the workspace starts; off keeps whatever wallpaper is showing.</summary>
+    public bool ApplyWallpaper { get; set; } = true;
+
     /// <summary>Every display profile this workspace has placements for.</summary>
     public List<DisplayProfile> Profiles { get; set; } = new();
 

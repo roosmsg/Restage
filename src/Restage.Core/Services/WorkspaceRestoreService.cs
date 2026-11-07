@@ -10,7 +10,7 @@ public sealed class RestoreOptions
     /// <summary>Launch even when a matching window is already open (treats IfNotRunning as AlwaysNew).</summary>
     public bool Force { get; init; }
 
-    /// <summary>Apply the workspace's wallpaper once on its desktop.</summary>
+    /// <summary>Apply the workspace's wallpaper once on its desktop, when the workspace asks for it.</summary>
     public bool ApplyWallpaper { get; init; } = true;
 
     /// <summary>
@@ -60,7 +60,7 @@ public static class WorkspaceRestoreService
         ct.ThrowIfCancellationRequested();
 
         // ---- Wallpaper --------------------------------------------------
-        if (options.ApplyWallpaper && !string.IsNullOrEmpty(ws.Wallpaper))
+        if (options.ApplyWallpaper && ws.ApplyWallpaper && !string.IsNullOrEmpty(ws.Wallpaper))
         {
             Report(null, DesktopWallpaper.Apply(ws.Wallpaper) ? RestoreStatus.Opened : RestoreStatus.Skipped,
                 File.Exists(ws.Wallpaper) ? $"Wallpaper: {Path.GetFileName(ws.Wallpaper)}" : $"Wallpaper missing: {ws.Wallpaper}");

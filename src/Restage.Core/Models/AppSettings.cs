@@ -30,9 +30,6 @@ public sealed class AppSettings
 
     public DesktopSwitchMode DesktopSwitch { get; set; } = DesktopSwitchMode.Ask;
 
-    /// <summary>Apply the workspace's wallpaper when restoring.</summary>
-    public bool ApplyWallpaper { get; set; } = true;
-
     /// <summary>Relaunch apps even when a matching window is already open.</summary>
     public bool ForceLaunch { get; set; }
 

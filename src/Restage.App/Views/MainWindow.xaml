@@ -323,8 +323,6 @@
                             <Button Style="{StaticResource MenuRowButton}" Tag="{StaticResource IconKeyboard}"
                                     Content="{Binding AppHotkeyLabel}" Command="{Binding EditAppHotkeyCommand}"
                                     Click="SettingsRow_CloseOnClick" Margin="0,0,0,4"/>
-                            <CheckBox Content="Apply the saved wallpaper" FontSize="12.5"
-                                      IsChecked="{Binding ApplyWallpaper}" Margin="7,0,7,10"/>
                             <CheckBox IsChecked="{Binding ForceLaunch}" Margin="7,0,7,6">
                                 <StackPanel>
                                     <TextBlock Text="Always relaunch" FontSize="12.5"/>
@@ -518,8 +516,25 @@
                                           Stroke="{DynamicResource MutedBrush}" StrokeThickness="2.25"
                                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
                                 </Viewbox>
+                                <!-- Whether a start applies this workspace's wallpaper. -->
+                                <CheckBox DockPanel.Dock="Right" Style="{StaticResource SwitchCheckBox}"
+                                          HorizontalAlignment="Right" VerticalAlignment="Center"
+                                          IsChecked="{Binding ApplyWallpaper}"
+                                          Visibility="{Binding HasWallpaper, Converter={StaticResource BoolToVis}}"
+                                          ToolTip="Apply this wallpaper when the workspace starts"
+                                          AutomationProperties.Name="Apply the wallpaper"/>
                                 <TextBlock Text="{Binding WallpaperName}" FontSize="12" VerticalAlignment="Center"
-                                           TextTrimming="CharacterEllipsis"/>
+                                           TextTrimming="CharacterEllipsis">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ApplyWallpaper}" Value="False">
+                                                    <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
                             </DockPanel>
                             <DockPanel>
                                 <Viewbox Width="13" Height="13" VerticalAlignment="Center" Margin="0,0,9,0">

@@ -413,7 +413,6 @@ public class MainViewModel : ViewModelBase
         var options = new RestoreOptions
         {
             Force = force ?? _settings.ForceLaunch,
-            ApplyWallpaper = _settings.ApplyWallpaper,
             SwitchDesktop = here || _settings.DesktopSwitch == DesktopSwitchMode.Never ? null : SwitchDesktopAsync,
             BringToFront = bringToFront,
         };
@@ -593,12 +592,6 @@ public class MainViewModel : ViewModelBase
             _host.RefreshTray();
             OnPropertyChanged();
         }
-    }
-
-    public bool ApplyWallpaper
-    {
-        get => _settings.ApplyWallpaper;
-        set { if (_settings.ApplyWallpaper == value) return; _settings.ApplyWallpaper = value; SettingsService.Save(_settings); OnPropertyChanged(); }
     }
 
     public bool ForceLaunch
