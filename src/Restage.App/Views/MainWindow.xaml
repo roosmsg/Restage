@@ -416,7 +416,7 @@
                             <TextBlock Text="Arrange your desktop, then save it" FontSize="15" FontWeight="SemiBold"
                                        HorizontalAlignment="Center"/>
                             <TextBlock Style="{StaticResource SubtleText}" TextWrapping="Wrap" TextAlignment="Center" Margin="0,8,0,0"
-                                       Text="Click on New workspace to save what is open right now, down to the virtual desktop and its wallpaper. Restore brings it all back with one click."/>
+                                       Text="Click on New workspace to save the open applications, down to the virtual desktop and its wallpaper. Restore brings it all back with one click."/>
                         </StackPanel>
                         <ScrollViewer VerticalScrollBarVisibility="Auto" PreviewMouseWheel="Scrollable_PreviewMouseWheel"
                                       Visibility="{Binding HasWorkspaces, Converter={StaticResource BoolToVis}}">
