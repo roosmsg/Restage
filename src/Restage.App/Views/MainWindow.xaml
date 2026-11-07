@@ -278,6 +278,10 @@
                        StaysOpen="False" AllowsTransparency="True"
                        IsOpen="{Binding IsChecked, ElementName=SettingsToggle, Mode=TwoWay}"
                        Opened="SettingsPopup_Opened" Closed="SettingsPopup_Closed">
+                    <!-- The 8px shadow margin belongs to the popup's own window, so a click
+                         there reaches neither the panel nor the main window. This transparent
+                         grid catches it and counts it as "outside". -->
+                    <Grid Background="Transparent" MouseDown="SettingsPopupMargin_MouseDown">
                     <Border Background="{DynamicResource PanelBrush}"
                             BorderBrush="{DynamicResource BorderBrush2}" BorderThickness="1"
                             Margin="8" Padding="8" Width="260">
@@ -343,6 +347,7 @@
                                     Content="Open data folder" Command="{Binding OpenDataFolderCommand}"/>
                         </StackPanel>
                     </Border>
+                    </Grid>
                 </Popup>
             </Grid>
         </Border>

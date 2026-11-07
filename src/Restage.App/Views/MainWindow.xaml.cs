@@ -48,6 +48,12 @@ public partial class MainWindow : Window
         if (SettingsPopup.IsOpen) SettingsPopup.IsOpen = false;
     }
 
+    /// <summary>A click on the popup's transparent shadow margin, not on the panel itself.</summary>
+    void SettingsPopupMargin_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (ReferenceEquals(e.OriginalSource, sender)) CloseSettingsIfOpen();
+    }
+
     void HookLogAutoScroll()
     {
         if (_logHooked || DataContext is not MainViewModel vm) return;
