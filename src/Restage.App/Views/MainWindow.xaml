@@ -575,7 +575,7 @@
                                 </Viewbox>
                                 <TextBlock FontSize="12" VerticalAlignment="Center">
                                     <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
                                             <Setter Property="Text" Value="{Binding Text}"/>
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding HasHotkey}" Value="False">
