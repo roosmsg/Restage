@@ -40,7 +40,7 @@ static class Program
         Console.WriteLine("""
             restage — save and restore desktop workspaces
 
-              restage capture <name>              save the desktop as a new workspace
+              restage capture <name>              save the active applications as a new workspace
               restage update <name|id>            re-capture an existing workspace (keeps its settings)
               restage list                        list workspaces
               restage show <name|id>              print a workspace's items

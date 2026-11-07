@@ -423,7 +423,7 @@
                                       Stroke="{DynamicResource MutedBrush}" StrokeThickness="1.75"
                                       StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
                             </Viewbox>
-                            <TextBlock Text="Arrange your desktop, then save it" FontSize="15" FontWeight="SemiBold"
+                            <TextBlock Text="Arrange your applications, then save them" FontSize="15" FontWeight="SemiBold"
                                        HorizontalAlignment="Center"/>
                             <TextBlock Style="{StaticResource SubtleText}" TextWrapping="Wrap" TextAlignment="Center" Margin="0,8,0,0"
                                        Text="Click on New workspace to save the open applications, down to the virtual desktop and its wallpaper. Start brings it all back with one click."/>
