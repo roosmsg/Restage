@@ -54,12 +54,15 @@ public sealed class AppSettings
 }
 
 /// <summary>
-/// The actions a global hotkey can trigger; the keys of <see cref="AppSettings.Hotkeys"/>.
-/// One kind for now: start (or switch to) a workspace, "workspace:&lt;id&gt;".
+/// The actions a global hotkey can trigger; the keys of <see cref="AppSettings.Hotkeys"/>:
+/// start (or switch to) a workspace, "workspace:&lt;id&gt;", and open Restage's window.
 /// </summary>
 public static class HotkeyActions
 {
     const string WorkspacePrefix = "workspace:";
+
+    /// <summary>Show Restage's window.</summary>
+    public const string OpenApp = "app:open";
 
     /// <summary>Start the workspace with this id.</summary>
     public static string Workspace(string id) => WorkspacePrefix + id;

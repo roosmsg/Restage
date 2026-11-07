@@ -30,6 +30,11 @@ public class MainViewModel : ViewModelBase
         _host = host;
         _hotkeys = hotkeys;
         _hotkeys.Pressed += OnHotkey;
+        AppHotkey = new HotkeyRowViewModel(HotkeyActions.OpenApp, TextFor(HotkeyActions.OpenApp));
+        AppHotkey.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(HotkeyRowViewModel.Text)) OnPropertyChanged(nameof(AppHotkeyLabel));
+        };
         _currentProfileId = DisplayProfiles.Current().Id;
         if (!Enum.IsDefined(_settings.DesktopSwitch)) _settings.DesktopSwitch = DesktopSwitchMode.Ask;
         ThemeService.Applied += () =>
@@ -62,7 +67,8 @@ public class MainViewModel : ViewModelBase
         ConfirmCancelCommand = new RelayCommand(_ => CloseConfirm());
         ClearHotkeyCommand = new RelayCommand(p => { if (p is HotkeyRowViewModel row) RecordHotkey(row, null); });
         EditCommand = new RelayCommand(p => OpenEdit(Card(p)));
-        EditSaveCommand = new RelayCommand(_ => SaveEdit(), _ => !string.IsNullOrWhiteSpace(EditName));
+        EditAppHotkeyCommand = new RelayCommand(_ => OpenAppHotkeyEdit());
+        EditSaveCommand = new RelayCommand(_ => SaveEdit(), _ => EditingApp || !string.IsNullOrWhiteSpace(EditName));
         EditCancelCommand = new RelayCommand(_ => CloseEdit());
 
         RefreshWorkspaces();
@@ -653,18 +659,26 @@ public class MainViewModel : ViewModelBase
     }
 
     // ---- Global hotkeys --------------------------------------------------------
-    // One per workspace, set in its edit panel, kept in AppSettings.Hotkeys
-    // and registered with Windows at startup and after every change. Pressing
-    // it starts the workspace, or switches to it: open windows are placed and raised.
+    // One per workspace, set in its edit panel, and one that opens Restage, set
+    // from the settings panel in the same edit panel. Kept in AppSettings.Hotkeys
+    // and registered with Windows at startup and after every change. A workspace's
+    // starts it, or switches to it: open windows are placed and raised.
 
-    IEnumerable<HotkeyRowViewModel> HotkeyRows => Workspaces.Select(w => w.Hotkey);
+    IEnumerable<HotkeyRowViewModel> HotkeyRows => Workspaces.Select(w => w.Hotkey).Append(AppHotkey);
 
     public RelayCommand ClearHotkeyCommand { get; }
 
+    /// <summary>The shortcut that opens Restage's window.</summary>
+    public HotkeyRowViewModel AppHotkey { get; }
+
+    /// <summary>The settings panel's row: the shortcut, or an invitation to set one.</summary>
+    public string AppHotkeyLabel => AppHotkey.HasHotkey ? $"Open Restage with {AppHotkey.Text}" : "Shortcut to open Restage";
+
     /// <summary>The bound combination of a workspace as text, or "" (also for garbage in a hand-edited file).</summary>
-    public string HotkeyTextFor(string workspaceId) =>
-        _settings.Hotkeys.TryGetValue(HotkeyActions.Workspace(workspaceId), out var text) && Hotkey.TryParse(text, out var hk)
-            ? hk.ToString() : "";
+    public string HotkeyTextFor(string workspaceId) => TextFor(HotkeyActions.Workspace(workspaceId));
+
+    string TextFor(string action) =>
+        _settings.Hotkeys.TryGetValue(action, out var text) && Hotkey.TryParse(text, out var hk) ? hk.ToString() : "";
 
     /// <summary>
     /// Registers every bound hotkey with Windows and marks the rows Windows
@@ -677,7 +691,7 @@ public class MainViewModel : ViewModelBase
         var refused = new HashSet<string>();
         foreach (var (action, text) in _settings.Hotkeys)
         {
-            if (HotkeyActions.WorkspaceId(action) is not { } id || !ids.Contains(id)) continue;
+            if (action != HotkeyActions.OpenApp && (HotkeyActions.WorkspaceId(action) is not { } id || !ids.Contains(id))) continue;
             if (!Hotkey.TryParse(text, out var hk)) continue;
             if (!_hotkeys.Register(action, hk)) refused.Add(action);
         }
@@ -705,20 +719,64 @@ public class MainViewModel : ViewModelBase
     /// <summary>The shortcut being edited, a copy of the workspace's until Save.</summary>
     public HotkeyRowViewModel? EditHotkey { get => _editHotkey; private set => SetProperty(ref _editHotkey, value); }
 
+    /// <summary>True while the panel edits the open-Restage shortcut rather than a workspace.</summary>
+    public bool EditingApp { get => _editingApp; private set { if (SetProperty(ref _editingApp, value)) OnEditModeChanged(); } }
+    bool _editingApp;
+
+    public string EditTitle => EditingApp ? "Open Restage" : "Edit workspace";
+
+    public string EditHint => EditingApp
+        ? "Opens Restage's window from anywhere in Windows, also while the tray icon is hidden. Click the box, then press Ctrl, Alt or Win plus a key; Backspace clears it."
+        : "Starts the workspace from anywhere in Windows, or brings it to the front when it is already open. Click the box, then press Ctrl, Alt or Win plus a key; Backspace clears it.";
+
+    void OnEditModeChanged()
+    {
+        OnPropertyChanged(nameof(EditTitle));
+        OnPropertyChanged(nameof(EditHint));
+        EditSaveCommand.RaiseCanExecuteChanged();
+    }
+
     public RelayCommand EditCommand { get; }
+    public RelayCommand EditAppHotkeyCommand { get; }
     public RelayCommand EditSaveCommand { get; }
     public RelayCommand EditCancelCommand { get; }
 
     void OpenEdit(WorkspaceCardViewModel card)
     {
+        EditingApp = false;
         _editingId = card.Id;
         EditName = card.Name;
         EditHotkey = new HotkeyRowViewModel(card.Hotkey.Action, card.Hotkey.Text);
         ShowEdit = true;
     }
 
+    void OpenAppHotkeyEdit()
+    {
+        EditingApp = true;
+        _editingId = null;
+        EditName = "";
+        EditHotkey = new HotkeyRowViewModel(AppHotkey.Action, AppHotkey.Text);
+        ShowEdit = true;
+    }
+
     void SaveEdit()
     {
+        if (EditingApp && EditHotkey is { } appEdit)
+        {
+            if (appEdit.Text != AppHotkey.Text)
+            {
+                if (appEdit.Text.Length == 0) _settings.Hotkeys.Remove(AppHotkey.Action);
+                else _settings.Hotkeys[AppHotkey.Action] = appEdit.Text;
+                SettingsService.Save(_settings);
+                AppHotkey.Text = appEdit.Text;
+                ApplyHotkeys();
+                Log(appEdit.Text.Length == 0
+                    ? "Restage no longer has a shortcut to open it."
+                    : $"{appEdit.Text} now opens Restage.");
+            }
+            CloseEdit();
+            return;
+        }
         if (EditHotkey is not { } edited || Workspaces.FirstOrDefault(w => w.Id == _editingId) is not { } card) { CloseEdit(); return; }
         Rename(card, EditName);
         if (edited.Text != card.Hotkey.Text)
@@ -739,6 +797,7 @@ public class MainViewModel : ViewModelBase
     {
         ShowEdit = false;
         _editingId = null;
+        EditingApp = false;
     }
 
     /// <summary>
@@ -768,14 +827,17 @@ public class MainViewModel : ViewModelBase
         row.Problem = "";
         if (hotkey is not { } hk) { row.Text = ""; return; }
         var text = hk.ToString();
-        var owner = Workspaces.FirstOrDefault(w => w.Id != _editingId && w.Hotkey.Text == text);
+        var owner = Workspaces.FirstOrDefault(w => (EditingApp || w.Id != _editingId) && w.Hotkey.Text == text);
         if (owner != null) { row.Problem = $"Already used for \"{owner.Name}\""; return; }
+        if (!EditingApp && AppHotkey.Text == text) { row.Problem = "Already used to open Restage"; return; }
         if (!_hotkeys.IsAvailable(hk)) { row.Problem = "Taken by another app or by Windows"; return; }
         row.Text = text;
     }
 
     async void OnHotkey(string action)
     {
+        // WM_HOTKEY gives Restage the right to take the foreground, so the window comes up on top.
+        if (action == HotkeyActions.OpenApp) { _host.ShowMain(); return; }
         if (HotkeyActions.WorkspaceId(action) is { } id && Workspaces.FirstOrDefault(w => w.Id == id) is { } card)
             await StartByCommandAsync(card, bringToFront: true);
     }

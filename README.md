@@ -102,8 +102,9 @@ The app itself answers `Restage.exe --restore <name>` and the URI
 
 Each workspace can have a global shortcut (the pencil in its details pane):
 pressing it anywhere in Windows starts the workspace, or brings its windows
-back to their places and to the front when they are already open. Nothing is
-bound until you set it.
+back to their places and to the front when they are already open. One more
+shortcut opens Restage itself: Settings › *Shortcut to open Restage*. Handy
+with the tray icon hidden. Nothing is bound until you set it.
 
 ## Voice control and automation: the local API
 

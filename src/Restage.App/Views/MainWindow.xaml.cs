@@ -238,6 +238,9 @@ public partial class MainWindow : Window
     void SettingsPopup_Opened(object sender, EventArgs e) => SettingsToggle.IsHitTestVisible = false;
     void SettingsPopup_Closed(object sender, EventArgs e) => SettingsToggle.IsHitTestVisible = true;
 
+    // A settings row that opens an overlay in the window closes the panel first.
+    void SettingsRow_CloseOnClick(object sender, RoutedEventArgs e) => SettingsToggle.IsChecked = false;
+
     // ---- Overlay text boxes -------------------------------------------------
     // The box is the only thing worth typing in while its overlay is up, so it
     // takes focus with its text selected once the overlay has been arranged.

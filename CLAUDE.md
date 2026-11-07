@@ -151,7 +151,9 @@ Data: `%LOCALAPPDATA%\Restage\workspaces\<id>\workspace.json` + `thumbnail.png`,
   and the `restage://restore/<name>` URI (registered in HKCU at every start)
   both route there — this is the hook for voice tools (Hex, Handy) and
   hotkey tools.
-- **Global hotkeys:** one per workspace. `AppSettings.Hotkeys` maps
+- **Global hotkeys:** one per workspace, plus `app:open`
+  (`HotkeyActions.OpenApp`, shows the window; set from the settings panel in
+  the same edit panel, `EditingApp` hides the name). `AppSettings.Hotkeys` maps
   `workspace:<id>` (`HotkeyActions`) to text such as `Ctrl+Alt+R` (`Models/Hotkey.cs` parses and prints it; Ctrl, Alt or Win is
   required). `HotkeyService` registers them with `RegisterHotKey` on a
   message-only `HwndSource`, so they work with the window closed. The details

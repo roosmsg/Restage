@@ -320,6 +320,9 @@
                                                Foreground="{DynamicResource MutedBrush}"/>
                                 </StackPanel>
                             </CheckBox>
+                            <Button Style="{StaticResource MenuRowButton}" Tag="{StaticResource IconKeyboard}"
+                                    Content="{Binding AppHotkeyLabel}" Command="{Binding EditAppHotkeyCommand}"
+                                    Click="SettingsRow_CloseOnClick" Margin="0,0,0,4"/>
                             <CheckBox Content="Apply the saved wallpaper" FontSize="12.5"
                                       IsChecked="{Binding ApplyWallpaper}" Margin="7,0,7,10"/>
                             <CheckBox IsChecked="{Binding ForceLaunch}" Margin="7,0,7,6">
@@ -777,11 +780,23 @@
                 <ContentControl x:Name="EditPanel" Style="{StaticResource OverlayPanel}" Width="420" Padding="24,20,24,18"
                         Focusable="True" FocusVisualStyle="{x:Null}">
                     <StackPanel>
-                        <TextBlock Text="Edit workspace" FontSize="15" FontWeight="SemiBold"/>
-                        <TextBlock Text="NAME" Style="{StaticResource SectionLabel}" Margin="0,16,0,6"/>
-                        <TextBox MaxLength="48" Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}"
-                                 AutomationProperties.Name="Workspace name"
-                                 IsVisibleChanged="OverlayInput_IsVisibleChanged" KeyDown="EditName_KeyDown"/>
+                        <TextBlock Text="{Binding EditTitle}" FontSize="15" FontWeight="SemiBold"/>
+                        <!-- The open-Restage shortcut has no name to edit. -->
+                        <StackPanel>
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding EditingApp}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <TextBlock Text="NAME" Style="{StaticResource SectionLabel}" Margin="0,16,0,6"/>
+                            <TextBox MaxLength="48" Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}"
+                                     AutomationProperties.Name="Workspace name"
+                                     IsVisibleChanged="OverlayInput_IsVisibleChanged" KeyDown="EditName_KeyDown"/>
+                        </StackPanel>
                         <TextBlock Text="KEYBOARD SHORTCUT" Style="{StaticResource SectionLabel}" Margin="0,16,0,6"/>
                         <!-- The box never takes text: it records the keys pressed while it has focus. -->
                         <DockPanel DataContext="{Binding EditHotkey}">
@@ -800,7 +815,7 @@
                                    TextWrapping="Wrap" Foreground="{DynamicResource DangerBrush}"
                                    Visibility="{Binding HasProblem, Converter={StaticResource BoolToVis}}"/>
                         <TextBlock Style="{StaticResource SubtleText}" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"
-                                   Text="Starts the workspace from anywhere in Windows, or brings it to the front when it is already open. Click the box, then press Ctrl, Alt or Win plus a key; Backspace clears it."/>
+                                   Text="{Binding EditHint}"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
                             <Button Style="{StaticResource QuietButton}" Content="Cancel"
                                     Command="{Binding EditCancelCommand}" Margin="0,0,8,0"/>
