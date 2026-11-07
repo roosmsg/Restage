@@ -1,9 +1,9 @@
 <Window x:Class="Restage.Views.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Restage" Height="740" Width="1160"
-        MinHeight="560" MinWidth="920"
-        WindowStartupLocation="CenterScreen" WindowState="Maximized"
+        Title="Restage" Height="780" Width="1240"
+        MinHeight="600" MinWidth="980"
+        WindowStartupLocation="CenterScreen"
         Background="{DynamicResource BgBrush}"
         FontFamily="{StaticResource UiFont}" TextOptions.TextFormattingMode="Ideal"
         Closing="Window_Closing">
@@ -16,133 +16,171 @@
                       CornerRadius="0" GlassFrameThickness="0"
                       UseAeroCaptionButtons="False"/>
     </WindowChrome.WindowChrome>
+
     <Window.Resources>
-        <!-- IconButton that swaps its camera for a spinner mid-capture. Lives
-             here rather than App.xaml because the trigger reads IsCapturing off
-             this window's view model. -->
-        <Style x:Key="CaptureIconButton" TargetType="Button" BasedOn="{StaticResource IconButton}">
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bd" Background="Transparent" CornerRadius="0"
-                                BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1">
-                            <Grid>
-                                <Viewbox x:Name="IconBox" Width="{TemplateBinding FontSize}"
-                                         Height="{TemplateBinding FontSize}">
-                                    <Path x:Name="Glyph" Width="24" Height="24"
-                                          Data="{StaticResource IconCamera}"
-                                          Stroke="{DynamicResource MutedBrush}" StrokeThickness="2.25"
-                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                                          StrokeLineJoin="Round"/>
-                                </Viewbox>
-                                <Path x:Name="Spin" Style="{StaticResource SpinnerPath}"
-                                      Stroke="{DynamicResource TextBrush}" Visibility="Collapsed"
-                                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Grid>
-                        </Border>
-                        <ControlTemplate.Triggers>
+        <!-- A 20px icon with a lettered fallback, shared by every list row. -->
+        <DataTemplate x:Key="RowIcon">
+            <Grid Width="20" Height="20">
+                <Image Source="{Binding Icon}" Width="20" Height="20"/>
+                <Border Background="{DynamicResource SelectedBrush}"
+                        Visibility="{Binding FallbackVisibility, Mode=OneWay}">
+                    <TextBlock Text="{Binding Initial, Mode=OneWay}" FontSize="10" FontWeight="Bold"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+            </Grid>
+        </DataTemplate>
+
+        <!-- One workspace in the gallery. -->
+        <DataTemplate x:Key="CardTemplate">
+            <Border Width="296" Margin="0,0,16,16" BorderThickness="1" Cursor="Hand">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
+                        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush2}"/>
+                        <Style.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource HoverBrush}"/>
-                                <Setter TargetName="Glyph" Property="Stroke" Value="{DynamicResource AccentBrush}"/>
+                                <Setter Property="Background" Value="{DynamicResource CardHoverBrush}"/>
                             </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentDisabledBrush}"/>
-                                <Setter TargetName="Glyph" Property="Opacity" Value="0.4"/>
-                            </Trigger>
-                            <DataTrigger Binding="{Binding IsCapturing}" Value="True">
-                                <Setter TargetName="IconBox" Property="Visibility" Value="Hidden"/>
-                                <Setter TargetName="Spin" Property="Visibility" Value="Visible"/>
+                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                             </DataTrigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- Favourite star for the selected capture. The template takes its
-             outline from Foreground and its fill from Tag, so one DataTrigger on
-             the button turns a grey outline into a solid green star: a
-             ControlTemplate trigger can't see the view model, and a Style trigger
-             can't reach a part inside the template. -->
-        <Style x:Key="FavoriteIconButton" TargetType="Button" BasedOn="{StaticResource IconButton}">
-            <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bd" Background="Transparent" CornerRadius="0"
-                                BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1">
-                            <Viewbox Width="{TemplateBinding FontSize}" Height="{TemplateBinding FontSize}">
-                                <Path x:Name="Glyph" Width="24" Height="24"
-                                      Data="{StaticResource IconStar}"
-                                      Fill="{TemplateBinding Tag}"
-                                      Stroke="{TemplateBinding Foreground}" StrokeThickness="2.25"
-                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                                      StrokeLineJoin="Round"/>
-                            </Viewbox>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource HoverBrush}"/>
-                                <Setter TargetName="Glyph" Property="Stroke" Value="{DynamicResource AccentBrush}"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentDisabledBrush}"/>
-                                <Setter TargetName="Glyph" Property="Opacity" Value="0.4"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding SelectedIsFavorite}" Value="True">
-                    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
-                    <Setter Property="Tag" Value="{DynamicResource AccentBrush}"/>
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
-
-        <!-- One row of the restore overlay's checklist -->
-        <DataTemplate x:Key="RestoreRowTemplate">
-            <Border x:Name="RowBd" Background="Transparent" CornerRadius="0"
-                    Padding="8,5" Margin="0,1">
-                <DockPanel>
-                    <Grid DockPanel.Dock="Left" Width="20" Height="20"
-                          Margin="0,0,10,0" VerticalAlignment="Center">
-                        <Image Source="{Binding Icon}" Width="20" Height="20"/>
-                        <Border Background="{DynamicResource SelectedBrush}" CornerRadius="0"
-                                Visibility="{Binding FallbackVisibility, Mode=OneWay}">
-                            <TextBlock Text="{Binding Initial, Mode=OneWay}" FontSize="10"
-                                       FontWeight="Bold" HorizontalAlignment="Center"
-                                       VerticalAlignment="Center"/>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <Border.InputBindings>
+                    <MouseBinding MouseAction="LeftClick"
+                                  Command="{Binding DataContext.SelectCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                  CommandParameter="{Binding}"/>
+                </Border.InputBindings>
+                <StackPanel>
+                    <Grid Height="166" Background="{DynamicResource LogBgBrush}" ClipToBounds="True">
+                        <Image Source="{Binding Thumbnail}" Stretch="UniformToFill"/>
+                        <TextBlock Text="No preview" Style="{StaticResource SubtleText}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Visibility="{Binding NoThumbnail, Converter={StaticResource BoolToVis}}"/>
+                        <Border HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="8"
+                                Background="#B3000000" Padding="7,3"
+                                Visibility="{Binding HasDesktop, Converter={StaticResource BoolToVis}}">
+                            <StackPanel Orientation="Horizontal">
+                                <Viewbox Width="11" Height="11" VerticalAlignment="Center">
+                                    <Path Width="24" Height="24" Data="{StaticResource IconMonitor}"
+                                          Stroke="White" StrokeThickness="2.25"
+                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+                                </Viewbox>
+                                <TextBlock Text="{Binding DesktopName}" FontSize="10.5" Foreground="White"
+                                           Margin="5,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
                         </Border>
                     </Grid>
-                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
-                                VerticalAlignment="Center" Margin="12,0,2,0">
+                    <Grid Margin="12,10,12,12">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Grid.Row="1" Text="{Binding Subtitle}" Style="{StaticResource SubtleText}"
+                                   Margin="0,2,0,0" TextTrimming="CharacterEllipsis"/>
+                        <Grid Grid.Row="2" Margin="0,10,0,0">
+                            <Button Style="{StaticResource SmallAccentButton}" HorizontalAlignment="Left"
+                                    Command="{Binding DataContext.RestoreCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding}" ToolTip="Bring this workspace back">
+                                <StackPanel Orientation="Horizontal">
+                                    <Viewbox Width="13" Height="13" VerticalAlignment="Center" Margin="0,0,7,0">
+                                        <Path Width="24" Height="24" Data="{StaticResource IconRotateCcw}"
+                                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                              StrokeThickness="2.25" StrokeStartLineCap="Round"
+                                              StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+                                    </Viewbox>
+                                    <TextBlock Text="Restore" VerticalAlignment="Center"
+                                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                                </StackPanel>
+                            </Button>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button Style="{StaticResource SubtleIconButton}" Tag="{StaticResource IconRefreshCw}"
+                                        ToolTip="Update from the current desktop"
+                                        Command="{Binding DataContext.UpdateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"/>
+                                <Button Style="{StaticResource SubtleIconButton}" Tag="{StaticResource IconTrash}"
+                                        ToolTip="Delete"
+                                        Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <!-- One item of the selected workspace, in the details pane. -->
+        <DataTemplate x:Key="ItemRowTemplate">
+            <Border Style="{StaticResource CardStyle}" Padding="10,8">
+                <DockPanel>
+                    <CheckBox DockPanel.Dock="Left" VerticalAlignment="Center"
+                              IsChecked="{Binding Enabled, Mode=TwoWay}" ToolTip="Include when restoring"/>
+                    <ContentPresenter DockPanel.Dock="Left" Content="{Binding}" ContentTemplate="{StaticResource RowIcon}"
+                                      Margin="10,0,10,0" VerticalAlignment="Center"/>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource QuietButton}" Padding="8,3" FontSize="10.5"
+                            Content="{Binding PolicyLabel}" VerticalAlignment="Center"
+                            ToolTip="How to bring it back; click to change"
+                            Command="{Binding DataContext.NextPolicyCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                            CommandParameter="{Binding}"/>
+                    <StackPanel VerticalAlignment="Center" Margin="0,0,8,0" ToolTip="{Binding PlacementText}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding Name}" FontSize="12.5" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding KindLabel}" FontSize="10" Margin="7,2,0,0"
+                                       Foreground="{DynamicResource MutedBrush}"/>
+                        </StackPanel>
+                        <TextBlock Text="{Binding Detail}" FontSize="11" Margin="0,1,0,0"
+                                   Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+        </DataTemplate>
+
+        <!-- One window found by a capture. -->
+        <DataTemplate x:Key="CaptureRowTemplate">
+            <Border Style="{StaticResource CardStyle}" Padding="10,7">
+                <DockPanel>
+                    <CheckBox DockPanel.Dock="Left" VerticalAlignment="Center" IsChecked="{Binding IsSelected, Mode=TwoWay}"/>
+                    <ContentPresenter DockPanel.Dock="Left" Content="{Binding}" ContentTemplate="{StaticResource RowIcon}"
+                                      Margin="10,0,10,0" VerticalAlignment="Center"/>
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding KindLabel}" FontSize="10.5"
+                               Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" Margin="8,0,2,0"/>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Name}" FontSize="12.5" FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding Detail}" FontSize="11" Margin="0,1,0,0"
+                                   Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+        </DataTemplate>
+
+        <!-- One row of the restore overlay. -->
+        <DataTemplate x:Key="RestoreRowTemplate">
+            <Border x:Name="RowBd" Background="Transparent" Padding="8,5" Margin="0,1">
+                <DockPanel>
+                    <ContentPresenter DockPanel.Dock="Left" Content="{Binding}" ContentTemplate="{StaticResource RowIcon}"
+                                      Margin="0,0,10,0" VerticalAlignment="Center"/>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,2,0">
                         <Path x:Name="RowSpinner" Style="{StaticResource SpinnerPath}"
                               Stroke="{DynamicResource TextBrush}" Visibility="Collapsed"
                               VerticalAlignment="Center" Margin="0,0,7,0"/>
-                        <Viewbox x:Name="RowCheck" Width="13" Height="13"
-                                 VerticalAlignment="Center" Margin="0,0,6,0"
-                                 Visibility="Collapsed" RenderTransformOrigin="0.5,0.5">
-                            <Viewbox.RenderTransform>
-                                <ScaleTransform ScaleX="1" ScaleY="1"/>
-                            </Viewbox.RenderTransform>
+                        <Viewbox x:Name="RowCheck" Width="13" Height="13" VerticalAlignment="Center"
+                                 Margin="0,0,6,0" Visibility="Collapsed">
                             <Path Width="24" Height="24" Data="{StaticResource IconCheck}"
                                   Stroke="{DynamicResource AccentBrush}" StrokeThickness="2.5"
-                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                                  StrokeLineJoin="Round"/>
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
                         </Viewbox>
-                        <TextBlock x:Name="RowStatus" Text="{Binding StatusText, Mode=OneWay}"
-                                   FontSize="11.5" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource MutedBrush}"
-                                   VerticalAlignment="Center"/>
+                        <TextBlock x:Name="RowStatus" Text="{Binding StatusText, Mode=OneWay}" FontSize="11"
+                                   FontWeight="SemiBold" Foreground="{DynamicResource MutedBrush}"
+                                   VerticalAlignment="Center" MaxWidth="220" TextTrimming="CharacterEllipsis"/>
                     </StackPanel>
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="{Binding Name, Mode=OneWay}" FontSize="12.5"
-                                   FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding Name, Mode=OneWay}" FontSize="12.5" FontWeight="SemiBold"/>
                         <TextBlock Text="{Binding Sub, Mode=OneWay}" FontSize="10.5"
-                                   Foreground="{DynamicResource MutedBrush}"
-                                   TextTrimming="CharacterEllipsis"/>
+                                   Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis"/>
                     </StackPanel>
                 </DockPanel>
             </Border>
@@ -151,47 +189,37 @@
                     <Setter TargetName="RowBd" Property="Opacity" Value="0.45"/>
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Status}" Value="Launching">
-                    <Setter TargetName="RowBd" Property="Background"
-                            Value="{DynamicResource CardHoverBrush}"/>
+                    <Setter TargetName="RowBd" Property="Background" Value="{DynamicResource CardHoverBrush}"/>
                     <Setter TargetName="RowSpinner" Property="Visibility" Value="Visible"/>
-                    <Setter TargetName="RowStatus" Property="Foreground"
-                            Value="{DynamicResource TextBrush}"/>
+                    <Setter TargetName="RowStatus" Property="Foreground" Value="{DynamicResource TextBrush}"/>
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Status}" Value="Opened">
                     <Setter TargetName="RowCheck" Property="Visibility" Value="Visible"/>
-                    <Setter TargetName="RowStatus" Property="Foreground"
-                            Value="{DynamicResource AccentBrush}"/>
-                    <DataTrigger.EnterActions>
-                        <BeginStoryboard>
-                            <Storyboard>
-                                <DoubleAnimation Storyboard.TargetName="RowCheck"
-                                                 Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                 From="0.3" To="1" Duration="0:0:0.25">
-                                    <DoubleAnimation.EasingFunction>
-                                        <BackEase EasingMode="EaseOut" Amplitude="0.6"/>
-                                    </DoubleAnimation.EasingFunction>
-                                </DoubleAnimation>
-                                <DoubleAnimation Storyboard.TargetName="RowCheck"
-                                                 Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                 From="0.3" To="1" Duration="0:0:0.25">
-                                    <DoubleAnimation.EasingFunction>
-                                        <BackEase EasingMode="EaseOut" Amplitude="0.6"/>
-                                    </DoubleAnimation.EasingFunction>
-                                </DoubleAnimation>
-                            </Storyboard>
-                        </BeginStoryboard>
-                    </DataTrigger.EnterActions>
+                    <Setter TargetName="RowStatus" Property="Foreground" Value="{DynamicResource AccentBrush}"/>
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Status}" Value="Failed">
-                    <Setter TargetName="RowStatus" Property="Foreground"
-                            Value="{DynamicResource DangerBrush}"/>
+                    <Setter TargetName="RowStatus" Property="Foreground" Value="{DynamicResource DangerBrush}"/>
                 </DataTrigger>
             </DataTemplate.Triggers>
         </DataTemplate>
+
+        <!-- Overlay panel chrome shared by every dialog-like overlay. -->
+        <Style x:Key="OverlayPanel" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource PanelBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush2}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="22,18,22,16"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="28" ShadowDepth="4" Opacity="0.35" Color="Black"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
+
     <Grid>
-        <!-- Sidebar width and bottom-panel height are restored from settings on
-             load; the mins keep either pane from being dragged out of existence. -->
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -201,41 +229,16 @@
         <Border Grid.Row="0" Background="{DynamicResource PanelBrush}"
                 BorderBrush="{DynamicResource BorderBrush2}" BorderThickness="0,0,0,1">
             <Grid Height="42">
-                <!-- Centred on the window rather than on either pane, so the name
-                     holds still while the sidebar is resized or hidden. -->
                 <TextBlock Text="Restage" FontSize="13" FontWeight="SemiBold"
                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left"
-                            VerticalAlignment="Center" Margin="6,0,0,0"
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Stretch"
                             WindowChrome.IsHitTestVisibleInChrome="True">
-                    <ToggleButton x:Name="SidebarToggle" Style="{StaticResource IconToggle}"
-                                  Tag="{StaticResource IconPanelLeft}"
-                                  Checked="SidebarToggle_Toggled" Unchecked="SidebarToggle_Toggled"
-                                  AutomationProperties.Name="Toggle Sidebar"
-                                  ToolTip="Toggle Sidebar"/>
-                </StackPanel>
-
-                <!-- Settings sits with the window buttons, separated by a gap
-                     rather than a rule: a 34px centred button against 46px
-                     full-height ones already reads as two groups. -->
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
-                            VerticalAlignment="Stretch"
-                            WindowChrome.IsHitTestVisibleInChrome="True">
-                    <Grid VerticalAlignment="Center" Margin="0,0,10,0">
-                        <ToggleButton x:Name="SettingsToggle" Style="{StaticResource IconToggle}"
-                                      Tag="{StaticResource IconSettings}"
-                                      AutomationProperties.Name="Settings" ToolTip="Settings"/>
-                        <!-- Stay Awake runs with the window closed, so its only
-                             always-visible tell is this dot on the gear. -->
-                        <Ellipse Width="6" Height="6" Fill="{DynamicResource AccentBrush}"
-                                 HorizontalAlignment="Right" VerticalAlignment="Top"
-                                 Margin="0,5,5,0" IsHitTestVisible="False"
-                                 Visibility="{Binding IsStayAwakeActive, Converter={StaticResource BoolToVis}}"/>
-                    </Grid>
+                    <ToggleButton x:Name="SettingsToggle" Style="{StaticResource IconToggle}"
+                                  Tag="{StaticResource IconSettings}" VerticalAlignment="Center" Margin="0,0,10,0"
+                                  AutomationProperties.Name="Settings" ToolTip="Settings"/>
                     <Button Style="{StaticResource CaptionButton}" Tag="{StaticResource IconMinus}"
-                            Click="Minimize_Click" ToolTip="Minimize"
-                            AutomationProperties.Name="Minimize"/>
+                            Click="Minimize_Click" ToolTip="Minimize" AutomationProperties.Name="Minimize"/>
                     <Button Click="MaxRestore_Click" AutomationProperties.Name="Maximize">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource CaptionButton}">
@@ -252,47 +255,67 @@
                         </Button.Style>
                     </Button>
                     <Button Style="{StaticResource CaptionCloseButton}" Tag="{StaticResource IconClose}"
-                            Click="CloseWindow_Click" ToolTip="Close"
-                            AutomationProperties.Name="Close"/>
+                            Click="CloseWindow_Click" ToolTip="Close" AutomationProperties.Name="Close"/>
                 </StackPanel>
 
-                <!-- Anchored to the gear; IsOpen rides the toggle both ways. The
-                     gear sits near the right edge, so the panel hangs to the left
-                     of it: Popup offsets from the target's left edge, so
-                     right-aligning the two means shifting by the width
-                     difference — 34 (gear) - 238 (222 border + 8 shadow margin
-                     each side) = -204. Change the border width, change this. -->
+                <!-- Settings panel, anchored to the gear. Popup offsets from the
+                     target's left edge, so right-aligning means shifting by the
+                     width difference: 34 (gear) - 276 (260 border + 8 shadow
+                     margin each side) = -242. -->
                 <Popup x:Name="SettingsPopup" PlacementTarget="{Binding ElementName=SettingsToggle}"
-                       Placement="Bottom" HorizontalOffset="-204" VerticalOffset="2"
+                       Placement="Bottom" HorizontalOffset="-242" VerticalOffset="2"
                        StaysOpen="False" AllowsTransparency="True"
                        IsOpen="{Binding IsChecked, ElementName=SettingsToggle, Mode=TwoWay}"
                        Opened="SettingsPopup_Opened" Closed="SettingsPopup_Closed">
                     <Border Background="{DynamicResource PanelBrush}"
                             BorderBrush="{DynamicResource BorderBrush2}" BorderThickness="1"
-                            CornerRadius="0" Margin="8" Padding="8" Width="222">
+                            Margin="8" Padding="8" Width="260">
                         <Border.Effect>
                             <DropShadowEffect BlurRadius="16" ShadowDepth="2" Opacity="0.35" Color="Black"/>
                         </Border.Effect>
                         <StackPanel>
-                            <TextBlock Text="SETTINGS" Style="{StaticResource SectionLabel}"
-                                       Margin="7,4,7,10"/>
-                            <CheckBox IsChecked="{Binding AutoCapture}" Margin="7,0,7,12">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="Auto capture" FontSize="12.5"/>
-                                    <TextBlock Text="every 2 min" FontSize="11" Margin="7,1,0,0"
+                            <TextBlock Text="SETTINGS" Style="{StaticResource SectionLabel}" Margin="7,4,7,10"/>
+                            <CheckBox Content="Run at startup" FontSize="12.5"
+                                      IsChecked="{Binding StartWithWindows}" Margin="7,0,7,10"/>
+                            <CheckBox Content="Apply the saved wallpaper" FontSize="12.5"
+                                      IsChecked="{Binding ApplyWallpaper}" Margin="7,0,7,10"/>
+                            <CheckBox IsChecked="{Binding ForceLaunch}" Margin="7,0,7,6">
+                                <StackPanel>
+                                    <TextBlock Text="Always relaunch" FontSize="12.5"/>
+                                    <TextBlock Text="even when a matching window is open" FontSize="11"
                                                Foreground="{DynamicResource MutedBrush}"/>
                                 </StackPanel>
                             </CheckBox>
-                            <CheckBox Content="Run at startup" FontSize="12.5"
-                                      IsChecked="{Binding StartWithWindows}" Margin="7,0,7,12"/>
-                            <CheckBox Content="Force relaunch" FontSize="12.5"
-                                      IsChecked="{Binding ForceLaunch}" Margin="7,0,7,4"/>
 
-                            <Border Height="1" Background="{DynamicResource BorderBrush2}"
-                                    Margin="0,6"/>
+                            <Border Height="1" Background="{DynamicResource BorderBrush2}" Margin="0,6"/>
+                            <TextBlock Text="WORKSPACE ON ANOTHER DESKTOP" Style="{StaticResource SectionLabel}"
+                                       FontSize="10.5" Margin="7,4,7,8"/>
+                            <RadioButton Style="{StaticResource DotRadio}" GroupName="DesktopSwitch" Margin="7,0,7,7"
+                                         IsChecked="{Binding DesktopSwitchText, Converter={StaticResource EqualsParam}, ConverterParameter=Ask}">
+                                <StackPanel>
+                                    <TextBlock Text="Ask me to switch" FontSize="12.5"/>
+                                    <TextBlock Text="a prompt names the desktop and waits" FontSize="11"
+                                               Foreground="{DynamicResource MutedBrush}"/>
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton Style="{StaticResource DotRadio}" GroupName="DesktopSwitch" Margin="7,0,7,7"
+                                         IsChecked="{Binding DesktopSwitchText, Converter={StaticResource EqualsParam}, ConverterParameter=Wait}">
+                                <StackPanel>
+                                    <TextBlock Text="Wait silently" FontSize="12.5"/>
+                                    <TextBlock Text="up to a minute, then continue here" FontSize="11"
+                                               Foreground="{DynamicResource MutedBrush}"/>
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton Style="{StaticResource DotRadio}" GroupName="DesktopSwitch" Margin="7,0,7,6"
+                                         IsChecked="{Binding DesktopSwitchText, Converter={StaticResource EqualsParam}, ConverterParameter=Never}">
+                                <StackPanel>
+                                    <TextBlock Text="Never switch" FontSize="12.5"/>
+                                    <TextBlock Text="restore on whatever desktop is current" FontSize="11"
+                                               Foreground="{DynamicResource MutedBrush}"/>
+                                </StackPanel>
+                            </RadioButton>
 
-                            <!-- Dark shows the sun (what the click gets you), light
-                                 shows the moon; the label is the same promise. -->
+                            <Border Height="1" Background="{DynamicResource BorderBrush2}" Margin="0,6"/>
                             <Button Command="{Binding ToggleThemeCommand}">
                                 <Button.Style>
                                     <Style TargetType="Button" BasedOn="{StaticResource MenuRowButton}">
@@ -306,425 +329,201 @@
                                     </Style>
                                 </Button.Style>
                             </Button>
-                            <Button Style="{StaticResource MenuRowButton}"
-                                    Tag="{StaticResource IconFolderOpen}"
-                                    Content="Open data folder"
-                                    Command="{Binding OpenDataFolderCommand}"/>
-                            <!-- Opens the Stay Awake dialog; the dot mirrors the
-                                 gear's so the row itself says whether it runs. -->
-                            <Grid>
-                                <Button Style="{StaticResource MenuRowButton}"
-                                        Tag="{StaticResource IconBell}"
-                                        Content="Stay awake…"
-                                        Command="{Binding OpenStayAwakeCommand}"
-                                        Click="StayAwakeRow_Click"/>
-                                <Ellipse Width="7" Height="7" Fill="{DynamicResource AccentBrush}"
-                                         HorizontalAlignment="Right" VerticalAlignment="Center"
-                                         Margin="0,0,8,0" IsHitTestVisible="False"
-                                         Visibility="{Binding IsStayAwakeActive, Converter={StaticResource BoolToVis}}"/>
-                            </Grid>
+                            <Button Style="{StaticResource MenuRowButton}" Tag="{StaticResource IconFolderOpen}"
+                                    Content="Open data folder" Command="{Binding OpenDataFolderCommand}"/>
                         </StackPanel>
                     </Border>
                 </Popup>
             </Grid>
         </Border>
 
-        <!-- ============ Content: sidebar + main ============ -->
+        <!-- ============ Content ============ -->
         <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition x:Name="SidebarColumn" Width="272" MinWidth="208" MaxWidth="520"/>
-                <ColumnDefinition Width="*" MinWidth="520"/>
-            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" MinHeight="260"/>
+                <RowDefinition x:Name="BottomRow" Height="160" MinHeight="90"/>
+            </Grid.RowDefinitions>
 
-            <!-- Sidebar: capture history -->
-            <Border x:Name="SidebarPanel" Grid.Column="0" Background="{DynamicResource PanelBrush}"
-                    BorderBrush="{DynamicResource BorderBrush2}" BorderThickness="0,0,1,0">
-                <DockPanel>
-                    <Grid DockPanel.Dock="Top" Margin="16,12,10,8">
-                        <TextBlock Text="CAPTURE HISTORY" Style="{StaticResource SectionLabel}"
-                                   VerticalAlignment="Center"/>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
-                                    VerticalAlignment="Center">
-                            <TextBlock Text="{Binding HistoryCount}" Style="{StaticResource NumericText}"
-                                       FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"
-                                       Foreground="{DynamicResource MutedBrush}"/>
-                            <Button Style="{StaticResource SubtleIconButton}" Tag="{StaticResource IconEraser}"
-                                    Command="{Binding ClearHistoryCommand}"
-                                    AutomationProperties.Name="Clear History"
-                                    ToolTip="Clear capture history"/>
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" MinWidth="560"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Gallery -->
+                <DockPanel Grid.Column="0" Margin="26,18,10,10">
+                    <Grid DockPanel.Dock="Top" Margin="0,0,16,16">
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="Workspaces" Style="{StaticResource TitleText}"/>
+                            <TextBlock Text="{Binding WorkspaceCountText}" Style="{StaticResource SubtleText}" Margin="0,4,0,0"/>
                         </StackPanel>
-                    </Grid>
-
-                    <!-- Open Data Folder used to live here; it moved to the app bar,
-                         where it stays reachable with the sidebar hidden. -->
-                    <TextBlock DockPanel.Dock="Bottom" Text="{Binding CaptureStats}"
-                               Style="{StaticResource NumericText}" FontSize="11.5"
-                               Foreground="{DynamicResource MutedBrush}"
-                               HorizontalAlignment="Center" Margin="14,10,14,14"/>
-
-                    <ListBox ItemsSource="{Binding Snapshots}"
-                             SelectedItem="{Binding SelectedSnapshot}"
-                             Background="Transparent" BorderThickness="0" Margin="8,0"
-                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                             ScrollViewer.CanContentScroll="False"
-                             PreviewMouseWheel="Scrollable_PreviewMouseWheel">
-                        <ListBox.ItemContainerStyle>
-                            <!-- The padding moves into the row itself, so the
-                                 context menu covers the row edge to edge. -->
-                            <Style TargetType="ListBoxItem" BasedOn="{StaticResource SnapItemStyle}">
-                                <Setter Property="Padding" Value="0"/>
-                            </Style>
-                        </ListBox.ItemContainerStyle>
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <!-- Background, not just padding: a transparent
-                                     brush is still hit-testable, so right-click
-                                     works anywhere on the row. The menu lives
-                                     here rather than on the container style
-                                     because a DataTemplate is instantiated per
-                                     row — one shared menu in a Setter would show
-                                     the first row's data for every row. -->
-                                <Border Background="Transparent" Padding="11,9">
-                                    <Border.ContextMenu>
-                                        <ContextMenu>
-                                            <MenuItem Header="{Binding FavoriteLabel}"
-                                                      Tag="{StaticResource IconStar}"
-                                                      Command="{Binding ToggleFavoriteCommand}"/>
-                                            <MenuItem Header="Rename…"
-                                                      Tag="{StaticResource IconPencil}"
-                                                      Command="{Binding RenameCommand}"/>
-                                            <MenuItem Header="Delete capture"
-                                                      Tag="{StaticResource IconTrash}"
-                                                      Command="{Binding DeleteCommand}"/>
-                                        </ContextMenu>
-                                    </Border.ContextMenu>
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <!-- A star gutter every row pays for,
-                                                 so the labels keep one left edge. -->
-                                            <ColumnDefinition Width="19"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <Viewbox Grid.Column="0" Width="12" Height="12" Margin="0,1,0,0"
-                                                 HorizontalAlignment="Left" VerticalAlignment="Top"
-                                                 Visibility="{Binding IsFavorite, Converter={StaticResource BoolToVis}}">
-                                            <Path Width="24" Height="24" Data="{StaticResource IconStar}"
-                                                  Fill="{DynamicResource AccentBrush}"
-                                                  Stroke="{DynamicResource AccentBrush}" StrokeThickness="2.25"
-                                                  StrokeLineJoin="Round"/>
-                                        </Viewbox>
-                                        <StackPanel Grid.Column="1">
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="{Binding DisplayLabel, Mode=OneWay}" FontWeight="SemiBold"
-                                                           FontSize="13" TextTrimming="CharacterEllipsis"/>
-                                                <Border Background="{DynamicResource AccentBrush}" CornerRadius="0"
-                                                        Padding="6,1.5" Margin="8,0,0,0" VerticalAlignment="Center"
-                                                        Visibility="{Binding IsLastSession, Converter={StaticResource BoolToVis}}">
-                                                    <TextBlock Text="BEFORE SHUTDOWN" FontSize="9" FontWeight="SemiBold"
-                                                               Foreground="{DynamicResource AccentTextBrush}"/>
-                                                </Border>
-                                            </StackPanel>
-                                            <TextBlock Text="{Binding SubLine, Mode=OneWay}" Style="{StaticResource NumericText}"
-                                                       FontSize="11" Margin="0,2,0,0"
-                                                       Foreground="{DynamicResource MutedBrush}"/>
-                                        </StackPanel>
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </DockPanel>
-            </Border>
-
-            <!-- Main: selected capture contents (+ restore overlay on top),
-                 with the activity log beneath it. The log lives in this column
-                 rather than across the window so the history runs the full
-                 height and the log starts at the seam. -->
-            <Grid Grid.Column="1">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*" MinHeight="240"/>
-                    <RowDefinition x:Name="BottomRow" Height="181" MinHeight="96"/>
-                </Grid.RowDefinitions>
-            <DockPanel Grid.Row="0" Margin="26,18,26,10">
-
-                <!-- Capture and delete are ghost icons; Restore is the only
-                     accent fill on screen. Two filled green buttons side by side
-                     told you nothing about which one you came here to press. -->
-                <Grid DockPanel.Dock="Top" Margin="0,0,0,14">
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="{Binding Header}" Style="{StaticResource TitleText}"/>
-                        <TextBlock Text="{Binding SubHeader}" Style="{StaticResource SubtleText}"
-                                   Margin="0,4,0,0"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
-                                VerticalAlignment="Center">
-                        <!-- Outlined now, so they need room to read as two boxes
-                             rather than one segmented control. -->
-                        <Button Style="{StaticResource CaptureIconButton}"
-                                ToolTip="Capture now" AutomationProperties.Name="Capture Now"
-                                Command="{Binding CaptureNowCommand}" Margin="0,0,16,0"/>
-                        <Button Style="{StaticResource BusyAccentButton}" Padding="16,9"
-                                Command="{Binding RestoreCommand}">
+                        <Button Style="{StaticResource BusyAccentButton}" Padding="16,9" HorizontalAlignment="Right"
+                                VerticalAlignment="Center" Command="{Binding NewWorkspaceCommand}"
+                                ToolTip="Save everything open right now as a new workspace">
                             <Grid>
                                 <StackPanel Orientation="Horizontal">
                                     <StackPanel.Style>
                                         <Style TargetType="StackPanel">
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsRestoring}" Value="True">
+                                                <DataTrigger Binding="{Binding IsCapturing}" Value="True">
                                                     <Setter Property="Visibility" Value="Hidden"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
                                     </StackPanel.Style>
                                     <Viewbox Width="15" Height="15" VerticalAlignment="Center" Margin="0,0,9,0">
-                                        <Path Width="24" Height="24" Data="{StaticResource IconRotateCcw}"
+                                        <Path Width="24" Height="24" Data="{StaticResource IconPlus}"
                                               Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
                                               StrokeThickness="2.25" StrokeStartLineCap="Round"
                                               StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
                                     </Viewbox>
-                                    <TextBlock Text="Restore Workspace" FontSize="12.5"
-                                               VerticalAlignment="Center"
+                                    <TextBlock Text="New workspace" FontSize="12.5" VerticalAlignment="Center"
                                                Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
-                                            Visibility="{Binding IsRestoring, Converter={StaticResource BoolToVis}}">
+                                            Visibility="{Binding IsCapturing, Converter={StaticResource BoolToVis}}">
                                     <Path Style="{StaticResource SpinnerPath}" VerticalAlignment="Center" Margin="0,0,9,0"
                                           Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
-                                    <TextBlock Text="Restoring…" FontSize="12.5" VerticalAlignment="Center"
+                                    <TextBlock Text="Capturing…" FontSize="12.5" VerticalAlignment="Center"
                                                Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
                                 </StackPanel>
                             </Grid>
                         </Button>
-                    </StackPanel>
-                </Grid>
+                    </Grid>
 
-                <ScrollViewer VerticalScrollBarVisibility="Auto"
-                              PreviewMouseWheel="Scrollable_PreviewMouseWheel">
-                    <StackPanel Margin="0,0,8,0">
-                        <Grid Margin="2,0,2,8">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="APPLICATIONS" Style="{StaticResource SectionLabel}"/>
-                                <TextBlock Text="{Binding AppCount}" Style="{StaticResource NumericText}"
-                                           FontSize="11" Margin="7,0,0,0"
-                                           Foreground="{DynamicResource MutedBrush}"/>
-                            </StackPanel>
-                            <CheckBox HorizontalAlignment="Right" IsThreeState="False"
-                                      IsChecked="{Binding AllSelected}" FontSize="12"
-                                      Foreground="{DynamicResource MutedBrush}" Content="Select all"/>
-                        </Grid>
-                        <ItemsControl ItemsSource="{Binding Apps}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Style="{StaticResource CardStyle}">
-                                        <StackPanel>
-                                            <DockPanel>
-                                                <CheckBox DockPanel.Dock="Left" VerticalAlignment="Center"
-                                                          IsThreeState="False"
-                                                          IsChecked="{Binding GroupSelected, Mode=TwoWay}"/>
-                                                <Grid DockPanel.Dock="Left" Width="24" Height="24" Margin="12,0,12,0">
-                                                    <Image Source="{Binding Icon}" Width="24" Height="24"
-                                                           VerticalAlignment="Center"/>
-                                                    <Border Background="{DynamicResource SelectedBrush}" CornerRadius="0"
-                                                            Visibility="{Binding FallbackVisibility, Mode=OneWay}">
-                                                        <TextBlock Text="{Binding Initial, Mode=OneWay}" FontWeight="Bold"
-                                                                   FontSize="11" HorizontalAlignment="Center"
-                                                                   VerticalAlignment="Center"/>
-                                                    </Border>
-                                                </Grid>
-                                                <ToggleButton DockPanel.Dock="Right" Style="{StaticResource ExpandToggle}"
-                                                              IsChecked="{Binding IsExpanded, Mode=TwoWay}"
-                                                              Visibility="{Binding BadgeVisibility, Mode=OneWay}"
-                                                              VerticalAlignment="Center"/>
-                                                <StackPanel VerticalAlignment="Center">
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="{Binding Name, Mode=OneWay}" FontSize="13" FontWeight="SemiBold"/>
-                                                        <Border Background="Transparent" BorderBrush="{DynamicResource BorderBrush2}"
-                                                                BorderThickness="1" CornerRadius="0" Padding="6,1.5"
-                                                                Margin="8,0,0,0" VerticalAlignment="Center"
-                                                                Visibility="{Binding BadgeVisibility, Mode=OneWay}">
-                                                            <TextBlock Text="{Binding CountLabel, Mode=OneWay}" FontSize="10"
-                                                                       Foreground="{DynamicResource MutedBrush}"/>
-                                                        </Border>
-                                                    </StackPanel>
-                                                    <TextBlock Text="{Binding Subtitle, Mode=OneWay}" FontSize="11" Margin="0,1,0,0"
-                                                               Foreground="{DynamicResource MutedBrush}"
-                                                               TextTrimming="CharacterEllipsis"/>
-                                                </StackPanel>
-                                            </DockPanel>
-                                            <ItemsControl ItemsSource="{Binding Instances}" Margin="50,8,0,2"
-                                                          Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <DockPanel Margin="0,3">
-                                                            <CheckBox DockPanel.Dock="Left" VerticalAlignment="Center"
-                                                                      IsChecked="{Binding IsSelected, Mode=TwoWay}"/>
-                                                            <TextBlock Text="{Binding Title, Mode=OneWay}" FontSize="12"
-                                                                       Margin="10,0,0,0" VerticalAlignment="Center"
-                                                                       TextTrimming="CharacterEllipsis"/>
-                                                        </DockPanel>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
-                                        </StackPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-
-                        <StackPanel Orientation="Horizontal" Margin="2,14,2,8">
-                            <TextBlock Text="FOLDERS" Style="{StaticResource SectionLabel}"/>
-                            <TextBlock Text="{Binding FolderCount}" Style="{StaticResource NumericText}"
-                                       FontSize="11" Margin="7,0,0,0"
-                                       Foreground="{DynamicResource MutedBrush}"/>
-                        </StackPanel>
-                        <ItemsControl ItemsSource="{Binding Folders}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Style="{StaticResource CardStyle}">
-                                        <DockPanel>
-                                            <CheckBox DockPanel.Dock="Left" VerticalAlignment="Center"
-                                                      IsChecked="{Binding IsSelected, Mode=TwoWay}"/>
-                                            <Image DockPanel.Dock="Left" Source="{Binding Icon}" Width="22" Height="22"
-                                                   Margin="12,0,12,0" VerticalAlignment="Center"/>
-                                            <StackPanel VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding Name, Mode=OneWay}" FontSize="13" FontWeight="SemiBold"/>
-                                                <TextBlock Text="{Binding Parent, Mode=OneWay}" FontSize="11" Margin="0,1,0,0"
-                                                           Foreground="{DynamicResource MutedBrush}"
-                                                           TextTrimming="CharacterEllipsis"/>
-                                            </StackPanel>
-                                        </DockPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-                </ScrollViewer>
-            </DockPanel>
-
-            <!-- Restore overlay: dims the capture list while a restore runs,
-                 lingers a few seconds with the summary, then fades away -->
-            <Border Grid.Row="0" Background="{DynamicResource OverlayDimBrush}">
-                <Border.Style>
-                    <Style TargetType="Border">
-                        <Setter Property="Visibility" Value="Collapsed"/>
-                        <Setter Property="Opacity" Value="0"/>
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding ShowRestorePanel}" Value="True">
-                                <DataTrigger.EnterActions>
-                                    <BeginStoryboard>
-                                        <Storyboard>
-                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility" Duration="0">
-                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{x:Static Visibility.Visible}"/>
-                                            </ObjectAnimationUsingKeyFrames>
-                                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                                             To="1" Duration="0:0:0.2"/>
-                                        </Storyboard>
-                                    </BeginStoryboard>
-                                </DataTrigger.EnterActions>
-                                <DataTrigger.ExitActions>
-                                    <BeginStoryboard>
-                                        <Storyboard>
-                                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                                             To="0" Duration="0:0:0.35"/>
-                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility"
-                                                                           BeginTime="0:0:0.35" Duration="0">
-                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{x:Static Visibility.Collapsed}"/>
-                                            </ObjectAnimationUsingKeyFrames>
-                                        </Storyboard>
-                                    </BeginStoryboard>
-                                </DataTrigger.ExitActions>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </Border.Style>
-                <Border Background="{DynamicResource PanelBrush}"
-                        BorderBrush="{DynamicResource BorderBrush2}" BorderThickness="1"
-                        CornerRadius="0" Width="460" MaxHeight="440"
-                        HorizontalAlignment="Center" VerticalAlignment="Center"
-                        Padding="22,18,22,16">
-                    <Border.Effect>
-                        <DropShadowEffect BlurRadius="28" ShadowDepth="4" Opacity="0.35" Color="Black"/>
-                    </Border.Effect>
-                    <DockPanel>
-                        <Grid DockPanel.Dock="Top">
-                            <StackPanel Orientation="Horizontal">
-                                <StackPanel Orientation="Horizontal">
-                                    <StackPanel.Style>
-                                        <Style TargetType="StackPanel">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsRestoring}" Value="True">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </StackPanel.Style>
-                                    <Path Style="{StaticResource SpinnerPath}"
-                                          Stroke="{DynamicResource TextBrush}"
-                                          VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                    <TextBlock Text="Restoring workspace" FontSize="15" FontWeight="SemiBold"/>
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal">
-                                    <StackPanel.Style>
-                                        <Style TargetType="StackPanel">
+                    <Grid>
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="420" Margin="0,0,0,60">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasWorkspaces}" Value="False">
                                             <Setter Property="Visibility" Value="Visible"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsRestoring}" Value="True">
-                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </StackPanel.Style>
-                                    <Viewbox Width="15" Height="15" VerticalAlignment="Center" Margin="0,0,10,0">
-                                        <Path Width="24" Height="24" Data="{StaticResource IconCheck}"
-                                              Stroke="{DynamicResource AccentBrush}" StrokeThickness="2.5"
-                                              StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                                              StrokeLineJoin="Round"/>
-                                    </Viewbox>
-                                    <TextBlock Text="Restore finished" FontSize="15" FontWeight="SemiBold"/>
-                                </StackPanel>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <Viewbox Width="40" Height="40" HorizontalAlignment="Center" Margin="0,0,0,14">
+                                <Path Width="24" Height="24" Data="{StaticResource IconLayoutGrid}"
+                                      Stroke="{DynamicResource MutedBrush}" StrokeThickness="1.75"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+                            </Viewbox>
+                            <TextBlock Text="Arrange your desktop, then save it" FontSize="15" FontWeight="SemiBold"
+                                       HorizontalAlignment="Center"/>
+                            <TextBlock Style="{StaticResource SubtleText}" TextWrapping="Wrap" TextAlignment="Center" Margin="0,8,0,0"
+                                       Text="New workspace photographs what is open right now: editors with their folders, Obsidian vaults, browser profiles and web apps, Explorer folders, the virtual desktop and its wallpaper. Restore brings it all back with one click."/>
+                        </StackPanel>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" PreviewMouseWheel="Scrollable_PreviewMouseWheel"
+                                      Visibility="{Binding HasWorkspaces, Converter={StaticResource BoolToVis}}">
+                            <ItemsControl ItemsSource="{Binding Workspaces}" ItemTemplate="{StaticResource CardTemplate}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </DockPanel>
+
+                <!-- Details of the selected workspace -->
+                <Border Grid.Column="1" Width="392" Background="{DynamicResource PanelBrush}"
+                        BorderBrush="{DynamicResource BorderBrush2}" BorderThickness="1,0,0,0"
+                        Visibility="{Binding HasSelection, Converter={StaticResource BoolToVis}}">
+                    <DockPanel Margin="20,18,20,12" DataContext="{Binding Selected}">
+                        <StackPanel DockPanel.Dock="Top">
+                            <TextBlock Text="{Binding Name}" Style="{StaticResource TitleText}" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding UpdatedText}" Style="{StaticResource SubtleText}" Margin="0,4,0,0"/>
+                        </StackPanel>
+
+                        <StackPanel DockPanel.Dock="Top" Margin="0,16,0,0">
+                            <DockPanel Margin="0,0,0,6">
+                                <Viewbox Width="13" Height="13" VerticalAlignment="Center" Margin="0,0,9,0">
+                                    <Path Width="24" Height="24" Data="{StaticResource IconMonitor}"
+                                          Stroke="{DynamicResource MutedBrush}" StrokeThickness="2.25"
+                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+                                </Viewbox>
+                                <TextBlock Text="{Binding DesktopName}" FontSize="12" VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <DockPanel Margin="0,0,0,6">
+                                <Viewbox Width="13" Height="13" VerticalAlignment="Center" Margin="0,0,9,0">
+                                    <Path Width="24" Height="24" Data="{StaticResource IconImage}"
+                                          Stroke="{DynamicResource MutedBrush}" StrokeThickness="2.25"
+                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+                                </Viewbox>
+                                <TextBlock Text="{Binding WallpaperName}" FontSize="12" VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis"/>
+                            </DockPanel>
+                            <DockPanel>
+                                <Viewbox Width="13" Height="13" VerticalAlignment="Center" Margin="0,0,9,0">
+                                    <Path Width="24" Height="24" Data="{StaticResource IconLayoutGrid}"
+                                          Stroke="{DynamicResource MutedBrush}" StrokeThickness="2.25"
+                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+                                </Viewbox>
+                                <TextBlock Text="{Binding ProfilesText}" FontSize="12" VerticalAlignment="Center"
+                                           TextWrapping="Wrap" ToolTip="Monitor arrangements this workspace has a layout for"/>
+                            </DockPanel>
+                            <TextBlock Text="No layout for the monitors attached now; Update to add one."
+                                       Style="{StaticResource SubtleText}" FontSize="11" Margin="22,4,0,0" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource DangerBrush}"
+                                       Visibility="{Binding LacksCurrentProfile, Converter={StaticResource BoolToVis}}"/>
+                        </StackPanel>
+
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,16,0,14">
+                            <Button Style="{StaticResource AccentButton}" Padding="16,9" Content="Restore"
+                                    Command="{Binding DataContext.RestoreCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding}" Margin="0,0,10,0"/>
+                            <Button Style="{StaticResource IconButton}" Tag="{StaticResource IconRefreshCw}"
+                                    ToolTip="Update from the current desktop" Margin="0,0,8,0"
+                                    Command="{Binding DataContext.UpdateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding}"/>
+                            <Button Style="{StaticResource IconButton}" Tag="{StaticResource IconPencil}"
+                                    ToolTip="Rename" Margin="0,0,8,0"
+                                    Command="{Binding DataContext.RenameCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding}"/>
+                            <Button Style="{StaticResource IconButton}" Tag="{StaticResource IconFolderOpen}"
+                                    ToolTip="Open the workspace's folder" Margin="0,0,8,0"
+                                    Command="{Binding DataContext.OpenFolderCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding}"/>
+                            <Button Style="{StaticResource IconButton}" Tag="{StaticResource IconTrash}"
+                                    ToolTip="Delete"
+                                    Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding}"/>
+                        </StackPanel>
+
+                        <Grid DockPanel.Dock="Top" Margin="2,0,2,6">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="ITEMS" Style="{StaticResource SectionLabel}"/>
+                                <TextBlock Text="{Binding Items.Count}" Style="{StaticResource NumericText}" FontSize="11"
+                                           Margin="7,0,0,0" Foreground="{DynamicResource MutedBrush}"/>
                             </StackPanel>
-                            <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center"
-                                       FontSize="12" Foreground="{DynamicResource MutedBrush}"
-                                       Text="{Binding RestoreCounter, Mode=OneWay}"/>
+                            <TextBlock Text="tick to include · click the label to change how it opens"
+                                       Style="{StaticResource SubtleText}" FontSize="10.5" HorizontalAlignment="Right"/>
                         </Grid>
-                        <TextBlock DockPanel.Dock="Top" Text="Apps open one at a time so your PC stays fast"
-                                   FontSize="11" Foreground="{DynamicResource MutedBrush}"
-                                   Margin="0,3,0,10"/>
-                        <ProgressBar DockPanel.Dock="Top" Style="{StaticResource ThinProgress}"
-                                     Maximum="1" Value="{Binding RestoreFraction, Mode=OneWay}"
-                                     Margin="0,0,0,8"/>
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <ItemsControl ItemsSource="{Binding RestoreProgress}"
-                                          ItemTemplate="{StaticResource RestoreRowTemplate}"/>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" PreviewMouseWheel="Scrollable_PreviewMouseWheel">
+                            <ItemsControl ItemsSource="{Binding Items}" ItemTemplate="{StaticResource ItemRowTemplate}" Margin="0,0,6,0"/>
                         </ScrollViewer>
                     </DockPanel>
                 </Border>
-            </Border>
+            </Grid>
+
             <!-- ============ Activity log ============ -->
             <Border Grid.Row="1" Background="{DynamicResource PanelBrush}"
                     BorderBrush="{DynamicResource BorderBrush2}" BorderThickness="0,1,0,0"
-                    Padding="26,12,26,14">
+                    Padding="26,10,26,12">
                 <DockPanel>
-                    <!-- The three preference checkboxes moved into the app bar's gear. -->
-                    <Grid DockPanel.Dock="Top" Margin="2,0,0,6">
-                        <TextBlock Text="ACTIVITY LOG" Style="{StaticResource SectionLabel}"
-                                   VerticalAlignment="Center"/>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
-                                    VerticalAlignment="Center" Margin="0,-6,0,-6">
+                    <Grid DockPanel.Dock="Top" Margin="2,0,0,4">
+                        <TextBlock Text="ACTIVITY LOG" Style="{StaticResource SectionLabel}" VerticalAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,-6,0,-6">
                             <Button Style="{StaticResource SubtleIconButton}" Tag="{StaticResource IconEraser}"
-                                    Command="{Binding ClearLogCommand}"
-                                    AutomationProperties.Name="Clear Log"
-                                    ToolTip="Clear activity log"/>
+                                    Command="{Binding ClearLogCommand}" ToolTip="Clear activity log"
+                                    AutomationProperties.Name="Clear Log"/>
                             <ToggleButton x:Name="LogToggle" Style="{StaticResource ExpandToggle}"
                                           Checked="LogToggle_Toggled" Unchecked="LogToggle_Toggled"
                                           ToolTip="Show or hide the activity log"/>
                         </StackPanel>
                     </Grid>
-
-                    <!-- Undocked, so it fills whatever height the splitter leaves. -->
-                    <Border x:Name="LogArea" Background="{DynamicResource LogBgBrush}"
-                            CornerRadius="0" Padding="8,4">
+                    <Border x:Name="LogArea" Background="{DynamicResource LogBgBrush}" Padding="8,4">
                         <ListBox x:Name="LogList" ItemsSource="{Binding LogEntries}"
                                  Background="Transparent" BorderThickness="0"
                                  FontFamily="{StaticResource MonoFont}" FontSize="11.5"
@@ -735,216 +534,156 @@
                     </Border>
                 </DockPanel>
             </Border>
-
-            <!-- Seam above the bottom panel; overlays its 1px top border. -->
             <GridSplitter x:Name="LogSplitter" Grid.Row="1" Height="7" Margin="0,-4,0,0"
                           HorizontalAlignment="Stretch" VerticalAlignment="Top"
                           Background="Transparent" Cursor="SizeNS" Focusable="False"
                           ResizeDirection="Rows" ResizeBehavior="PreviousAndCurrent"
                           DragCompleted="LogSplitter_DragCompleted"
                           ToolTip="Drag to resize the activity log"/>
-            </Grid>
 
-            <!-- Confirmation prompt. Spans both columns but not the title bar,
-                 so the window stays movable and closable while it is up. -->
-            <Border Grid.ColumnSpan="2" Background="{DynamicResource OverlayDimBrush}"
-                    Panel.ZIndex="10"
-                    Visibility="{Binding ShowConfirm, Converter={StaticResource BoolToVis}}">
-                <Border Background="{DynamicResource PanelBrush}"
-                        BorderBrush="{DynamicResource BorderBrush2}" BorderThickness="1"
-                        Width="400" HorizontalAlignment="Center" VerticalAlignment="Center"
-                        Padding="24,20,24,18">
-                    <Border.Effect>
-                        <DropShadowEffect BlurRadius="28" ShadowDepth="4" Opacity="0.35" Color="Black"/>
-                    </Border.Effect>
-                    <StackPanel>
-                        <TextBlock Text="{Binding ConfirmTitle}" FontSize="15" FontWeight="SemiBold"/>
-                        <TextBlock Text="{Binding ConfirmMessage}" Style="{StaticResource SubtleText}"
-                                   TextWrapping="Wrap" Margin="0,8,0,0"/>
-                        <!-- Collapsed for a plain confirmation, so the spacing
-                             below the message comes from whichever element is
-                             actually there. MaxLength keeps a name inside the
-                             sidebar it has to fit in. -->
-                        <TextBox x:Name="ConfirmInputBox" Margin="0,14,0,0" MaxLength="48"
-                                 Text="{Binding ConfirmInput, UpdateSourceTrigger=PropertyChanged}"
-                                 Visibility="{Binding ConfirmIsInput, Converter={StaticResource BoolToVis}}"
-                                 IsVisibleChanged="ConfirmInput_IsVisibleChanged"
-                                 KeyDown="ConfirmInput_KeyDown"/>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
-                            <Button Style="{StaticResource QuietButton}" Content="Cancel"
-                                    Command="{Binding ConfirmCancelCommand}" Margin="0,0,8,0"
-                                    IsCancel="True"/>
-                            <Button Style="{StaticResource AccentButton}" Padding="16,9" FontSize="12.5"
-                                    Content="{Binding ConfirmAcceptLabel}"
-                                    Command="{Binding ConfirmAcceptCommand}"/>
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
-            </Border>
-
-            <!-- Stay Awake: configure-and-start dialog. Same overlay treatment
-                 as the confirmation prompt; the service it fronts lives in the
-                 tray process, so closing this dialog (or the window) does not
-                 stop a running keeper — only Stop does. -->
-            <Border Grid.ColumnSpan="2" Background="{DynamicResource OverlayDimBrush}"
-                    Panel.ZIndex="11"
-                    Visibility="{Binding ShowStayAwake, Converter={StaticResource BoolToVis}}">
-                <Border Background="{DynamicResource PanelBrush}"
-                        BorderBrush="{DynamicResource BorderBrush2}" BorderThickness="1"
-                        Width="392" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <Border.Effect>
-                        <DropShadowEffect BlurRadius="28" ShadowDepth="4" Opacity="0.35" Color="Black"/>
-                    </Border.Effect>
-                    <StackPanel>
-                        <Grid Margin="20,14,10,12">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <!-- ============ Restore overlay ============ -->
+            <Border Grid.RowSpan="2" Background="{DynamicResource OverlayDimBrush}" Panel.ZIndex="10"
+                    Visibility="{Binding ShowRestorePanel, Converter={StaticResource BoolToVis}}">
+                <Border Style="{StaticResource OverlayPanel}" Width="480" MaxHeight="520">
+                    <DockPanel>
+                        <Grid DockPanel.Dock="Top">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Style="{StaticResource SpinnerPath}" Stroke="{DynamicResource TextBrush}"
+                                      VerticalAlignment="Center" Margin="0,0,10,0"
+                                      Visibility="{Binding IsRestoring, Converter={StaticResource BoolToVis}}"/>
                                 <Viewbox Width="15" Height="15" VerticalAlignment="Center" Margin="0,0,10,0">
-                                    <Path Width="24" Height="24" Data="{StaticResource IconBell}"
-                                          Stroke="{DynamicResource AccentBrush}" StrokeThickness="2.25"
-                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                                          StrokeLineJoin="Round"/>
+                                    <Viewbox.Style>
+                                        <Style TargetType="Viewbox">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsRestoring}" Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Viewbox.Style>
+                                    <Path Width="24" Height="24" Data="{StaticResource IconCheck}"
+                                          Stroke="{DynamicResource AccentBrush}" StrokeThickness="2.5"
+                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
                                 </Viewbox>
-                                <TextBlock Text="STAY AWAKE" Style="{StaticResource SectionLabel}"
-                                           Foreground="{DynamicResource TextBrush}"
-                                           VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding RestoreTitle}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"/>
                             </StackPanel>
-                            <Button Style="{StaticResource SubtleIconButton}" Tag="{StaticResource IconClose}"
-                                    HorizontalAlignment="Right" VerticalAlignment="Center"
-                                    Command="{Binding CloseStayAwakeCommand}"
-                                    ToolTip="Close" AutomationProperties.Name="Close Stay Awake"/>
+                            <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12"
+                                       Foreground="{DynamicResource MutedBrush}" Text="{Binding RestoreCounter, Mode=OneWay}"/>
                         </Grid>
-                        <Border Height="1" Background="{DynamicResource BorderBrush2}"/>
-
-                        <!-- Config: read-only while running, so what the status
-                             line reports is always what was started. -->
-                        <StackPanel Margin="20,14,20,4">
-                            <StackPanel.Style>
-                                <Style TargetType="StackPanel">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsStayAwakeActive}" Value="True">
-                                            <Setter Property="IsEnabled" Value="False"/>
-                                            <Setter Property="Opacity" Value="0.5"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </StackPanel.Style>
-
-                            <TextBlock Text="NUDGE EVERY" Style="{StaticResource SectionLabel}"
-                                       FontSize="10.5" Margin="0,0,0,8"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
-                                <RadioButton Style="{StaticResource ChipRadio}" GroupName="SaInterval"
-                                             Content="30 s" Margin="0,0,6,0"
-                                             IsChecked="{Binding StayAwakeIntervalSeconds, Converter={StaticResource EqualsParam}, ConverterParameter=30}"/>
-                                <RadioButton Style="{StaticResource ChipRadio}" GroupName="SaInterval"
-                                             Content="1 min" Margin="0,0,6,0"
-                                             IsChecked="{Binding StayAwakeIntervalSeconds, Converter={StaticResource EqualsParam}, ConverterParameter=60}"/>
-                                <RadioButton Style="{StaticResource ChipRadio}" GroupName="SaInterval"
-                                             Content="2 min" Margin="0,0,6,0"
-                                             IsChecked="{Binding StayAwakeIntervalSeconds, Converter={StaticResource EqualsParam}, ConverterParameter=120}"/>
-                                <RadioButton Style="{StaticResource ChipRadio}" GroupName="SaInterval"
-                                             Content="5 min" Margin="0,0,10,0"
-                                             IsChecked="{Binding StayAwakeIntervalSeconds, Converter={StaticResource EqualsParam}, ConverterParameter=300}"/>
-                                <TextBlock Text="custom" FontSize="11" VerticalAlignment="Center"
-                                           Foreground="{DynamicResource MutedBrush}" Margin="0,0,6,0"/>
-                                <TextBox Width="42" FontSize="12" Padding="4,3"
-                                         HorizontalContentAlignment="Center"
-                                         Text="{Binding StayAwakeIntervalSeconds, UpdateSourceTrigger=LostFocus}"
-                                         ToolTip="Seconds between nudges (10–3600)"/>
-                                <TextBlock Text="s" FontSize="11" VerticalAlignment="Center"
-                                           Foreground="{DynamicResource MutedBrush}" Margin="4,0,0,0"/>
-                            </StackPanel>
-
-                            <TextBlock Text="METHOD" Style="{StaticResource SectionLabel}"
-                                       FontSize="10.5" Margin="0,0,0,8"/>
-                            <RadioButton Style="{StaticResource DotRadio}" GroupName="SaMethod" Margin="0,0,0,8"
-                                         IsChecked="{Binding StayAwakeMethod, Converter={StaticResource EqualsParam}, ConverterParameter=Invisible}">
-                                <StackPanel>
-                                    <TextBlock Text="Invisible nudge" FontSize="12.5"/>
-                                    <TextBlock Text="1 px move &amp; return — the cursor never visibly moves"
-                                               FontSize="11" Foreground="{DynamicResource MutedBrush}"/>
-                                </StackPanel>
-                            </RadioButton>
-                            <RadioButton Style="{StaticResource DotRadio}" GroupName="SaMethod" Margin="0,0,0,8"
-                                         IsChecked="{Binding StayAwakeMethod, Converter={StaticResource EqualsParam}, ConverterParameter=Visible}">
-                                <StackPanel>
-                                    <TextBlock Text="Visible nudge" FontSize="12.5"/>
-                                    <TextBlock Text="drifts the cursor a few pixels and back"
-                                               FontSize="11" Foreground="{DynamicResource MutedBrush}"/>
-                                </StackPanel>
-                            </RadioButton>
-                            <RadioButton Style="{StaticResource DotRadio}" GroupName="SaMethod" Margin="0,0,0,14"
-                                         IsChecked="{Binding StayAwakeMethod, Converter={StaticResource EqualsParam}, ConverterParameter=Key}">
-                                <StackPanel>
-                                    <TextBlock Text="Key press (F15)" FontSize="12.5"/>
-                                    <TextBlock Text="for apps that watch the keyboard instead"
-                                               FontSize="11" Foreground="{DynamicResource MutedBrush}"/>
-                                </StackPanel>
-                            </RadioButton>
-
-                            <TextBlock Text="BEHAVIOUR" Style="{StaticResource SectionLabel}"
-                                       FontSize="10.5" Margin="0,0,0,8"/>
-                            <CheckBox IsChecked="{Binding StayAwakeOnlyWhenIdle}" Margin="0,0,0,8">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="Only when I'm idle" FontSize="12.5"/>
-                                    <TextBlock Text="never fights real input" FontSize="11" Margin="7,1,0,0"
-                                               Foreground="{DynamicResource MutedBrush}"/>
-                                </StackPanel>
-                            </CheckBox>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                <CheckBox IsChecked="{Binding StayAwakeAutoStop}" VerticalAlignment="Center"
-                                          Content="Stop automatically after" FontSize="12.5"/>
-                                <TextBox Width="34" FontSize="12" Padding="4,3" Margin="8,0,0,0"
-                                         HorizontalContentAlignment="Center"
-                                         IsEnabled="{Binding StayAwakeAutoStop}"
-                                         Text="{Binding StayAwakeAutoStopHours, UpdateSourceTrigger=LostFocus}"
-                                         ToolTip="Hours before it stops on its own (1–24)"/>
-                                <TextBlock Text="hours" FontSize="11" VerticalAlignment="Center"
-                                           Foreground="{DynamicResource MutedBrush}" Margin="6,0,0,0"/>
-                            </StackPanel>
-                        </StackPanel>
-
-                        <Border Height="1" Background="{DynamicResource BorderBrush2}"/>
-                        <Grid Margin="20,12,20,14">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <Ellipse Width="7" Height="7" Fill="{DynamicResource AccentBrush}"
-                                         Margin="0,0,7,0" VerticalAlignment="Center"
-                                         Visibility="{Binding IsStayAwakeActive, Converter={StaticResource BoolToVis}}"/>
-                                <TextBlock Text="{Binding StayAwakeStatus}" FontSize="11.5"
-                                           Style="{StaticResource NumericText}"
-                                           Foreground="{DynamicResource MutedBrush}"
-                                           VerticalAlignment="Center"/>
-                            </StackPanel>
-                            <Button Content="Start" Padding="16,9" FontSize="12.5"
-                                    HorizontalAlignment="Right"
-                                    Command="{Binding StayAwakeToggleCommand}">
+                        <TextBlock DockPanel.Dock="Top" Text="{Binding RestoreNote}" FontSize="11" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource MutedBrush}" Margin="0,4,0,10"/>
+                        <ProgressBar DockPanel.Dock="Top" Style="{StaticResource ThinProgress}"
+                                     Maximum="1" Value="{Binding RestoreFraction, Mode=OneWay}" Margin="0,0,0,8"/>
+                        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+                            <Button Style="{StaticResource QuietButton}" Content="Cancel"
+                                    Command="{Binding CancelRestoreCommand}"
+                                    Visibility="{Binding IsRestoring, Converter={StaticResource BoolToVis}}"/>
+                            <Button Content="Close" Command="{Binding CloseRestoreCommand}">
                                 <Button.Style>
-                                    <Style TargetType="Button" BasedOn="{StaticResource AccentButton}">
+                                    <Style TargetType="Button" BasedOn="{StaticResource QuietButton}">
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsStayAwakeActive}" Value="True">
+                                            <DataTrigger Binding="{Binding IsRestoring}" Value="True">
                                                 <Setter Property="Visibility" Value="Collapsed"/>
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
                                 </Button.Style>
                             </Button>
-                            <Button Content="Stop" Style="{StaticResource DangerOutlineButton}"
-                                    HorizontalAlignment="Right"
-                                    Command="{Binding StayAwakeToggleCommand}"
-                                    Visibility="{Binding IsStayAwakeActive, Converter={StaticResource BoolToVis}}"/>
+                        </StackPanel>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding RestoreProgress}" ItemTemplate="{StaticResource RestoreRowTemplate}"/>
+                        </ScrollViewer>
+                    </DockPanel>
+                </Border>
+            </Border>
+
+            <!-- ============ Desktop switch prompt ============ -->
+            <Border Grid.RowSpan="2" Background="{DynamicResource OverlayDimBrush}" Panel.ZIndex="11"
+                    Visibility="{Binding ShowDesktopPrompt, Converter={StaticResource BoolToVis}}">
+                <Border Style="{StaticResource OverlayPanel}" Width="440" Padding="24,20,24,18">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Viewbox Width="15" Height="15" VerticalAlignment="Center" Margin="0,0,10,0">
+                                <Path Width="24" Height="24" Data="{StaticResource IconMonitor}"
+                                      Stroke="{DynamicResource AccentBrush}" StrokeThickness="2.25"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+                            </Viewbox>
+                            <TextBlock FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center">
+                                <Run Text="Switch to desktop "/><Run Text="{Binding DesktopPromptName, Mode=OneWay}"/>
+                            </TextBlock>
+                        </StackPanel>
+                        <TextBlock Style="{StaticResource SubtleText}" TextWrapping="Wrap" Margin="0,10,0,0"
+                                   Text="This workspace lives on another virtual desktop. Press Win+Ctrl+← or → to go there, or pick it in Task View. Restage continues the moment you arrive."/>
+                        <Grid Margin="0,20,0,0">
+                            <Button Style="{StaticResource QuietButton}" Content="Cancel" HorizontalAlignment="Left"
+                                    Command="{Binding CancelDesktopCommand}"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button Style="{StaticResource QuietButton}" Content="Restore here instead"
+                                        Command="{Binding RestoreHereCommand}" Margin="0,0,8,0"/>
+                                <Button Style="{StaticResource AccentButton}" Padding="16,9" FontSize="12.5"
+                                        Content="Open Task View" Command="{Binding OpenTaskViewCommand}"/>
+                            </StackPanel>
                         </Grid>
                     </StackPanel>
                 </Border>
             </Border>
 
-            <!-- Seam between history and contents. Sits over the sidebar's own
-                 1px border, so the layout looks exactly as it did before. -->
-            <GridSplitter x:Name="SidebarSplitter" Grid.Column="1" Width="7" Margin="-4,0,0,0"
-                          HorizontalAlignment="Left" VerticalAlignment="Stretch"
-                          Background="Transparent" Cursor="SizeWE" Focusable="False"
-                          ResizeDirection="Columns" ResizeBehavior="PreviousAndCurrent"
-                          DragCompleted="SidebarSplitter_DragCompleted"
-                          ToolTip="Drag to resize the capture history"/>
-        </Grid>
+            <!-- ============ Capture overlay ============ -->
+            <Border Grid.RowSpan="2" Background="{DynamicResource OverlayDimBrush}" Panel.ZIndex="12"
+                    Visibility="{Binding ShowCapture, Converter={StaticResource BoolToVis}}">
+                <Border Style="{StaticResource OverlayPanel}" Width="580" MaxHeight="640">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Text="{Binding CaptureTitle}" FontSize="15" FontWeight="SemiBold"/>
+                        <TextBlock DockPanel.Dock="Top" Text="{Binding CaptureSummary}" Style="{StaticResource SubtleText}"
+                                   TextWrapping="Wrap" Margin="0,4,0,12"/>
+                        <TextBlock DockPanel.Dock="Top" Text="NAME" Style="{StaticResource SectionLabel}"/>
+                        <TextBox DockPanel.Dock="Top" Margin="0,6,0,14" MaxLength="48"
+                                 Text="{Binding CaptureName, UpdateSourceTrigger=PropertyChanged}"
+                                 IsVisibleChanged="OverlayInput_IsVisibleChanged" KeyDown="CaptureName_KeyDown"/>
+                        <Grid DockPanel.Dock="Top" Margin="2,0,2,6">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="WINDOWS FOUND" Style="{StaticResource SectionLabel}"/>
+                                <TextBlock Text="{Binding CaptureCount}" Style="{StaticResource NumericText}" FontSize="11"
+                                           Margin="7,0,0,0" Foreground="{DynamicResource MutedBrush}"/>
+                            </StackPanel>
+                            <CheckBox HorizontalAlignment="Right" IsThreeState="False" FontSize="12"
+                                      IsChecked="{Binding CaptureAllSelected}" Content="Select all"
+                                      Foreground="{DynamicResource MutedBrush}"/>
+                        </Grid>
+                        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                            <Button Style="{StaticResource QuietButton}" Content="Cancel"
+                                    Command="{Binding CaptureCancelCommand}" Margin="0,0,8,0" IsCancel="True"/>
+                            <Button Style="{StaticResource AccentButton}" Padding="16,9" FontSize="12.5"
+                                    Content="Save workspace" Command="{Binding CaptureSaveCommand}"/>
+                        </StackPanel>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" PreviewMouseWheel="Scrollable_PreviewMouseWheel">
+                            <ItemsControl ItemsSource="{Binding CaptureItems}" ItemTemplate="{StaticResource CaptureRowTemplate}" Margin="0,0,6,0"/>
+                        </ScrollViewer>
+                    </DockPanel>
+                </Border>
+            </Border>
 
+            <!-- ============ Confirmation / rename prompt ============ -->
+            <Border Grid.RowSpan="2" Background="{DynamicResource OverlayDimBrush}" Panel.ZIndex="13"
+                    Visibility="{Binding ShowConfirm, Converter={StaticResource BoolToVis}}">
+                <Border Style="{StaticResource OverlayPanel}" Width="400" Padding="24,20,24,18">
+                    <StackPanel>
+                        <TextBlock Text="{Binding ConfirmTitle}" FontSize="15" FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding ConfirmMessage}" Style="{StaticResource SubtleText}"
+                                   TextWrapping="Wrap" Margin="0,8,0,0"/>
+                        <TextBox Margin="0,14,0,0" MaxLength="48"
+                                 Text="{Binding ConfirmInput, UpdateSourceTrigger=PropertyChanged}"
+                                 Visibility="{Binding ConfirmIsInput, Converter={StaticResource BoolToVis}}"
+                                 IsVisibleChanged="OverlayInput_IsVisibleChanged" KeyDown="ConfirmInput_KeyDown"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+                            <Button Style="{StaticResource QuietButton}" Content="Cancel"
+                                    Command="{Binding ConfirmCancelCommand}" Margin="0,0,8,0"/>
+                            <Button Style="{StaticResource AccentButton}" Padding="16,9" FontSize="12.5"
+                                    Content="{Binding ConfirmAcceptLabel}" Command="{Binding ConfirmAcceptCommand}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Border>
+        </Grid>
     </Grid>
 </Window>

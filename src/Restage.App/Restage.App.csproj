@@ -10,11 +10,12 @@
     <AssemblyName>Restage</AssemblyName>
     <RootNamespace>Restage</RootNamespace>
     <ApplicationIcon>Assets\Restage.ico</ApplicationIcon>
-    <Version>1.0.0-beta.2</Version>
+    <Version>0.1.0</Version>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
     <Product>Restage</Product>
     <Company>Restage</Company>
-    <Copyright>© 2026 Anurag Patil</Copyright>
-    <AssemblyTitle>Restage — workspace snapshot and restore</AssemblyTitle>
+    <Copyright>© 2026 Restage contributors. Based on Rewake © 2026 Anurag Patil (MIT).</Copyright>
+    <AssemblyTitle>Restage — save and restore desktop workspaces</AssemblyTitle>
   </PropertyGroup>
 
   <ItemGroup>

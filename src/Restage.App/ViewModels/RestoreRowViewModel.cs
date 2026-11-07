@@ -1,28 +1,23 @@
 using System.Windows;
 using System.Windows.Media;
 using Restage.Models;
+using Restage.Services;
 
 namespace Restage.ViewModels;
 
 /// <summary>One row in the restore progress panel.</summary>
-public class RestoreItemViewModel : ViewModelBase
+public class RestoreRowViewModel : ViewModelBase
 {
-    public RestoreItemViewModel(AppItemViewModel app)
+    public RestoreRowViewModel(WorkspaceItem item)
     {
-        Name = app.Name;
-        Sub = app.Entry.Cwds?.FirstOrDefault() ?? app.Title;
-        Icon = app.Icon;
-        Initial = app.Initial;
+        ItemId = item.Id;
+        Name = WorkspaceItemViewModel.Label(item);
+        Sub = item.Detail ?? item.Title;
+        Icon = IconCache.ForItem(item);
+        Initial = Name is { Length: > 0 } n ? n[..1].ToUpperInvariant() : "?";
     }
 
-    public RestoreItemViewModel(FolderItemViewModel folder)
-    {
-        Name = folder.Name;
-        Sub = folder.Path;
-        Icon = folder.Icon;
-        Initial = folder.Name is { Length: > 0 } n ? n[..1].ToUpperInvariant() : "?";
-    }
-
+    public string ItemId { get; }
     public string Name { get; }
     public string Sub { get; }
     public ImageSource? Icon { get; }
@@ -43,15 +38,23 @@ public class RestoreItemViewModel : ViewModelBase
         }
     }
 
+    string _message = "";
+    /// <summary>What the restore service last said about this item.</summary>
+    public string Message
+    {
+        get => _message;
+        set { if (SetProperty(ref _message, value)) OnPropertyChanged(nameof(StatusText)); }
+    }
+
     /// <summary>True once the item reached a final state (counts toward progress).</summary>
     public bool IsTerminal => Status is RestoreStatus.Opened or RestoreStatus.Skipped or RestoreStatus.Failed;
 
     public string StatusText => Status switch
     {
         RestoreStatus.Waiting => "Waiting",
-        RestoreStatus.Launching => "Launching…",
-        RestoreStatus.Opened => "Opened",
-        RestoreStatus.Skipped => "Skipped",
-        _ => "Failed"
+        RestoreStatus.Launching => "Starting…",
+        RestoreStatus.Opened => Message.Length > 0 ? Message : "Opened",
+        RestoreStatus.Skipped => Message.Length > 0 ? $"Skipped · {Message}" : "Skipped",
+        _ => Message.Length > 0 ? $"Failed · {Message}" : "Failed",
     };
 }

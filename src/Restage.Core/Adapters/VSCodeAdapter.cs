@@ -126,8 +126,10 @@ public sealed class VSCodeAdapter : AppAdapter
         if (!Uri.TryCreate(uri, UriKind.Absolute, out var parsed) || parsed.Scheme != Uri.UriSchemeFile) return null;
         var path = Uri.UnescapeDataString(parsed.AbsolutePath);
         if (parsed.Host.Length > 0) return $@"\\{parsed.Host}{path.Replace('/', '\\')}";   // UNC
-        if (path.Length >= 3 && path[0] == '/' && char.IsLetter(path[1]) && path[2] == ':')
-            path = char.ToUpperInvariant(path[1]) + path[2..];   // VS Code lower-cases the drive letter
+        // Uri yields "/c:/…" for an escaped drive colon and "c:/…" for a literal one.
+        if (path.Length >= 3 && path[0] == '/' && char.IsLetter(path[1]) && path[2] == ':') path = path[1..];
+        if (path.Length >= 2 && char.IsLetter(path[0]) && path[1] == ':')
+            path = char.ToUpperInvariant(path[0]) + path[1..];   // VS Code lower-cases the drive letter
         path = path.Replace('/', '\\');
         return path.Length == 2 ? path + "\\" : path.TrimEnd('\\');
     }

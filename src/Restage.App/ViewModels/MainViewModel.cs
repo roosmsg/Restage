@@ -1,124 +1,280 @@
-﻿using System.Collections.ObjectModel;
-using System.ComponentModel;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.Windows;
 using Restage.Models;
+using Restage.Native;
 using Restage.Services;
 
 namespace Restage.ViewModels;
 
 /// <summary>
-/// Root view model for the main window: capture history, the loaded capture's
-/// app/folder selection, restore progress, settings toggles, and the activity log.
+/// Root view model: the workspace gallery and its details pane, the capture,
+/// restore, desktop-switch and confirmation overlays, settings, and the log.
 /// </summary>
 public class MainViewModel : ViewModelBase
 {
     readonly AppSettings _settings;
-    string? _loadedPath;              // snapshot file currently shown in the lists
-    DateTime _loadedWriteTime;        // its write time, to detect rewritten content
-    bool _refreshing;                 // guards selection while the sidebar rebuilds
+    readonly IAppHost _host;
+    readonly string _currentProfileId;
+    CancellationTokenSource? _restoreCts;
+    WorkspaceCaptureService.Result? _pendingCapture;
+    WorkspaceCardViewModel? _pendingUpdateTarget;
+    TaskCompletionSource<bool>? _desktopChoice;
 
-    public MainViewModel(AppSettings settings)
+    public MainViewModel(AppSettings settings, IAppHost host)
     {
         _settings = settings;
-        RestoreCommand = new RelayCommand(async _ => await RestoreAsync(), _ => !IsRestoring);
-        CaptureNowCommand = new RelayCommand(async _ => await CaptureNowAsync());
-        DeleteCaptureCommand = new RelayCommand(_ => DeleteCapture(SelectedSnapshot),
-            _ => SelectedSnapshot != null);
-        FavoriteSelectedCommand = new RelayCommand(_ => ToggleFavorite(SelectedSnapshot!),
-            _ => SelectedSnapshot?.CanTag == true);
-        OpenDataFolderCommand = new RelayCommand(_ => OpenDataFolder());
+        _host = host;
+        _currentProfileId = DisplayProfiles.Current().Id;
+
+        NewWorkspaceCommand = new RelayCommand(async _ => await BeginCaptureAsync(null), _ => !IsBusy);
+        SelectCommand = new RelayCommand(p => Select(p as WorkspaceCardViewModel));
+        RestoreCommand = new RelayCommand(async p => await RestoreAsync(Card(p)), _ => !IsBusy);
+        UpdateCommand = new RelayCommand(async p => await BeginCaptureAsync(Card(p)), _ => !IsBusy);
+        RenameCommand = new RelayCommand(p => AskRename(Card(p)));
+        DeleteCommand = new RelayCommand(p => AskDelete(Card(p)));
+        OpenFolderCommand = new RelayCommand(p => OpenFolder(WorkspaceStore.DirectoryFor(Card(p).Id)));
+        NextPolicyCommand = new RelayCommand(p => (p as WorkspaceItemViewModel)?.NextPolicy());
+
+        CaptureSaveCommand = new RelayCommand(_ => SaveCapture(), _ => CanSaveCapture);
+        CaptureCancelCommand = new RelayCommand(_ => CancelCapture());
+        CancelRestoreCommand = new RelayCommand(_ => _restoreCts?.Cancel(), _ => IsRestoring);
+        CloseRestoreCommand = new RelayCommand(_ => ShowRestorePanel = false, _ => !IsRestoring);
+        OpenTaskViewCommand = new RelayCommand(_ => OpenTaskView());
+        RestoreHereCommand = new RelayCommand(_ => _desktopChoice?.TrySetResult(false));
+        CancelDesktopCommand = new RelayCommand(_ => { _desktopChoice?.TrySetResult(false); _restoreCts?.Cancel(); });
+
+        OpenDataFolderCommand = new RelayCommand(_ => OpenFolder(Paths.DataDir));
         ToggleThemeCommand = new RelayCommand(_ => ToggleTheme());
-        // Clearing the log throws away a few screens of text; clearing the
-        // history deletes files. Only the second one asks.
         ClearLogCommand = new RelayCommand(_ => ClearLog(), _ => LogEntries.Count > 0);
-        ClearHistoryCommand = new RelayCommand(_ => AskClearHistory(), _ => HasClearableHistory);
         ConfirmAcceptCommand = new RelayCommand(_ => AcceptConfirm());
         ConfirmCancelCommand = new RelayCommand(_ => CloseConfirm());
-        OpenStayAwakeCommand = new RelayCommand(_ => ShowStayAwake = true);
-        CloseStayAwakeCommand = new RelayCommand(_ => ShowStayAwake = false);
-        StayAwakeToggleCommand = new RelayCommand(_ => ToggleStayAwake());
-        StayAwakeService.StateChanged += OnStayAwakeStateChanged;
-        RefreshSnapshots();
-        Log("Ready. Closing the window keeps Restage running in the system tray.");
+
+        RefreshWorkspaces();
+        Log("Ready. Closing the window keeps Restage in the system tray.");
     }
 
-    public ObservableCollection<SnapshotItemViewModel> Snapshots { get; } = new();
-    public ObservableCollection<AppGroupViewModel> Apps { get; } = new();
-    public ObservableCollection<FolderItemViewModel> Folders { get; } = new();
+    static WorkspaceCardViewModel Card(object? p) => (WorkspaceCardViewModel)p!;
 
-    IEnumerable<AppItemViewModel> AllInstances => Apps.SelectMany(g => g.Instances);
-    public ObservableCollection<string> LogEntries { get; } = new();
+    // ---- Gallery -----------------------------------------------------------
 
-    /// <summary>Rows of the restore overlay, one per selected window/folder.</summary>
-    public ObservableCollection<RestoreItemViewModel> RestoreProgress { get; } = new();
+    public ObservableCollection<WorkspaceCardViewModel> Workspaces { get; } = new();
 
-    public RelayCommand RestoreCommand { get; }
-    public RelayCommand CaptureNowCommand { get; }
-    public RelayCommand DeleteCaptureCommand { get; }
-    public RelayCommand FavoriteSelectedCommand { get; }
-    public RelayCommand OpenDataFolderCommand { get; }
-    public RelayCommand ToggleThemeCommand { get; }
-    public RelayCommand ClearLogCommand { get; }
-    public RelayCommand ClearHistoryCommand { get; }
-    public RelayCommand ConfirmAcceptCommand { get; }
-    public RelayCommand ConfirmCancelCommand { get; }
-    public RelayCommand OpenStayAwakeCommand { get; }
-    public RelayCommand CloseStayAwakeCommand { get; }
-    public RelayCommand StayAwakeToggleCommand { get; }
-
-    /// <summary>Raised when the auto-capture setting changes so the host can reconfigure its timer.</summary>
-    public event Action? AutoCaptureChanged;
-
-    SnapshotItemViewModel? _selectedSnapshot;
-    public SnapshotItemViewModel? SelectedSnapshot
+    public bool HasWorkspaces => Workspaces.Count > 0;
+    public string WorkspaceCountText => Workspaces.Count switch
     {
-        get => _selectedSnapshot;
-        set
+        0 => "No workspaces yet",
+        1 => "1 workspace",
+        var n => $"{n} workspaces",
+    };
+
+    WorkspaceCardViewModel? _selected;
+    public WorkspaceCardViewModel? Selected
+    {
+        get => _selected;
+        private set
         {
-            // The ListBox pushes a null selection while the list is being
-            // rebuilt — ignoring it preserves the user's checkbox choices.
-            if (_refreshing && value == null) return;
-            if (SetProperty(ref _selectedSnapshot, value) && NeedsReload(value))
-                LoadSnapshot(value);
-            DeleteCaptureCommand.RaiseCanExecuteChanged();
-            NotifyFavoriteChanged();
+            if (_selected == value) return;
+            if (_selected != null) _selected.IsSelected = false;
+            _selected = value;
+            if (_selected != null) _selected.IsSelected = true;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasSelection));
         }
     }
 
-    /// <summary>Fills the star in the action row for the selected capture.</summary>
-    public bool SelectedIsFavorite => SelectedSnapshot?.IsFavorite == true;
+    public bool HasSelection => Selected != null;
 
-    public string FavoriteTooltip => SelectedIsFavorite ? "Remove from favourites" : "Add to favourites";
+    public RelayCommand NewWorkspaceCommand { get; }
+    public RelayCommand SelectCommand { get; }
+    public RelayCommand RestoreCommand { get; }
+    public RelayCommand UpdateCommand { get; }
+    public RelayCommand RenameCommand { get; }
+    public RelayCommand DeleteCommand { get; }
+    public RelayCommand OpenFolderCommand { get; }
+    public RelayCommand NextPolicyCommand { get; }
 
-    void NotifyFavoriteChanged()
+    void Select(WorkspaceCardViewModel? card) => Selected = card;
+
+    /// <summary>Rebuilds the gallery from disk, keeping the selection when possible.</summary>
+    public void RefreshWorkspaces()
     {
-        OnPropertyChanged(nameof(SelectedIsFavorite));
-        OnPropertyChanged(nameof(FavoriteTooltip));
-        FavoriteSelectedCommand.RaiseCanExecuteChanged();
+        var selectedId = Selected?.Id;
+        Workspaces.Clear();
+        foreach (var ws in WorkspaceStore.List())
+            Workspaces.Add(new WorkspaceCardViewModel(ws, _currentProfileId, SaveWorkspace));
+        Selected = Workspaces.FirstOrDefault(w => w.Id == selectedId);
+        OnPropertyChanged(nameof(HasWorkspaces));
+        OnPropertyChanged(nameof(WorkspaceCountText));
     }
 
-    bool NeedsReload(SnapshotItemViewModel? item)
+    /// <summary>Persists item-level edits (enabled flags, policies) made in the details pane.</summary>
+    void SaveWorkspace(WorkspaceCardViewModel card)
     {
-        if (item?.Path != _loadedPath) return true;
-        if (item == null) return false;
-        // Same path but rewritten content (last-session.json after a reboot)
-        try { return File.GetLastWriteTime(item.Path) != _loadedWriteTime; }
-        catch { return true; }
+        try { WorkspaceStore.Save(card.Model); }
+        catch (Exception ex) { Log($"Could not save \"{card.Name}\": {ex.Message}"); }
     }
 
-    string _header = "No capture selected";
-    public string Header { get => _header; private set => SetProperty(ref _header, value); }
+    // ---- Busy state --------------------------------------------------------
 
-    string _subHeader = "";
-    public string SubHeader { get => _subHeader; private set => SetProperty(ref _subHeader, value); }
+    bool _isBusy;
+    /// <summary>True while capturing or restoring; the gallery's actions wait.</summary>
+    public bool IsBusy
+    {
+        get => _isBusy;
+        private set
+        {
+            if (!SetProperty(ref _isBusy, value)) return;
+            NewWorkspaceCommand.RaiseCanExecuteChanged();
+            RestoreCommand.RaiseCanExecuteChanged();
+            UpdateCommand.RaiseCanExecuteChanged();
+        }
+    }
 
-    string _captureStats = "";
-    public string CaptureStats { get => _captureStats; private set => SetProperty(ref _captureStats, value); }
+    // ---- Capture (new workspace / update) -----------------------------------
 
-    public string HistoryCount => Snapshots.Count.ToString();
-    public string AppCount => Apps.Count.ToString();
-    public string FolderCount => Folders.Count.ToString();
+    public ObservableCollection<CaptureItemViewModel> CaptureItems { get; } = new();
+
+    bool _showCapture;
+    public bool ShowCapture { get => _showCapture; private set => SetProperty(ref _showCapture, value); }
+
+    bool _isCapturing;
+    public bool IsCapturing { get => _isCapturing; private set => SetProperty(ref _isCapturing, value); }
+
+    string _captureName = "";
+    public string CaptureName
+    {
+        get => _captureName;
+        set { if (SetProperty(ref _captureName, value)) CaptureSaveCommand.RaiseCanExecuteChanged(); }
+    }
+
+    string _captureTitle = "";
+    public string CaptureTitle { get => _captureTitle; private set => SetProperty(ref _captureTitle, value); }
+
+    string _captureSummary = "";
+    public string CaptureSummary { get => _captureSummary; private set => SetProperty(ref _captureSummary, value); }
+
+    public string CaptureCount => $"{CaptureItems.Count(i => i.IsSelected)} of {CaptureItems.Count} selected";
+
+    public bool? CaptureAllSelected
+    {
+        get
+        {
+            if (CaptureItems.Count == 0) return false;
+            var n = CaptureItems.Count(i => i.IsSelected);
+            return n == 0 ? false : n == CaptureItems.Count ? true : null;
+        }
+        set
+        {
+            var on = value == true;
+            foreach (var i in CaptureItems) i.IsSelected = on;
+            OnPropertyChanged();
+        }
+    }
+
+    bool CanSaveCapture => _pendingCapture != null && !string.IsNullOrWhiteSpace(CaptureName) && CaptureItems.Any(i => i.IsSelected);
+
+    public RelayCommand CaptureSaveCommand { get; }
+    public RelayCommand CaptureCancelCommand { get; }
+
+    /// <summary>Photographs the desktop (window hidden), then shows the found windows for review.</summary>
+    async Task BeginCaptureAsync(WorkspaceCardViewModel? update)
+    {
+        if (IsBusy) return;
+        IsBusy = true;
+        IsCapturing = true;
+        _pendingUpdateTarget = update;
+        Log(update == null ? "Capturing the desktop…" : $"Re-capturing \"{update.Name}\"…");
+        try
+        {
+            _host.HideMain();
+            await Task.Delay(450); // let the compositor drop our window before the screenshot
+            var existing = update?.Model;
+            var name = update?.Name ?? "";
+            _pendingCapture = await Task.Run(() => WorkspaceCaptureService.Capture(name, existing));
+        }
+        catch (Exception ex)
+        {
+            Log($"Capture failed: {ex.Message}");
+            _pendingCapture = null;
+        }
+        finally
+        {
+            _host.ShowMain();
+            IsCapturing = false;
+        }
+        if (_pendingCapture == null) { IsBusy = false; return; }
+
+        var ws = _pendingCapture.Workspace;
+        CaptureItems.Clear();
+        foreach (var item in ws.Items)
+        {
+            var vm = new CaptureItemViewModel(item);
+            vm.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName != nameof(CaptureItemViewModel.IsSelected)) return;
+                OnPropertyChanged(nameof(CaptureAllSelected));
+                OnPropertyChanged(nameof(CaptureCount));
+                CaptureSaveCommand.RaiseCanExecuteChanged();
+            };
+            CaptureItems.Add(vm);
+        }
+        CaptureTitle = update == null ? "New workspace" : $"Update \"{update.Name}\"";
+        CaptureName = update?.Name ?? SuggestName(ws);
+        CaptureSummary = $"Desktop: {ws.Desktop?.DisplayName ?? "unknown"} · Displays: {_pendingCapture.Profile.Name}"
+            + (string.IsNullOrEmpty(ws.Wallpaper) ? "" : $" · Wallpaper: {Path.GetFileName(ws.Wallpaper)}");
+        OnPropertyChanged(nameof(CaptureAllSelected));
+        OnPropertyChanged(nameof(CaptureCount));
+        CaptureSaveCommand.RaiseCanExecuteChanged();
+        ShowCapture = true;
+    }
+
+    static string SuggestName(Workspace ws) =>
+        ws.Desktop?.Name is { Length: > 0 } d ? d : $"Workspace {DateTime.Now:ddd HH:mm}";
+
+    void SaveCapture()
+    {
+        if (_pendingCapture == null) return;
+        var result = _pendingCapture;
+        var ws = result.Workspace;
+        ws.Name = CaptureName.Trim();
+        var keep = CaptureItems.Where(i => i.IsSelected).Select(i => i.Item).ToHashSet();
+        ws.Items = ws.Items.Where(keep.Contains).ToList();
+        try
+        {
+            WorkspaceStore.Save(ws, result.ThumbnailPng);
+            Log(_pendingUpdateTarget == null
+                ? $"Saved \"{ws.Name}\" with {ws.Items.Count} items."
+                : $"Updated \"{ws.Name}\": {ws.Items.Count} items, layout for {result.Profile.Name}.");
+        }
+        catch (Exception ex) { Log($"Save failed: {ex.Message}"); }
+        CloseCapture();
+        RefreshWorkspaces();
+        Selected = Workspaces.FirstOrDefault(w => w.Id == ws.Id);
+    }
+
+    void CancelCapture()
+    {
+        Log("Capture discarded.");
+        CloseCapture();
+    }
+
+    void CloseCapture()
+    {
+        ShowCapture = false;
+        _pendingCapture = null;
+        _pendingUpdateTarget = null;
+        CaptureItems.Clear();
+        IsBusy = false;
+    }
+
+    // ---- Restore ------------------------------------------------------------
+
+    public ObservableCollection<RestoreRowViewModel> RestoreProgress { get; } = new();
+
+    bool _showRestorePanel;
+    public bool ShowRestorePanel { get => _showRestorePanel; private set => SetProperty(ref _showRestorePanel, value); }
 
     bool _isRestoring;
     public bool IsRestoring
@@ -126,68 +282,207 @@ public class MainViewModel : ViewModelBase
         get => _isRestoring;
         private set
         {
-            if (SetProperty(ref _isRestoring, value)) RestoreCommand.RaiseCanExecuteChanged();
+            if (!SetProperty(ref _isRestoring, value)) return;
+            CancelRestoreCommand.RaiseCanExecuteChanged();
+            CloseRestoreCommand.RaiseCanExecuteChanged();
         }
     }
 
-    bool _isCapturing;
-    public bool IsCapturing
-    {
-        get => _isCapturing;
-        private set => SetProperty(ref _isCapturing, value);
-    }
+    string _restoreTitle = "";
+    public string RestoreTitle { get => _restoreTitle; private set => SetProperty(ref _restoreTitle, value); }
 
-    bool _showRestorePanel;
-    /// <summary>Restore overlay visibility: shown while restoring, lingers a few
-    /// seconds with the summary, then hidden (XAML fades on the falling edge).</summary>
-    public bool ShowRestorePanel
-    {
-        get => _showRestorePanel;
-        private set => SetProperty(ref _showRestorePanel, value);
-    }
+    string _restoreNote = "";
+    /// <summary>Run-level messages (desktop, wallpaper, finish) under the title.</summary>
+    public string RestoreNote { get => _restoreNote; private set => SetProperty(ref _restoreNote, value); }
 
     int _restoreDone, _restoreTotal;
-
-    /// <summary>Overlay counter text, e.g. "2 of 6".</summary>
     public string RestoreCounter => $"{_restoreDone} of {_restoreTotal}";
-
-    /// <summary>Overall restore progress in [0, 1] for the progress bar.</summary>
     public double RestoreFraction => _restoreTotal == 0 ? 0 : (double)_restoreDone / _restoreTotal;
 
-    /// <summary>Tri-state master checkbox: true = all, false = none, null = mixed.</summary>
-    public bool? AllSelected
+    public RelayCommand CancelRestoreCommand { get; }
+    public RelayCommand CloseRestoreCommand { get; }
+
+    /// <summary>Entry point for the command line and the restage: URI; matches by name or id.</summary>
+    public async Task RestoreByNameAsync(string nameOrId)
     {
-        get
+        var card = Workspaces.FirstOrDefault(w => string.Equals(w.Name, nameOrId, StringComparison.OrdinalIgnoreCase))
+                   ?? Workspaces.FirstOrDefault(w => w.Id == nameOrId);
+        if (card == null) { Log($"No workspace named \"{nameOrId}\"."); _host.ShowMain(); return; }
+        await RestoreAsync(card);
+    }
+
+    async Task RestoreAsync(WorkspaceCardViewModel card)
+    {
+        if (IsBusy) return;
+        Selected = card;
+        IsBusy = true;
+        IsRestoring = true;
+        RestoreTitle = card.Name;
+        RestoreNote = card.LacksCurrentProfile
+            ? "No layout saved for the current monitors; using the closest one."
+            : "Apps open one at a time so your PC stays responsive.";
+        RestoreProgress.Clear();
+        foreach (var item in card.Model.Items.Where(i => i.Enabled && i.Policy != LaunchPolicy.Skip))
+            RestoreProgress.Add(new RestoreRowViewModel(item));
+        _restoreDone = 0;
+        _restoreTotal = RestoreProgress.Count;
+        OnPropertyChanged(nameof(RestoreCounter));
+        OnPropertyChanged(nameof(RestoreFraction));
+        ShowRestorePanel = true;
+        Log($"Restoring \"{card.Name}\" — {_restoreTotal} items…");
+
+        _restoreCts = new CancellationTokenSource();
+        var options = new RestoreOptions
         {
-            var total = AllInstances.Count() + Folders.Count;
-            if (total == 0) return false;
-            var selected = AllInstances.Count(a => a.IsSelected) + Folders.Count(f => f.IsSelected);
-            if (selected == 0) return false;
-            if (selected == total) return true;
-            return null;
+            Force = _settings.ForceLaunch,
+            ApplyWallpaper = _settings.ApplyWallpaper,
+            SwitchDesktop = _settings.DesktopSwitch == DesktopSwitchMode.Never ? null : SwitchDesktopAsync,
+        };
+        var progress = new Progress<RestoreEvent>(OnRestoreEvent);
+        var ws = card.Model;
+        try
+        {
+            await Task.Run(() => WorkspaceRestoreService.RestoreAsync(ws, options, progress, _restoreCts.Token));
         }
-        set
+        catch (OperationCanceledException) { Log("Restore cancelled."); RestoreNote = "Cancelled."; }
+        catch (Exception ex) { Log($"Restore failed: {ex.Message}"); RestoreNote = $"Failed: {ex.Message}"; }
+        finally
         {
-            var on = value == true;
-            foreach (var a in AllInstances) a.IsSelected = on;
-            foreach (var f in Folders) f.IsSelected = on;
-            OnPropertyChanged();
+            IsRestoring = false;
+            IsBusy = false;
+            _restoreCts.Dispose();
+            _restoreCts = null;
         }
     }
 
-    public bool AutoCapture
+    void OnRestoreEvent(RestoreEvent e)
     {
-        get => _settings.AutoCapture;
-        set
+        if (e.ItemId == null)
         {
-            if (_settings.AutoCapture == value) return;
-            _settings.AutoCapture = value;
-            SettingsService.Save(_settings);
-            AutoCaptureChanged?.Invoke();
-            OnPropertyChanged();
-            Log(value ? "Auto capture enabled." : "Auto capture disabled.");
+            RestoreNote = e.Message;
+            Log(e.Message);
+            return;
+        }
+        var row = RestoreProgress.FirstOrDefault(r => r.ItemId == e.ItemId);
+        if (row == null) return;
+        var wasTerminal = row.IsTerminal;
+        row.Message = e.Message;
+        row.Status = e.Status;
+        if (e.Status is RestoreStatus.Failed or RestoreStatus.Skipped) Log($"{row.Name}: {e.Message}");
+        if (!wasTerminal && row.IsTerminal)
+        {
+            _restoreDone++;
+            OnPropertyChanged(nameof(RestoreCounter));
+            OnPropertyChanged(nameof(RestoreFraction));
         }
     }
+
+    // ---- Desktop switch prompt ----------------------------------------------
+
+    bool _showDesktopPrompt;
+    public bool ShowDesktopPrompt { get => _showDesktopPrompt; private set => SetProperty(ref _showDesktopPrompt, value); }
+
+    string _desktopPromptName = "";
+    public string DesktopPromptName { get => _desktopPromptName; private set => SetProperty(ref _desktopPromptName, value); }
+
+    public RelayCommand OpenTaskViewCommand { get; }
+    public RelayCommand RestoreHereCommand { get; }
+    public RelayCommand CancelDesktopCommand { get; }
+
+    /// <summary>
+    /// Called by the restore service (on a worker thread) when the workspace
+    /// lives on another desktop. Windows has no public API to switch, so the
+    /// user does it: either silently awaited, or with a prompt. Returns true
+    /// once that desktop is current; our own window follows it.
+    /// </summary>
+    async Task<bool> SwitchDesktopAsync(DesktopRef desktop, CancellationToken ct)
+    {
+        if (desktop.Id is not { } id) return false;
+        var dispatcher = Application.Current.Dispatcher;
+        var wait = VirtualDesktops.WaitUntilCurrentAsync(id, TimeSpan.FromMinutes(_settings.DesktopSwitch == DesktopSwitchMode.Wait ? 1 : 5), ct);
+
+        bool switched;
+        if (_settings.DesktopSwitch == DesktopSwitchMode.Wait)
+        {
+            await dispatcher.InvokeAsync(() => Log($"Waiting for you to switch to desktop \"{desktop.DisplayName}\" (Win+Ctrl+←/→)…"));
+            switched = await wait;
+        }
+        else
+        {
+            var choice = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            await dispatcher.InvokeAsync(() =>
+            {
+                _desktopChoice = choice;
+                DesktopPromptName = desktop.DisplayName;
+                ShowDesktopPrompt = true;
+                _host.ShowMain();
+            });
+            var first = await Task.WhenAny(choice.Task, wait);
+            switched = first == wait ? await wait : await choice.Task && VirtualDesktops.IsCurrent(id);
+            await dispatcher.InvokeAsync(() => { ShowDesktopPrompt = false; _desktopChoice = null; });
+        }
+
+        if (switched && VirtualDesktops.IsCurrent(id))
+        {
+            // Bring our window along so the progress stays in view.
+            await dispatcher.InvokeAsync(() =>
+            {
+                var hwnd = _host.MainHandle;
+                if (hwnd != IntPtr.Zero) VirtualDesktops.MoveWindowToDesktop(hwnd, id);
+                _host.ShowMain();
+            });
+            return true;
+        }
+        return false;
+    }
+
+    static void OpenTaskView()
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "explorer.exe",
+                Arguments = "shell:::{3080F90E-D7AD-11D9-BD98-0000947B0257}",
+                UseShellExecute = true,
+            });
+        }
+        catch { }
+    }
+
+    // ---- Rename / delete ----------------------------------------------------
+
+    void AskRename(WorkspaceCardViewModel card)
+    {
+        Prompt("Rename workspace", "The name is how you pick it in the gallery, the tray menu and from the command line.",
+            card.Name, "Save", name =>
+            {
+                name = name.Trim();
+                if (name.Length == 0 || name == card.Name) return;
+                card.Model.Name = name;
+                SaveWorkspace(card);
+                card.Reload();
+                Log($"Renamed to \"{name}\".");
+            });
+    }
+
+    void AskDelete(WorkspaceCardViewModel card)
+    {
+        Confirm("Delete workspace?", $"\"{card.Name}\" and its thumbnail are removed from disk. Open windows are not affected.",
+            "Delete", () =>
+            {
+                try
+                {
+                    WorkspaceStore.Delete(card.Id);
+                    Log($"Deleted \"{card.Name}\".");
+                }
+                catch (Exception ex) { Log($"Delete failed: {ex.Message}"); }
+                if (Selected == card) Selected = null;
+                RefreshWorkspaces();
+            });
+    }
+
+    // ---- Settings ----------------------------------------------------------
 
     public bool StartWithWindows
     {
@@ -197,23 +492,43 @@ public class MainViewModel : ViewModelBase
             try
             {
                 SettingsService.SetStartWithWindows(value);
-                Log(value
-                    ? "Restage will run at startup (minimized to tray)."
-                    : "Removed from startup.");
+                Log(value ? "Restage will run at startup (in the tray)." : "Removed from startup.");
             }
             catch (Exception ex) { Log($"Startup setting failed: {ex.Message}"); }
             OnPropertyChanged();
         }
     }
 
-    bool _forceLaunch;
-    public bool ForceLaunch { get => _forceLaunch; set => SetProperty(ref _forceLaunch, value); }
+    public bool ApplyWallpaper
+    {
+        get => _settings.ApplyWallpaper;
+        set { if (_settings.ApplyWallpaper == value) return; _settings.ApplyWallpaper = value; SettingsService.Save(_settings); OnPropertyChanged(); }
+    }
+
+    public bool ForceLaunch
+    {
+        get => _settings.ForceLaunch;
+        set { if (_settings.ForceLaunch == value) return; _settings.ForceLaunch = value; SettingsService.Save(_settings); OnPropertyChanged(); }
+    }
+
+    /// <summary>"Ask", "Wait" or "Never"; a string so the radio buttons can bind through EqualsConverter.</summary>
+    public string DesktopSwitchText
+    {
+        get => _settings.DesktopSwitch.ToString();
+        set
+        {
+            if (!Enum.TryParse<DesktopSwitchMode>(value, out var mode) || mode == _settings.DesktopSwitch) return;
+            _settings.DesktopSwitch = mode;
+            SettingsService.Save(_settings);
+            OnPropertyChanged();
+        }
+    }
 
     public bool IsDarkTheme => !string.Equals(_settings.Theme, "Light", StringComparison.OrdinalIgnoreCase);
-
-    /// <summary>Segoe MDL2 glyph for the theme toggle: sun in dark mode, moon in light.</summary>
-    public string ThemeGlyph => IsDarkTheme ? "" : "";
     public string ThemeTooltip => IsDarkTheme ? "Switch to light mode" : "Switch to dark mode";
+
+    public RelayCommand OpenDataFolderCommand { get; }
+    public RelayCommand ToggleThemeCommand { get; }
 
     void ToggleTheme()
     {
@@ -221,333 +536,47 @@ public class MainViewModel : ViewModelBase
         SettingsService.Save(_settings);
         ThemeService.Apply(_settings.Theme);
         OnPropertyChanged(nameof(IsDarkTheme));
-        OnPropertyChanged(nameof(ThemeGlyph));
         OnPropertyChanged(nameof(ThemeTooltip));
-        Log($"Switched to {_settings.Theme.ToLowerInvariant()} mode.");
     }
 
-    /// <summary>Rebuilds the sidebar list, preserving the current selection when possible.</summary>
-    public void RefreshSnapshots()
+    static void OpenFolder(string path)
     {
-        var dispatcher = System.Windows.Application.Current?.Dispatcher;
-        if (dispatcher != null && !dispatcher.CheckAccess()) { dispatcher.Invoke(RefreshSnapshots); return; }
-
-        var selectedPath = SelectedSnapshot?.Path;
-        _refreshing = true;
         try
         {
-            Snapshots.Clear();
-            foreach (var sf in SnapshotService.ListSnapshots())
-                Snapshots.Add(new SnapshotItemViewModel(sf, this));
+            Directory.CreateDirectory(path);
+            Process.Start(new ProcessStartInfo { FileName = "explorer.exe", Arguments = $"\"{path}\"", UseShellExecute = true });
         }
-        finally { _refreshing = false; }
-        SelectedSnapshot =
-            Snapshots.FirstOrDefault(s => s.Path == selectedPath) ?? Snapshots.FirstOrDefault();
-        ClearHistoryCommand.RaiseCanExecuteChanged();
-        // Rows are rebuilt rather than mutated, so the selected row is a new
-        // object even when it is the same capture — the star has to be re-asked.
-        NotifyFavoriteChanged();
-
-        try
-        {
-            long bytes = 0;
-            if (Directory.Exists(Paths.SnapDir))
-                bytes += new DirectoryInfo(Paths.SnapDir).GetFiles("snap-*.json").Sum(f => f.Length);
-            if (File.Exists(Paths.LastSession)) bytes += new FileInfo(Paths.LastSession).Length;
-            CaptureStats = $"{Snapshots.Count} captures · {bytes / 1024:N0} KB on disk";
-        }
-        catch { CaptureStats = $"{Snapshots.Count} captures"; }
-
-        OnPropertyChanged(nameof(HistoryCount));
+        catch { }
     }
 
-    /// <summary>Loads a capture's apps and folders into the selection lists.</summary>
-    void LoadSnapshot(SnapshotItemViewModel? item)
-    {
-        if (!IsRestoring) ShowRestorePanel = false;
-        Apps.Clear();
-        Folders.Clear();
-        _loadedPath = null;
-        if (item == null)
-        {
-            Header = "No capture selected";
-            SubHeader = "";
-            NotifyListsChanged();
-            return;
-        }
-        var snap = SnapshotService.Load(item.Path);
-        if (snap == null) { NotifyListsChanged(); return; }
-
-        foreach (var group in snap.Apps
-                     .Where(a => !string.IsNullOrEmpty(a.Exe))
-                     .GroupBy(a => a.Exe, StringComparer.OrdinalIgnoreCase))
-        {
-            var vm = new AppGroupViewModel(group.ToList());
-            vm.SelectionChanged += () => OnPropertyChanged(nameof(AllSelected));
-            Apps.Add(vm);
-        }
-        foreach (var f in snap.Folders)
-        {
-            var vm = new FolderItemViewModel(f);
-            vm.PropertyChanged += ItemSelectionChanged;
-            Folders.Add(vm);
-        }
-
-        var windowCount = snap.Apps.Count;
-        Header = item.IsLastSession ? "Last Session" : "Capture";
-        SubHeader = item.IsLastSession
-            ? $"Captured {item.Taken:ddd dd MMM yyyy 'at' HH:mm} — everything open before shutdown"
-            : $"Captured {item.Taken:ddd dd MMM yyyy, HH:mm:ss} · {Apps.Count} applications · {windowCount} windows · {snap.Folders.Count} folders";
-
-        _loadedPath = item.Path;
-        try { _loadedWriteTime = File.GetLastWriteTime(item.Path); } catch { }
-        NotifyListsChanged();
-    }
-
-    void ItemSelectionChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName is nameof(AppItemViewModel.IsSelected))
-            OnPropertyChanged(nameof(AllSelected));
-    }
-
-    void NotifyListsChanged()
-    {
-        OnPropertyChanged(nameof(AllSelected));
-        OnPropertyChanged(nameof(AppCount));
-        OnPropertyChanged(nameof(FolderCount));
-    }
-
-    async Task RestoreAsync()
-    {
-        var selectedApps = AllInstances.Where(a => a.IsSelected).ToList();
-        var selectedFolders = Folders.Where(f => f.IsSelected).ToList();
-        var apps = selectedApps.Select(a => a.Entry).ToList();
-        var folders = selectedFolders.Select(f => f.Path).ToList();
-        if (apps.Count == 0 && folders.Count == 0) { Log("Nothing selected to restore."); return; }
-
-        RestoreProgress.Clear();
-        foreach (var a in selectedApps) RestoreProgress.Add(new RestoreItemViewModel(a));
-        foreach (var f in selectedFolders) RestoreProgress.Add(new RestoreItemViewModel(f));
-        _restoreDone = 0;
-        _restoreTotal = RestoreProgress.Count;
-        OnPropertyChanged(nameof(RestoreCounter));
-        OnPropertyChanged(nameof(RestoreFraction));
-        ShowRestorePanel = true;
-
-        IsRestoring = true;
-        Log($"Restoring workspace — {apps.Count} windows, {folders.Count} folders…");
-        try
-        {
-            await Task.Run(() => RestoreService.RestoreAsync(apps, folders, ForceLaunch, Log, OnRestoreProgress));
-        }
-        finally { IsRestoring = false; }
-
-        // Let the summary linger, then fade the overlay away (the XAML side
-        // animates opacity on ShowRestorePanel's falling edge).
-        await Task.Delay(4000);
-        if (!IsRestoring) ShowRestorePanel = false;
-    }
-
-    /// <summary>
-    /// Restore-thread callback: updates the matching overlay row (marshalled to
-    /// the UI thread) and advances the counter when a row reaches a final state.
-    /// </summary>
-    void OnRestoreProgress(int index, RestoreStatus status)
-    {
-        var dispatcher = System.Windows.Application.Current?.Dispatcher;
-        if (dispatcher != null && !dispatcher.CheckAccess())
-        {
-            dispatcher.Invoke(() => OnRestoreProgress(index, status));
-            return;
-        }
-        if (index < 0 || index >= RestoreProgress.Count) return;
-        var item = RestoreProgress[index];
-        var wasTerminal = item.IsTerminal;
-        item.Status = status;
-        if (!wasTerminal && item.IsTerminal)
-        {
-            _restoreDone++;
-            OnPropertyChanged(nameof(RestoreCounter));
-            OnPropertyChanged(nameof(RestoreFraction));
-        }
-    }
-
-    /// <summary>Manual capture from the header button or tray menu.</summary>
-    public async Task CaptureNowAsync()
-    {
-        if (IsCapturing) return;
-        IsCapturing = true;
-        Log("Capturing workspace…");
-        try
-        {
-            await Task.Run(() => SnapshotService.SaveSnapshot(SnapshotService.CaptureSta()));
-            RefreshSnapshots();
-            Log("Capture saved.");
-        }
-        finally { IsCapturing = false; }
-    }
-
-    /// <summary>Timer capture: no log chatter, just refresh the list.</summary>
-    public async Task CaptureSilentAsync()
-    {
-        await Task.Run(() => SnapshotService.SaveSnapshot(SnapshotService.CaptureSta()));
-        RefreshSnapshots();
-    }
-
-    /// <summary>
-    /// Deletes one capture, from either the toolbar (the selected row) or a row's
-    /// own context menu. No confirmation in either case: it is the same action
-    /// reached two ways, and one entry point must not behave differently from
-    /// the other.
-    /// </summary>
-    public void DeleteCapture(SnapshotItemViewModel? s)
-    {
-        if (s == null) return;
-        try
-        {
-            File.Delete(s.Path);
-            CaptureMetaService.Forget(s.Path);
-            Log($"Deleted capture: {s.DisplayLabel} ({s.SubLine}).");
-        }
-        catch (Exception ex) { Log($"Delete failed: {ex.Message}"); }
-        _loadedPath = null;
-        RefreshSnapshots();
-    }
-
-    /// <summary>
-    /// Stars or unstars a capture. Favourites sort to the top of the sidebar and
-    /// survive both the 30-capture prune and Clear History, so the list has to be
-    /// rebuilt rather than just repainted.
-    /// </summary>
-    public void ToggleFavorite(SnapshotItemViewModel item)
-    {
-        if (!item.CanTag) return;
-        var favorite = !item.IsFavorite;
-        CaptureMetaService.SetFavorite(item.Path, favorite);
-        Log(favorite
-            ? $"Added to favourites: {item.DisplayLabel}. Favourites are never pruned."
-            : $"Removed from favourites: {item.DisplayLabel}.");
-        RefreshSnapshots();
-    }
-
-    public void AskRename(SnapshotItemViewModel item)
-    {
-        if (!item.CanTag) return;
-        Prompt(
-            "Name this capture",
-            "The name replaces the time in the list; the time still shows underneath. "
-            + "Leave it empty to go back to the time.",
-            item.Name ?? "",
-            "Save",
-            name => Rename(item, name));
-    }
-
-    void Rename(SnapshotItemViewModel item, string name)
-    {
-        name = name.Trim();
-        CaptureMetaService.SetName(item.Path, name);
-        Log(name.Length == 0
-            ? $"Cleared the name on the {item.Taken:HH:mm:ss} capture."
-            : $"Named the {item.Taken:HH:mm:ss} capture \"{name}\".");
-        RefreshSnapshots();
-    }
-
-    void ClearLog()
-    {
-        LogEntries.Clear();
-        ClearLogCommand.RaiseCanExecuteChanged();
-    }
-
-    /// <summary>Nothing to clear once every remaining row is a favourite.</summary>
-    bool HasClearableHistory => Snapshots.Any(s => !s.IsFavorite);
-
-    void AskClearHistory()
-    {
-        var going = Snapshots.Count(s => !s.IsFavorite);
-        var kept = Snapshots.Count - going;
-        var pinned = Snapshots.Any(s => s.IsLastSession && !s.IsFavorite);
-        Confirm(
-            "Clear capture history?",
-            $"Deletes {going} {(going == 1 ? "capture" : "captures")} from disk"
-            + (pinned ? ", including the pinned pre-shutdown session" : "")
-            + (kept > 0 ? $", and keeps your {kept} favourite{(kept == 1 ? "" : "s")}" : "")
-            + ". This can't be undone.",
-            "Clear history",
-            ClearHistory);
-    }
-
-    /// <summary>
-    /// Deletes exactly the files behind the rows the sidebar is showing, so
-    /// "clear" can't quietly take something the user was never told about —
-    /// minus the favourites, which were kept on purpose.
-    /// </summary>
-    void ClearHistory()
-    {
-        int cleared = 0, failed = 0;
-        foreach (var s in Snapshots.Where(s => !s.IsFavorite).ToList())
-        {
-            try { File.Delete(s.Path); CaptureMetaService.Forget(s.Path); cleared++; }
-            catch { failed++; }
-        }
-        Log(failed == 0
-            ? $"Cleared capture history — {cleared} captures deleted."
-            : $"Cleared {cleared} captures; {failed} could not be deleted.");
-        _loadedPath = null;
-        RefreshSnapshots();
-    }
-
-    // ---- Confirmation prompt -------------------------------------------
-    // One prompt reused by whatever needs it: the caller supplies the words
-    // and the action, and nothing destructive runs until Accept fires. It has a
-    // second mode that asks for a line of text — same overlay, because a
-    // MessageBox or a second dialog would arrive as a light-mode system window
-    // on top of a dark, custom-chromed one.
+    // ---- Confirmation / prompt overlay ---------------------------------------
+    // One overlay for yes/no questions and single-line text input, reused by
+    // rename and delete: a MessageBox would arrive as a light-mode system
+    // window on top of a dark, custom-chromed one.
 
     Action? _confirmAction;
     Action<string>? _promptAction;
 
     bool _showConfirm;
-    public bool ShowConfirm
-    {
-        get => _showConfirm;
-        private set { _showConfirm = value; OnPropertyChanged(); }
-    }
+    public bool ShowConfirm { get => _showConfirm; private set => SetProperty(ref _showConfirm, value); }
 
     string _confirmTitle = "";
-    public string ConfirmTitle
-    {
-        get => _confirmTitle;
-        private set { _confirmTitle = value; OnPropertyChanged(); }
-    }
+    public string ConfirmTitle { get => _confirmTitle; private set => SetProperty(ref _confirmTitle, value); }
 
     string _confirmMessage = "";
-    public string ConfirmMessage
-    {
-        get => _confirmMessage;
-        private set { _confirmMessage = value; OnPropertyChanged(); }
-    }
+    public string ConfirmMessage { get => _confirmMessage; private set => SetProperty(ref _confirmMessage, value); }
 
     string _confirmAcceptLabel = "";
-    public string ConfirmAcceptLabel
-    {
-        get => _confirmAcceptLabel;
-        private set { _confirmAcceptLabel = value; OnPropertyChanged(); }
-    }
+    public string ConfirmAcceptLabel { get => _confirmAcceptLabel; private set => SetProperty(ref _confirmAcceptLabel, value); }
 
-    /// <summary>True while the prompt is asking for text rather than a yes/no.</summary>
     bool _confirmIsInput;
-    public bool ConfirmIsInput
-    {
-        get => _confirmIsInput;
-        private set { _confirmIsInput = value; OnPropertyChanged(); }
-    }
+    public bool ConfirmIsInput { get => _confirmIsInput; private set => SetProperty(ref _confirmIsInput, value); }
 
     string _confirmInput = "";
-    public string ConfirmInput
-    {
-        get => _confirmInput;
-        set { _confirmInput = value; OnPropertyChanged(); }
-    }
+    public string ConfirmInput { get => _confirmInput; set => SetProperty(ref _confirmInput, value); }
+
+    public RelayCommand ConfirmAcceptCommand { get; }
+    public RelayCommand ConfirmCancelCommand { get; }
 
     void Confirm(string title, string message, string acceptLabel, Action onAccept)
     {
@@ -556,8 +585,7 @@ public class MainViewModel : ViewModelBase
         Open(title, message, acceptLabel, input: false);
     }
 
-    void Prompt(string title, string message, string initialValue, string acceptLabel,
-        Action<string> onAccept)
+    void Prompt(string title, string message, string initialValue, string acceptLabel, Action<string> onAccept)
     {
         _confirmAction = null;
         _promptAction = onAccept;
@@ -591,156 +619,21 @@ public class MainViewModel : ViewModelBase
         ShowConfirm = false;
     }
 
-    // ---- Stay Awake -----------------------------------------------------
-    // The dialog binds settings straight to AppSettings (saved on change), so
-    // reopening it later starts from the last configuration. The service is
-    // static and outlives the window; this view model only fronts it.
+    // ---- Activity log ---------------------------------------------------------
 
-    bool _showStayAwake;
-    public bool ShowStayAwake
+    public ObservableCollection<string> LogEntries { get; } = new();
+    public RelayCommand ClearLogCommand { get; }
+
+    void ClearLog()
     {
-        get => _showStayAwake;
-        set
-        {
-            if (!SetProperty(ref _showStayAwake, value)) return;
-            // The countdown only needs to tick while someone is looking at it.
-            SyncStayAwakeTicker();
-            if (value) OnPropertyChanged(nameof(StayAwakeStatus));
-        }
-    }
-
-    public bool IsStayAwakeActive => StayAwakeService.IsActive;
-
-    public int StayAwakeIntervalSeconds
-    {
-        get => _settings.StayAwakeIntervalSeconds;
-        set
-        {
-            value = Math.Clamp(value, 10, 3600);
-            if (_settings.StayAwakeIntervalSeconds == value) return;
-            _settings.StayAwakeIntervalSeconds = value;
-            SettingsService.Save(_settings);
-            OnPropertyChanged();
-        }
-    }
-
-    public string StayAwakeMethod
-    {
-        get => _settings.StayAwakeMethod;
-        set
-        {
-            if (_settings.StayAwakeMethod == value) return;
-            _settings.StayAwakeMethod = value;
-            SettingsService.Save(_settings);
-            OnPropertyChanged();
-        }
-    }
-
-    public bool StayAwakeOnlyWhenIdle
-    {
-        get => _settings.StayAwakeOnlyWhenIdle;
-        set
-        {
-            if (_settings.StayAwakeOnlyWhenIdle == value) return;
-            _settings.StayAwakeOnlyWhenIdle = value;
-            SettingsService.Save(_settings);
-            OnPropertyChanged();
-        }
-    }
-
-    public bool StayAwakeAutoStop
-    {
-        get => _settings.StayAwakeAutoStop;
-        set
-        {
-            if (_settings.StayAwakeAutoStop == value) return;
-            _settings.StayAwakeAutoStop = value;
-            SettingsService.Save(_settings);
-            OnPropertyChanged();
-        }
-    }
-
-    public int StayAwakeAutoStopHours
-    {
-        get => _settings.StayAwakeAutoStopHours;
-        set
-        {
-            value = Math.Clamp(value, 1, 24);
-            if (_settings.StayAwakeAutoStopHours == value) return;
-            _settings.StayAwakeAutoStopHours = value;
-            SettingsService.Save(_settings);
-            OnPropertyChanged();
-        }
-    }
-
-    public string StayAwakeButtonLabel => IsStayAwakeActive ? "Stop" : "Start";
-
-    public string StayAwakeStatus
-    {
-        get
-        {
-            if (!IsStayAwakeActive) return "Idle — not running";
-            var next = StayAwakeService.NextNudge - DateTime.Now;
-            if (next < TimeSpan.Zero) next = TimeSpan.Zero;
-            return $"Active since {StayAwakeService.StartedAt:HH:mm} · "
-                 + $"{StayAwakeService.NudgeCount} nudges · next in {(int)next.TotalMinutes}:{next.Seconds:D2}";
-        }
-    }
-
-    /// <summary>Start/Stop from the dialog button or the tray menu item.</summary>
-    public void ToggleStayAwake()
-    {
-        if (IsStayAwakeActive) StayAwakeService.Stop();
-        else StayAwakeService.Start(_settings, Log);
-    }
-
-    System.Windows.Threading.DispatcherTimer? _stayAwakeTicker;
-
-    void OnStayAwakeStateChanged()
-    {
-        OnPropertyChanged(nameof(IsStayAwakeActive));
-        OnPropertyChanged(nameof(StayAwakeButtonLabel));
-        OnPropertyChanged(nameof(StayAwakeStatus));
-        SyncStayAwakeTicker();
-    }
-
-    void SyncStayAwakeTicker()
-    {
-        var wanted = ShowStayAwake && IsStayAwakeActive;
-        if (wanted && _stayAwakeTicker == null)
-        {
-            _stayAwakeTicker = new System.Windows.Threading.DispatcherTimer
-            {
-                Interval = TimeSpan.FromSeconds(1)
-            };
-            _stayAwakeTicker.Tick += (_, _) => OnPropertyChanged(nameof(StayAwakeStatus));
-            _stayAwakeTicker.Start();
-        }
-        else if (!wanted && _stayAwakeTicker != null)
-        {
-            _stayAwakeTicker.Stop();
-            _stayAwakeTicker = null;
-        }
-    }
-
-    void OpenDataFolder()
-    {
-        try
-        {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = "explorer.exe",
-                Arguments = $"\"{Paths.DataDir}\"",
-                UseShellExecute = true
-            });
-        }
-        catch { }
+        LogEntries.Clear();
+        ClearLogCommand.RaiseCanExecuteChanged();
     }
 
     /// <summary>Appends a timestamped line to the activity log (any thread).</summary>
     public void Log(string message)
     {
-        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        var dispatcher = Application.Current?.Dispatcher;
         if (dispatcher != null && !dispatcher.CheckAccess()) { dispatcher.Invoke(() => Log(message)); return; }
         LogEntries.Add($"[{DateTime.Now:HH:mm:ss}] {message}");
         while (LogEntries.Count > 400) LogEntries.RemoveAt(0);
