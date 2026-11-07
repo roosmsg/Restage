@@ -132,7 +132,8 @@ Data: `%LOCALAPPDATA%\Restage\workspaces\<id>\workspace.json` + `thumbnail.png`,
 - **Single instance / hooks:** mutex `Local\Restage.SingleInstance`; a second
   launch writes `restore-request.txt` and signals the first. `--restore <name>`
   and the `restage://restore/<name>` URI (registered in HKCU at every start)
-  both route there — this is the hook for Hex / hotkey tools.
+  both route there — this is the hook for voice tools (Hex, Handy) and
+  hotkey tools.
 - **WindowChrome gotcha:** the `WM_GETMINMAXINFO` hook in `MainWindow` must
   restate `MinTrackSize`, or WPF's MinWidth/MinHeight are not enforced.
 

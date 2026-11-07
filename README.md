@@ -92,8 +92,9 @@ restage inspect                     print what a capture would record, without s
 The app itself answers `Restage.exe --restore <name>` and the URI
 `restage://restore/<name>`, both of which reach the running instance. That is
 the hook for hotkey tools and voice assistants such as
-[Hex](https://github.com/anomalyco/hex): a spoken command that opens
-`restage://restore/Werk` restores the workspace named *Werk*.
+[Hex](https://github.com/anomalyco/hex) or [Handy](https://github.com/cjpais/Handy):
+a spoken command that opens `restage://restore/Werk` starts the workspace
+named *Werk*.
 
 ## Your data and privacy
 
