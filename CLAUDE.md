@@ -13,7 +13,9 @@ desktop and its wallpaper, window placement per monitor arrangement) and
 brings it back with one click. Fork of Rewake (MIT, see `NOTICE.md`). Not a
 window manager; no telemetry, no animations, no sounds.
 
-Repo: `roosmsg/Restage-Windows`. Integration branch `local-trunk`; `main` is
+Repo: `roosmsg/Restage` (a plain copy of the earlier fork
+`roosmsg/Restage-Windows`, no longer flagged as a fork; remote `windows`
+still points at the old one). Integration branch `local-trunk`; `main` is
 pushed to the same commit after every change (`git push origin local-trunk &&
 git push origin local-trunk:main`).
 

@@ -118,7 +118,11 @@ alone and would duplicate what Chrome restores itself.
 
 ## Repository
 
-GitHub `roosmsg/Restage-Windows` (renamed from `Restage`), description
+GitHub `roosmsg/Restage`: first a fork of Rewake named `Restage`, renamed
+`Restage-Windows`, then (7 November, late) duplicated into a fresh
+repository under the original name so GitHub no longer shows it as a fork
+of Rewake; the full history came along, the licence is still MIT and the
+attribution stays in `NOTICE.md`. Description
 ending in "Not a window manager.", topics workspace / workspaces /
 virtual-desktop / productivity. Rewake's tags were deleted from the fork;
 Restage has no release yet. `LICENSE` is the untouched MIT text (GitHub
