@@ -77,9 +77,14 @@ you name; a rolling history would flood the gallery.
 ## Visual choices made with the user
 
 Name: "Restage" (briefly "Workspace Switcher"). Accent from the Windows accent
-colour, darker for button fills, lighter for marks and text. Icon: Rewake's
-artwork recoloured to indigo `#4B3DFF` after several rounds (violet and
-purple read as lilac on the user's screen). Theme follows Windows by default,
+colour, darker for button fills, lighter for marks and text. Icon: first
+Rewake's monitor-with-windows artwork recoloured to indigo `#4B3DFF` after
+several rounds (violet and purple read as lilac on the user's screen); then,
+at the user's request for something more suitable, a plain indigo tile with
+a white three-pane layout, which reads at 16 px and matches the layout
+glyph the app uses for workspaces. Also drawn and set aside: a tile with a
+return arrow (reads as "refresh"), stacked cards (bland) and three windows
+on a stage floor (a bar chart at small sizes). Theme follows Windows by default,
 with a toggle switch to pin light or dark. The desktop prompt has two modes
 only (ask / never); "wait silently" was dropped.
 
