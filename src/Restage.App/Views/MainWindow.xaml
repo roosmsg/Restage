@@ -248,13 +248,12 @@
         <Border Grid.Row="0" Background="{DynamicResource PanelBrush}"
                 BorderBrush="{DynamicResource BorderBrush2}" BorderThickness="0,0,0,1">
             <Grid Height="42">
-                <!-- Icon and title at the left, as Windows 11 apps do. -->
+                <!-- The icon alone at the left; the name stays in the window title (taskbar, Alt+Tab). -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="14,0,0,0">
                     <!-- Source is set in code: the .ico frame that is 1:1 at the window's DPI, so it stays sharp. -->
-                    <Image x:Name="TitleIcon" Width="16" Height="16" Margin="0,0,9,0"
+                    <Image x:Name="TitleIcon" Width="16" Height="16"
                            UseLayoutRounding="True" SnapsToDevicePixels="True"
                            RenderOptions.BitmapScalingMode="NearestNeighbor"/>
-                    <TextBlock Text="Restage" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/>
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Stretch"
