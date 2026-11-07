@@ -54,7 +54,7 @@ Every reply is JSON. Errors look like `{"error": "<code>", "message": "…"}`.
 
 ```json
 { "workspaces": [
-  { "id": "afstuderen-f7bd80", "name": "Afstuderen", "desktop": "Research",
+  { "id": "portfolio-f7bd80", "name": "Portfolio", "desktop": "Design",
     "items": 6, "hotkey": "Ctrl+Alt+F",
     "updatedAt": "2026-11-07T14:35:12+01:00", "lastOpenedAt": "2026-11-07T15:02:40+01:00" }
 ] }
@@ -68,7 +68,7 @@ When a start is already running it is cancelled in favour of this one, like
 pressing one hotkey after another.
 
 ```json
-{ "workspace": "Afstuderen", "front": true, "force": false, "here": false }
+{ "workspace": "Portfolio", "front": true, "force": false, "here": false }
 ```
 
 - `front` (default true): after placing, raise the workspace's windows, the
@@ -85,7 +85,7 @@ Saves everything open right now as a new workspace, without the review step
 the window offers. Waits for the capture (a second or two).
 
 ```json
-{ "name": "Thesis" }
+{ "name": "Budget" }
 ```
 
 Replies: `200 {"saved": {"id", "name", "items"}}`, `409 busy`,
@@ -93,27 +93,24 @@ Replies: `200 {"saved": {"id", "name", "items"}}`, `409 busy`,
 
 ### `POST /command`
 
-What was said, as said. Restage finds the verb and the name, in English or
-Dutch, and matches the name with tolerance for how speech comes back.
+What was said, as said. Restage finds the verb and the name, and matches the
+name with tolerance for how speech comes back.
 
 ```json
-{ "text": "Open afstuderen, please." }
+{ "text": "Open portfolio, please." }
 ```
 
 Understood:
 
 - start: `open …`, `start …`, `switch to …`, `go to …`, `show …`, `restore
-  …`, `ga naar …`, `schakel naar …`, `wissel naar …`, `herstel …`, `toon
   …`; a bare name works too. Words such as "the", "my", "workspace",
-  "please", "de", "werkruimte", "alsjeblieft" and a leading "hey Restage"
-  are ignored.
-- capture: `save (this) as …`, `capture (this) as …`, `remember (this) as …`,
-  `sla (dit) op als …`, `bewaar (dit) als …`, `onthoud (dit) als …`. The
-  name is taken as said, casing included.
+  "please" and a leading "hey Restage" are ignored.
+- capture: `save (this) as …`, `capture (this) as …`, `remember (this) as
+  …`. The name is taken as said, casing included.
 
 Matching: exact beats a name contained in the phrase, beats a phrase that is
-the start of a name, beats an edit-distance similarity (so "af studeren"
-and "afstudeeren" still find *Afstuderen*). A hit needs a score of 60 and a
+the start of a name, beats an edit-distance similarity (so "port folio"
+and "portfollio" still find *Portfolio*). A hit needs a score of 60 and a
 lead of 8 over the runner-up; otherwise nothing starts.
 
 Replies: `202 {"started": {…}, "heard": "…"}` for a start,
@@ -130,7 +127,7 @@ $api = Get-Content "$env:LOCALAPPDATA\Restage\local-api.json" | ConvertFrom-Json
 $h = @{ Authorization = "Bearer $($api.token)" }
 Invoke-RestMethod "http://127.0.0.1:$($api.port)/workspaces" -Headers $h
 Invoke-RestMethod "http://127.0.0.1:$($api.port)/command" -Method Post -Headers $h `
-  -ContentType 'application/json' -Body '{"text":"open afstuderen"}'
+  -ContentType 'application/json' -Body '{"text":"open portfolio"}'
 ```
 
 curl:
@@ -138,7 +135,7 @@ curl:
 ```sh
 curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:$PORT/status
 curl -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-     -d '{"workspace":"Afstuderen"}' http://127.0.0.1:$PORT/restore
+     -d '{"workspace":"Portfolio"}' http://127.0.0.1:$PORT/restore
 ```
 
 ## For voice tools

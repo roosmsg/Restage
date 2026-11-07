@@ -91,7 +91,7 @@ public sealed class WorkspaceItem
     /// </summary>
     public string? Target { get; set; }
 
-    /// <summary>Human-readable second line for the UI ("D:\Obsidian\Afstuderen", "Profile: Werk").</summary>
+    /// <summary>Human-readable second line for the UI ("D:\Obsidian\Portfolio", "Profile: Werk").</summary>
     public string? Detail { get; set; }
 
     /// <summary>Shell working directories for terminal windows (one per tab).</summary>

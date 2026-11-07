@@ -193,7 +193,7 @@ public sealed class VSCodeAdapter : AppAdapter
     /// Studio Code") gives the folder a " - " segment of its own: score 3.
     /// Custom formats often keep other variables in the folder's segment
     /// ("${rootName} ${focusedView} ${activeEditorLanguageId}" shows as
-    /// "afstuderen Explorer markdown"), so the folder's name or full path as
+    /// "portfolio Explorer markdown"), so the folder's name or full path as
     /// a whole word anywhere in the title still counts: score 2. Score 0 when
     /// the title has neither. A word is bounded by anything but a letter or
     /// digit, so "app" is not found in "application".

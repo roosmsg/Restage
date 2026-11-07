@@ -96,7 +96,7 @@ restage show <name|id>              print a workspace's items
 restage restore <name|id> [--force] [--here]
 restage delete <id>
 restage inspect                     print what a capture would record, without saving
-restage command <text>              hand what was said to the running app ("open research")
+restage command <text>              hand what was said to the running app ("open design")
 restage api                         where the running app's local API is
 ```
 
@@ -121,8 +121,8 @@ while it runs, it listens on `127.0.0.1` with a token. Settings ›
 both stay the same when Restage restarts (they are also announced in
 `%LOCALAPPDATA%\Restage\local-api.json`). The API lists, starts and
 captures workspaces, and `POST /command` takes a plain sentence ("open
-research", "switch to thesis", "save this as Thesis"), in English or Dutch,
-and works out the rest, with some tolerance for names that are slightly
+design", "switch to budget", "save this as Budget"), and
+works out the rest, with some tolerance for names that are slightly
 off, such as a voice tool's transcription. Restage itself never listens to
 the microphone; a voice tool sends what it heard. [docs/API.md](docs/API.md)
 has every route and examples; `restage command "<text>"` tries one from a

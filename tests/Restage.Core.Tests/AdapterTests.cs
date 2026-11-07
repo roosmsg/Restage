@@ -320,15 +320,15 @@ public class ObsidianAdapterTests
     const string ObsidianJson = """
         { "vaults": {
             "a": { "path": "D:\\Obsidian\\Werkplaats", "ts": 1793569716803 },
-            "b": { "path": "D:\\Obsidian\\Afstuderen", "ts": 1793486545600, "open": true },
-            "c": { "path": "E:\\Backup\\Afstuderen", "ts": 1700000000000 } },
+            "b": { "path": "D:\\Obsidian\\Portfolio", "ts": 1793486545600, "open": true },
+            "c": { "path": "E:\\Backup\\Portfolio", "ts": 1700000000000 } },
           "frame": "hidden" }
         """;
 
     [Theory]
-    [InlineData("Untitled - Afstuderen - Obsidian 1.15.0", "Afstuderen")]
+    [InlineData("Untitled - Portfolio - Obsidian 1.15.0", "Portfolio")]
     [InlineData("My Note - Werk - Plaats - Obsidian v1.4", "Plaats")]
-    [InlineData("Afstuderen - Obsidian 1.15.0", "Afstuderen")]
+    [InlineData("Portfolio - Obsidian 1.15.0", "Portfolio")]
     [InlineData("Settings", null)]
     [InlineData("Note - Something Else", null)]
     public void Vault_name_is_the_segment_before_Obsidian(string title, string? expected)
@@ -337,9 +337,9 @@ public class ObsidianAdapterTests
     }
 
     [Theory]
-    [InlineData("Untitled - Afstuderen - Obsidian 1.15.0", "Untitled")]
+    [InlineData("Untitled - Portfolio - Obsidian 1.15.0", "Untitled")]
     [InlineData("My - Note - Vault - Obsidian 1.15.0", "My - Note")]
-    [InlineData("Afstuderen - Obsidian 1.15.0", null)]
+    [InlineData("Portfolio - Obsidian 1.15.0", null)]
     [InlineData("Settings", null)]
     public void Note_name_is_everything_before_the_vault(string title, string? expected)
     {
@@ -351,12 +351,12 @@ public class ObsidianAdapterTests
     {
         var item = new WorkspaceItem
         {
-            Kind = ItemKind.Obsidian, Exe = @"C:\x\Obsidian.exe", Target = @"D:\Obsidian\Afstuderen",
-            Args = "obsidian://open?vault=Afstuderen&file=Inleiding",
+            Kind = ItemKind.Obsidian, Exe = @"C:\x\Obsidian.exe", Target = @"D:\Obsidian\Portfolio",
+            Args = "obsidian://open?vault=Portfolio&file=Inleiding",
         };
-        Assert.Equal("\"obsidian://open?vault=Afstuderen&file=Inleiding\"", ObsidianAdapter.LaunchArgs(item));
+        Assert.Equal("\"obsidian://open?vault=Portfolio&file=Inleiding\"", ObsidianAdapter.LaunchArgs(item));
         item.OpenContent = false;
-        Assert.Equal("\"obsidian://open?vault=Afstuderen\"", ObsidianAdapter.LaunchArgs(item));
+        Assert.Equal("\"obsidian://open?vault=Portfolio\"", ObsidianAdapter.LaunchArgs(item));
 
         var generic = new WorkspaceItem { Kind = ItemKind.Generic, Name = "notepad", Args = "\"C:\\notes.txt\"" };
         Assert.Equal("\"C:\\notes.txt\"", GenericAdapter.BuildArgs(generic));
@@ -368,8 +368,8 @@ public class ObsidianAdapterTests
     public void Open_uri_names_the_vault_and_the_note_as_a_vault_relative_path()
     {
         Assert.Equal("obsidian://open?vault=Mijn%20Vault", ObsidianAdapter.OpenUri("Mijn Vault", null));
-        Assert.Equal("obsidian://open?vault=Afstuderen&file=Hoofdstuk%202%2FInleiding",
-            ObsidianAdapter.OpenUri("Afstuderen", @"Hoofdstuk 2\Inleiding"));
+        Assert.Equal("obsidian://open?vault=Portfolio&file=Hoofdstuk%202%2FInleiding",
+            ObsidianAdapter.OpenUri("Portfolio", @"Hoofdstuk 2\Inleiding"));
     }
 
     [Fact]
@@ -398,8 +398,8 @@ public class ObsidianAdapterTests
     public void Vaults_load_open_first_and_resolve_by_folder_name()
     {
         var vaults = ObsidianAdapter.LoadVaults(ObsidianJson);
-        Assert.Equal(@"D:\Obsidian\Afstuderen", vaults[0]);
-        Assert.Equal(@"D:\Obsidian\Afstuderen", ObsidianAdapter.ResolveVaultPath("afstuderen", vaults));
+        Assert.Equal(@"D:\Obsidian\Portfolio", vaults[0]);
+        Assert.Equal(@"D:\Obsidian\Portfolio", ObsidianAdapter.ResolveVaultPath("portfolio", vaults));
         Assert.Equal(@"D:\Obsidian\Werkplaats", ObsidianAdapter.ResolveVaultPath("Werkplaats", vaults));
         Assert.Null(ObsidianAdapter.ResolveVaultPath("Nope", vaults));
         Assert.Empty(ObsidianAdapter.LoadVaults(null));

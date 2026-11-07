@@ -56,7 +56,7 @@ static class Program
                                                   shows the progress), else done here; --local forces
                                                   the latter
               restage command <text>              hand what was said to the running app, as a voice
-                                                  tool would: "open afstuderen", "save as Thesis"
+                                                  tool would: "open portfolio", "save as Budget"
               restage api                         where the running app's local API is, and its status
               restage delete <id>                 delete a workspace
               restage inspect [--windows]         print what a capture would record, without saving;

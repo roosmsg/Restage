@@ -6,16 +6,16 @@ namespace Restage.Core.Tests;
 public class CommandParserTests
 {
     [Theory]
-    [InlineData("open afstuderen", "afstuderen")]
-    [InlineData("Open Afstuderen.", "Afstuderen")]
-    [InlineData("Afstuderen", "Afstuderen")]
-    [InlineData("switch to research notes", "research notes")]
-    [InlineData("Start the Research workspace", "Research")]
-    [InlineData("Ga naar Afstuderen alsjeblieft", "Afstuderen")]
-    [InlineData("Schakel over naar de werkruimte Afstuderen", "Afstuderen")]
-    [InlineData("Hey Restage, open my thesis", "thesis")]
-    [InlineData("workspace afstuderen", "afstuderen")]
-    [InlineData("show research now", "research")]
+    [InlineData("open portfolio", "portfolio")]
+    [InlineData("Open Portfolio.", "Portfolio")]
+    [InlineData("Portfolio", "Portfolio")]
+    [InlineData("switch to design notes", "design notes")]
+    [InlineData("Start the Design workspace", "Design")]
+    [InlineData("Ga naar Portfolio alsjeblieft", "Portfolio")]
+    [InlineData("Schakel over naar de werkruimte Portfolio", "Portfolio")]
+    [InlineData("Hey Restage, open my budget", "budget")]
+    [InlineData("workspace portfolio", "portfolio")]
+    [InlineData("show design now", "design")]
     public void Restore_commands_keep_the_name(string text, string name)
     {
         var command = CommandParser.Parse(text);
@@ -25,9 +25,9 @@ public class CommandParserTests
     }
 
     [Theory]
-    [InlineData("save this as Thesis", "Thesis")]
-    [InlineData("Save as Thesis draft", "Thesis draft")]
-    [InlineData("capture Thesis", "Thesis")]
+    [InlineData("save this as Budget", "Budget")]
+    [InlineData("Save as Budget draft", "Budget draft")]
+    [InlineData("capture Budget", "Budget")]
     [InlineData("sla op als Scriptie", "Scriptie")]
     [InlineData("Sla dit op als Scriptie, alsjeblieft", "Scriptie")]
     [InlineData("bewaar dit als Werk", "Werk")]

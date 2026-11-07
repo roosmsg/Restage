@@ -47,8 +47,8 @@ public static class NameMatcher
     static int Score(string spoken, string name)
     {
         if (spoken == name) return 100;
-        if (ContainsPhrase(spoken, name)) return 90;                                                   // "afstuderen now"
-        if (spoken.Length >= 3 && name.StartsWith(spoken + " ", StringComparison.Ordinal)) return 80;  // "research" for "Research notes"
+        if (ContainsPhrase(spoken, name)) return 90;                                                   // "portfolio now"
+        if (spoken.Length >= 3 && name.StartsWith(spoken + " ", StringComparison.Ordinal)) return 80;  // "design" for "Design notes"
         if (spoken.Length >= 3 && ContainsPhrase(name, spoken)) return 70;                             // a later word of the name
         // Misheard or split differently: the whole phrase, and the name against
         // the same number of spoken words, so words around it cost nothing.

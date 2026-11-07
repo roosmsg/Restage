@@ -5,15 +5,15 @@ namespace Restage.Core.Tests;
 
 public class NameMatcherTests
 {
-    static readonly (string Id, string Name)[] Two = [("a", "Afstuderen"), ("r", "Research")];
+    static readonly (string Id, string Name)[] Two = [("a", "Portfolio"), ("r", "Design")];
 
     [Theory]
-    [InlineData("Afstuderen.")]
-    [InlineData("afstuderen")]
-    [InlineData("AFSTUDEREN")]
-    [InlineData("af studeren")]      // split in two
-    [InlineData("afstudeeren")]      // misheard
-    [InlineData("afstuderen now")]   // a word around it
+    [InlineData("Portfolio.")]
+    [InlineData("portfolio")]
+    [InlineData("PORTFOLIO")]
+    [InlineData("port folio")]      // split in two
+    [InlineData("portfollio")]      // misheard
+    [InlineData("portfolio now")]   // a word around it
     public void Finds_the_workspace_a_phrase_names(string phrase)
     {
         var best = NameMatcher.Best(phrase, Two);
@@ -24,7 +24,7 @@ public class NameMatcherTests
     [Fact]
     public void Exact_name_scores_full()
     {
-        Assert.Equal(100, NameMatcher.Best("afstuderen", Two)!.Score);
+        Assert.Equal(100, NameMatcher.Best("portfolio", Two)!.Score);
     }
 
     [Theory]
@@ -40,9 +40,9 @@ public class NameMatcherTests
     [Fact]
     public void A_longer_name_wins_when_the_phrase_says_all_of_it()
     {
-        var names = new[] { ("n", "Research notes"), ("r", "Research") };
-        Assert.Equal("n", NameMatcher.Best("research notes", names)!.Id);
-        Assert.Equal("r", NameMatcher.Best("research", names)!.Id);
+        var names = new[] { ("n", "Design notes"), ("r", "Design") };
+        Assert.Equal("n", NameMatcher.Best("design notes", names)!.Id);
+        Assert.Equal("r", NameMatcher.Best("design", names)!.Id);
     }
 
     [Fact]
@@ -67,7 +67,7 @@ public class NameMatcherTests
     [Fact]
     public void A_spoken_command_parses_then_matches()
     {
-        var command = CommandParser.Parse("Open afstuderen, please.");
+        var command = CommandParser.Parse("Open portfolio, please.");
         Assert.NotNull(command);
         Assert.Equal(CommandParser.Kind.Restore, command.Kind);
         Assert.Equal("a", NameMatcher.Best(command.Name, Two)!.Id);

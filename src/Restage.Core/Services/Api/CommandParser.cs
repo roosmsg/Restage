@@ -1,8 +1,8 @@
 namespace Restage.Services.Api;
 
 /// <summary>
-/// Turns what was said into a command: "open afstuderen", "ga naar
-/// afstuderen alsjeblieft", "save this as Thesis". English and Dutch. The
+/// Turns what was said into a command: "open portfolio", "ga naar
+/// portfolio alsjeblieft", "save this as Budget". English and Dutch. The
 /// name keeps its casing (a capture is named with it); matching it against
 /// the workspaces is <see cref="NameMatcher"/>'s job.
 /// </summary>
@@ -68,7 +68,7 @@ public static class CommandParser
     static string[][] Phrases(params string[] phrases) =>
         phrases.Select(p => p.Split(' ')).OrderByDescending(p => p.Length).ToArray();
 
-    /// <summary>Words with punctuation trimmed off their ends; "Afstuderen," → "Afstuderen".</summary>
+    /// <summary>Words with punctuation trimmed off their ends; "Portfolio," → "Portfolio".</summary>
     static List<string> Tokens(string text)
     {
         var list = new List<string>();

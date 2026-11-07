@@ -106,7 +106,7 @@ public sealed class ObsidianAdapter : AppAdapter
     /// <summary>Vault name of an item: the folder name of its path, or the bare name it fell back to.</summary>
     static string? TargetVaultName(WorkspaceItem item) => item.Target == null ? null : VaultName(item.Target);
 
-    /// <summary>"Untitled - Afstuderen - Obsidian 1.15.0" → "Afstuderen"; null when the title has no vault.</summary>
+    /// <summary>"Untitled - Portfolio - Obsidian 1.15.0" → "Portfolio"; null when the title has no vault.</summary>
     public static string? VaultNameFromTitle(string title)
     {
         var segments = TitleSegments(title);
