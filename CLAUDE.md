@@ -122,10 +122,13 @@ Data: `%LOCALAPPDATA%\Restage\workspaces\<id>\workspace.json` + `thumbnail.png`,
   when the setting is "System", and paints accents from the Windows accent
   colour (`DWM\AccentColor`): `AccentBrush` = accent mixed 18 % toward white
   (marks, text, progress), `AccentFillBrush` = 62 % (button fills),
-  `AccentHoverBrush` = 52 %. Icon: indigo tile (`#4B3DFF`) with a white
-  three-pane layout; SVG sources in `src/Restage.App/Assets/` (full, small,
-  16 px), regenerate `Restage.ico` with `build-icon.ps1` (needs Chrome; it
-  uses its own profile directory, so it works while Chrome is running).
+  `AccentHoverBrush` = 52 %. Icon: the user's own logo (an isometric indigo
+  frame with a mint card), delivered as a finished package in `logo/`
+  (`Restage.ico` with 10 PNG frames 16–256 px, PNGs, an editable SVG
+  redraw, a transparent 1024 px master, a dark "GitHub background"
+  version). `src/Restage.App/Assets/Restage.ico`, `Restage-256.png` and
+  `Restage.svg` are copies of those; there is no icon build script any
+  more. The title bar picks the ICO frame that is 1:1 at the window's DPI.
 - **Single instance / hooks:** mutex `Local\Restage.SingleInstance`; a second
   launch writes `restore-request.txt` and signals the first. `--restore <name>`
   and the `restage://restore/<name>` URI (registered in HKCU at every start)

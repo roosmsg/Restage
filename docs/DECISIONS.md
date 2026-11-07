@@ -84,7 +84,10 @@ at the user's request for something more suitable, a plain indigo tile with
 a white three-pane layout, which reads at 16 px and matches the layout
 glyph the app uses for workspaces. Also drawn and set aside: a tile with a
 return arrow (reads as "refresh"), stacked cards (bland) and three windows
-on a stage floor (a bar chart at small sizes). Theme follows Windows by default,
+on a stage floor (a bar chart at small sizes). Later that night the user
+brought their own designed logo, an isometric indigo frame with a mint
+card, as a finished package (`logo/`); it replaced the tile everywhere and
+the SVG-to-ICO build script went with it. Theme follows Windows by default,
 with a toggle switch to pin light or dark. The desktop prompt has two modes
 only (ask / never); "wait silently" was dropped.
 

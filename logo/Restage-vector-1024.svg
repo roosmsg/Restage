@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1024" height="1024" viewBox="418 128 700 700" role="img" aria-label="Restage logo">
+<defs>
+  <linearGradient id="top" x1="2%" y1="0%" x2="95%" y2="100%"><stop offset="0" stop-color="#8950ff"/><stop offset="0.48" stop-color="#6132f7"/><stop offset="1" stop-color="#4620eb"/></linearGradient>
+  <linearGradient id="left" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0" stop-color="#592cf6"/><stop offset="1" stop-color="#3b17e3"/></linearGradient>
+  <linearGradient id="side" x1="20%" y1="15%" x2="80%" y2="100%"><stop offset="0" stop-color="#471cf0"/><stop offset="0.75" stop-color="#4116da"/><stop offset="1" stop-color="#1265dd"/></linearGradient>
+  <linearGradient id="base" x1="0%" y1="0%" x2="100%" y2="85%"><stop offset="0" stop-color="#7a40fd"/><stop offset="0.42" stop-color="#5927f9"/><stop offset="1" stop-color="#4217dc"/></linearGradient>
+  <linearGradient id="green-top" x1="0%" y1="0%" x2="100%" y2="30%"><stop offset="0" stop-color="#66ffbf"/><stop offset="0.52" stop-color="#39f5b5"/><stop offset="1" stop-color="#05f5a6"/></linearGradient>
+  <linearGradient id="green-lower" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0" stop-color="#04ddf9"/><stop offset="0.38" stop-color="#05bccc"/><stop offset="0.7" stop-color="#08c9aa"/><stop offset="1" stop-color="#0af49d"/></linearGradient>
+  <linearGradient id="shadow" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0" stop-color="#04184a" stop-opacity="0.26"/><stop offset="1" stop-color="#05164a" stop-opacity="0"/></linearGradient>
+  <clipPath id="card"><path d="M711 532 Q711 501 738 489 L975 367 Q997 358 1014 374 Q1030 389 1030 411 L1030 639 Q1030 667 1007 679 L745 802 Q711 819 711 784 Z"/></clipPath>
+</defs>
+<!-- Vertical purple sides and the straight diagonal lower facet. -->
+<path d="M496 396 L603 345 L603 663 L496 712 Z" fill="url(#left)"/>
+<path d="M882 283 L1014 220 L1014 655 L882 717 Z" fill="url(#side)"/>
+<path d="M496 696 L603 649 L711 601 L751 802 Q730 815 710 804 L519 719 Q496 708 496 696 Z" fill="url(#base)"/>
+<!-- The outer frame's straight, wide indigo top face. -->
+<path d="M496 373 Q496 348 519 332 L883 163 Q900 154 916 163 L1014 220 L1014 266 L603 413 L496 463 Z" fill="url(#top)"/>
+<!-- Mint front workspace: one clean faceted shadow, all straight edges. -->
+<g clip-path="url(#card)">
+  <path d="M700 344 H1040 V820 H700Z" fill="url(#green-top)"/>
+  <path d="M700 610 L1040 445 L1040 827 L700 827 Z" fill="url(#green-lower)"/>
+  <path d="M711 610 L1030 451 L1030 484 L711 643 Z" fill="url(#shadow)"/>
+</g>
+</svg>
