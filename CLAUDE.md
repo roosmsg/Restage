@@ -82,7 +82,14 @@ Data: `%LOCALAPPDATA%\Restage\workspaces\<id>\workspace.json` + `thumbnail.png`,
     -new-window <url> -profile <path>`; relaunched verbatim. Browser windows:
     one launch per profile, Firefox restores tabs itself.
   - Chromium: web apps vs browser windows told apart by the window's
-    AppUserModelID (`…_crx_<32 letters>`), not the shared command line.
+    AppUserModelID (`Chrome._crx_<app id>[.<profile>]`), not the shared
+    command line. Chrome caps the id at 64 characters and cuts each component
+    in the middle (head + tail), so a web app in the default profile shows 26
+    of its 32 letters; the full id is found by rebuilding the id of every app
+    under `<profile>\Web Applications\_crx_*` and comparing
+    (`ChromiumAdapter.BuildAumid`). `restage inspect --windows` prints the raw
+    ids. Never turn an unknown id component into `--profile-directory`:
+    Chrome creates that profile.
   - Explorer: folders + HWNDs from `Shell.Application` (STA thread), matched
     by path; Explorer windows are excluded from the generic enumeration.
   - Generic: Store apps via `%LOCALAPPDATA%\Microsoft\WindowsApps\<exe>`

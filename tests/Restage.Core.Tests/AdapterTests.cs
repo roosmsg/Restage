@@ -80,9 +80,14 @@ public class FirefoxAdapterTests
 
 public class ChromiumAdapterTests
 {
+    /// <summary>Google Calendar's app id; Chrome shows it as "kjbdgfilnf" + "pgamdcdgpehopbep" in the default profile.</summary>
+    const string Agenda = "kjbdgfilnfhdoflbpgamdcdgpehopbep";
+    const string AgendaAumid = "Chrome._crx_kjbdgfilnfpgamdcdgpehopbep";
+
     [Theory]
     [InlineData("Chrome._crx_abcdefghijklmnopabcdefghijklmnop", "abcdefghijklmnopabcdefghijklmnop")]
-    [InlineData("Chrome.Profile1._crx_ABCDEFGHIJKLMNOPABCDEFGHIJKLMNOP", "abcdefghijklmnopabcdefghijklmnop")]
+    [InlineData("Chrome._crx_ABCDEFGHIJKLMNOPABCDEFGHIJKLMNOP.Profile1", "abcdefghijklmnopabcdefghijklmnop")]
+    [InlineData(AgendaAumid, "kjbdgfilnfpgamdcdgpehopbep")]
     [InlineData("Chrome", null)]
     [InlineData("Chrome.Profile1", null)]
     [InlineData(null, null)]
@@ -92,14 +97,37 @@ public class ChromiumAdapterTests
     }
 
     [Fact]
+    public void AppUserModelIds_are_built_the_way_Chrome_shortens_them()
+    {
+        Assert.Equal("Chrome", ChromiumAdapter.BuildAumid("Chrome", null, "Default"));
+        Assert.Equal("Chrome.Profile1", ChromiumAdapter.BuildAumid("Chrome", null, "Profile 1"));
+        // Two components share 63 characters: the 37-character app part keeps 15 + 16.
+        Assert.Equal(AgendaAumid, ChromiumAdapter.BuildAumid("Chrome", Agenda, "Default"));
+        // Three components get 20 each: the app part keeps 10 + 10.
+        Assert.Equal("Chrome._crx_kjbdgdgpehopbep.Profile1", ChromiumAdapter.BuildAumid("Chrome", Agenda, "Profile 1"));
+    }
+
+    [Fact]
+    public void Shortened_app_ids_are_resolved_against_the_installed_apps()
+    {
+        var installed = new[] { "edanbjnaiofggfmimiidpfmhggkbokck", Agenda };
+        Assert.Equal(Agenda, ChromiumAdapter.ResolveAppId(AgendaAumid, "Default", installed));
+        Assert.Equal(Agenda, ChromiumAdapter.ResolveAppId("Chrome._crx_kjbdgdgpehopbep.Profile1", "Profile 1", installed));
+        Assert.Equal(Agenda, ChromiumAdapter.ResolveAppId($"Chrome._crx_{Agenda}", "Default", Array.Empty<string>()));
+        Assert.Equal("kjbdgfilnfpgamdcdgpehopbep", ChromiumAdapter.ResolveAppId(AgendaAumid, "Default", Array.Empty<string>()));
+        Assert.Null(ChromiumAdapter.ResolveAppId("Chrome", "Default", installed));
+    }
+
+    [Fact]
     public void Profile_segment_maps_back_to_the_real_directory_name()
     {
         Assert.Null(ChromiumAdapter.ProfileFromAumid("Chrome"));
         Assert.Null(ChromiumAdapter.ProfileFromAumid("Chrome._crx_abcdefghijklmnopabcdefghijklmnop"));
+        Assert.Null(ChromiumAdapter.ProfileFromAumid(AgendaAumid));
         Assert.Equal("Profile1", ChromiumAdapter.ProfileFromAumid("Chrome.Profile1"));
-        Assert.Equal("Profile 1", ChromiumAdapter.ProfileFromAumid("Chrome.Profile1._crx_abcdefghijklmnopabcdefghijklmnop", "Profile 1"));
-        // Chrome's real order for web apps: base id, app name, then the profile.
-        Assert.Equal("Profile 1", ChromiumAdapter.ProfileFromAumid("Chrome._crx_abcdefghijklmnopabcdefghijklmnop.Profile1", "Profile 1"));
+        Assert.Equal("Profile 1", ChromiumAdapter.ProfileFromAumid("Chrome.Profile1", "Profile 1"));
+        Assert.Equal("Profile1", ChromiumAdapter.ProfileFromAumid("Chrome.Profile1", "Profile 2"));
+        Assert.Equal("Profile 1", ChromiumAdapter.ProfileFromAumid("Chrome._crx_kjbdgdgpehopbep.Profile1", "Profile 1"));
     }
 
     [Fact]
@@ -116,14 +144,16 @@ public class ChromiumAdapterTests
         var adapter = new ChromiumAdapter();
         var exe = @"C:\Program Files\Google\Chrome\Application\chrome.exe";
         var browser = new WorkspaceItem { Kind = ItemKind.Chromium, Exe = exe, Target = "Default", Title = "New Tab - Google Chrome" };
-        var app = new WorkspaceItem { Kind = ItemKind.ChromiumApp, Exe = exe, Target = "Default|abcdefghijklmnopabcdefghijklmnop" };
+        var app = new WorkspaceItem { Kind = ItemKind.ChromiumApp, Exe = exe, Target = $"Default|{Agenda}" };
 
         var browserWin = new CapturedWindow { ProcessName = "chrome", ExePath = exe, AppUserModelId = "Chrome", Title = "Docs - Google Chrome" };
-        var appWin = new CapturedWindow { ProcessName = "chrome", ExePath = exe, AppUserModelId = "Chrome._crx_abcdefghijklmnopabcdefghijklmnop", Title = "YouTube Music" };
+        var appWin = new CapturedWindow { ProcessName = "chrome", ExePath = exe, AppUserModelId = AgendaAumid, Title = "Google Agenda - november 2026" };
+        var otherApp = new CapturedWindow { ProcessName = "chrome", ExePath = exe, AppUserModelId = "Chrome._crx_edanbjnaiomiidpfmhggkbokck", Title = "Google Translate" };
 
         Assert.Equal(2, adapter.Match(browser, browserWin));
         Assert.Equal(0, adapter.Match(browser, appWin));
         Assert.Equal(3, adapter.Match(app, appWin));
+        Assert.Equal(0, adapter.Match(app, otherApp));
         Assert.Equal(0, adapter.Match(app, browserWin));
     }
 }
