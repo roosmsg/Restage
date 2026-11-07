@@ -42,6 +42,10 @@ them and puts them back. Restage does the same, with the same public Windows
 APIs, and goes one step further: it also remembers what each window had open
 and brings that back too.
 
+What PowerToys has and Restage does not: launching apps as administrator
+(Restage cannot see elevated windows at all) and FancyZones. Restage is not a
+window manager and has no zones; it puts windows back where they were.
+
 ## Quick start
 
 1. Arrange a desktop the way you work.
