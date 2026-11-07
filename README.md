@@ -70,8 +70,7 @@ this off (start on the current virtual desktop).
 ### Items and policies
 
 Select a card to see its items. Each can be ticked off, and its label switches
-how it comes back: **reuse if open** (default) or **always launch**. *Always relaunch* in the gear menu overrides the
-first for one session.
+how it comes back: **reuse if open** (default) or **always launch**.
 
 Items with content of their own (an Obsidian note, a VS Code or Explorer
 folder, a terminal's folders, a file passed as an argument) have a second

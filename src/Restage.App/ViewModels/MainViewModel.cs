@@ -411,7 +411,7 @@ public class MainViewModel : ViewModelBase
         _restoreCts = new CancellationTokenSource();
         var options = new RestoreOptions
         {
-            Force = force ?? _settings.ForceLaunch,
+            Force = force ?? false,
             SwitchDesktop = here || _settings.DesktopSwitch == DesktopSwitchMode.Never ? null : SwitchDesktopAsync,
             BringToFront = bringToFront,
         };
@@ -591,12 +591,6 @@ public class MainViewModel : ViewModelBase
             _host.RefreshTray();
             OnPropertyChanged();
         }
-    }
-
-    public bool ForceLaunch
-    {
-        get => _settings.ForceLaunch;
-        set { if (_settings.ForceLaunch == value) return; _settings.ForceLaunch = value; SettingsService.Save(_settings); OnPropertyChanged(); }
     }
 
     /// <summary>"Ask", "Wait" or "Never"; a string so the radio buttons can bind through EqualsConverter.</summary>

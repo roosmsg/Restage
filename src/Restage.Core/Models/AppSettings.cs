@@ -30,9 +30,6 @@ public sealed class AppSettings
 
     public DesktopSwitchMode DesktopSwitch { get; set; } = DesktopSwitchMode.Ask;
 
-    /// <summary>Relaunch apps even when a matching window is already open.</summary>
-    public bool ForceLaunch { get; set; }
-
     /// <summary>Height of the bottom panel when the log is expanded, in pixels.</summary>
     public double BottomPanelHeight { get; set; } = 160;
 

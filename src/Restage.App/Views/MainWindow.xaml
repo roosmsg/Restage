@@ -323,13 +323,6 @@
                             <Button Style="{StaticResource MenuRowButton}" Tag="{StaticResource IconKeyboard}"
                                     Content="{Binding AppHotkeyLabel}" Command="{Binding EditAppHotkeyCommand}"
                                     Click="SettingsRow_CloseOnClick" Margin="0,0,0,4"/>
-                            <CheckBox IsChecked="{Binding ForceLaunch}" Margin="7,0,7,6">
-                                <StackPanel>
-                                    <TextBlock Text="Always relaunch" FontSize="12.5"/>
-                                    <TextBlock Text="even when a matching window is open" FontSize="11"
-                                               Foreground="{DynamicResource MutedBrush}"/>
-                                </StackPanel>
-                            </CheckBox>
 
                             <Border Height="1" Background="{DynamicResource BorderBrush2}" Margin="0,6"/>
                             <TextBlock Text="WORKSPACE ON ANOTHER DESKTOP" Style="{StaticResource SectionLabel}"
