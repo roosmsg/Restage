@@ -54,6 +54,24 @@ public partial class MainWindow : Window
         if (ReferenceEquals(e.OriginalSource, sender)) CloseSettingsIfOpen();
     }
 
+    // ---- Overlays: a click on the dimmed backdrop (not on the panel) dismisses ----
+
+    void RestoreBackdrop_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        // Only once the start is done; while it runs, Cancel stays a deliberate click.
+        if (ReferenceEquals(e.OriginalSource, sender)) RunIfAllowed((DataContext as MainViewModel)?.CloseRestoreCommand);
+    }
+
+    void ConfirmBackdrop_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (ReferenceEquals(e.OriginalSource, sender)) RunIfAllowed((DataContext as MainViewModel)?.ConfirmCancelCommand);
+    }
+
+    static void RunIfAllowed(ICommand? command)
+    {
+        if (command != null && command.CanExecute(null)) command.Execute(null);
+    }
+
     void HookLogAutoScroll()
     {
         if (_logHooked || DataContext is not MainViewModel vm) return;

@@ -569,8 +569,10 @@
                           ToolTip="Drag to resize the activity log"/>
 
             <!-- ============ Restore overlay ============ -->
+            <!-- A click on the dimmed backdrop closes the panel once the start is done. -->
             <Border Grid.RowSpan="2" Background="{DynamicResource OverlayDimBrush}" Panel.ZIndex="10"
-                    Visibility="{Binding ShowRestorePanel, Converter={StaticResource BoolToVis}}">
+                    Visibility="{Binding ShowRestorePanel, Converter={StaticResource BoolToVis}}"
+                    MouseDown="RestoreBackdrop_MouseDown">
                 <Border Style="{StaticResource OverlayPanel}" Width="480" MaxHeight="520">
                     <DockPanel>
                         <Grid DockPanel.Dock="Top">
@@ -691,8 +693,10 @@
             </Border>
 
             <!-- ============ Confirmation / rename prompt ============ -->
+            <!-- A click on the dimmed backdrop is a cancel. -->
             <Border Grid.RowSpan="2" Background="{DynamicResource OverlayDimBrush}" Panel.ZIndex="13"
-                    Visibility="{Binding ShowConfirm, Converter={StaticResource BoolToVis}}">
+                    Visibility="{Binding ShowConfirm, Converter={StaticResource BoolToVis}}"
+                    MouseDown="ConfirmBackdrop_MouseDown">
                 <Border Style="{StaticResource OverlayPanel}" Width="400" Padding="24,20,24,18">
                     <StackPanel>
                         <TextBlock Text="{Binding ConfirmTitle}" FontSize="15" FontWeight="SemiBold"/>
