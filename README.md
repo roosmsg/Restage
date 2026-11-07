@@ -43,6 +43,12 @@ them and puts them back. Restage does the same, with the same public Windows
 APIs, and goes one step further: it also remembers what each window had open
 and brings that back too.
 
+## Download
+
+[Releases](https://github.com/roosmsg/Restage/releases) has a per-user
+installer and a portable zip (Windows 11, x64; not code-signed yet, so
+SmartScreen may ask once: *More info* › *Run anyway*).
+
 ## Quick start
 
 1. Open and arrange the applications the way you work.
@@ -161,12 +167,15 @@ Self-contained publish (no runtime needed on the target machine):
 
 ```powershell
 dotnet publish src/Restage.App/Restage.App.csproj -c Release -r win-x64 --self-contained true `
-    /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true -o publish
+    /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true -o publish\app
 dotnet publish src/Restage.Cli/Restage.Cli.csproj -c Release -r win-x64 --self-contained true `
-    /p:PublishSingleFile=true -o publish
+    /p:PublishSingleFile=true -o publish\cli
 ```
 
-`installer\Restage.iss` builds a per-user Inno Setup installer from `publish\`.
+Two folders, because Windows treats `Restage.exe` and `restage.exe` as the
+same file. `installer\Restage.iss` builds a per-user Inno Setup installer from
+them; it puts the command line in a `bin` folder, which is what goes on PATH.
+`.github/workflows/release.yml` does all of this and publishes a release.
 
 ### Layout
 

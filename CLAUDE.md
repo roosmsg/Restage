@@ -37,6 +37,10 @@ git push origin local-trunk:main`).
   way to check an adapter against the live desktop).
 - Publish and installer: see README "Building"; `installer/Restage.iss` is
   Inno Setup 6, per-user, own AppId.
+- Release: `.github/workflows/release.yml` builds and publishes on
+  `gh workflow run release.yml -f version=X.Y.Z` (or a pushed `vX.Y.Z` tag).
+  It needs `<Version>` in `Restage.App.csproj` to match and
+  `docs/releases/vX.Y.Z.md` (the release notes) to exist.
 
 ## Conventions
 

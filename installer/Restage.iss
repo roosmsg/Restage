@@ -2,11 +2,16 @@
 ; Per-user setup: no admin prompt, installs to %LOCALAPPDATA%\Programs\Restage —
 ; the same pattern as VS Code's user setup, matching the app's HKCU-only
 ; footprint (settings, Run entry, restage: URI). Build with:  ISCC.exe Restage.iss
-; Expects the published exes at ..\publish\Restage.exe and ..\publish\restage.exe
-; (see README "Building").
+; Expects the published exes at ..\publish\app\Restage.exe and
+; ..\publish\cli\restage.exe (see README "Building"). Windows file names ignore
+; case, so the two cannot share a folder: the command line goes to {app}\bin,
+; which is what goes on PATH.
 
 #define MyAppName "Restage"
-#define MyAppVersion "0.1.0"
+; The release workflow passes the tag's version with /DMyAppVersion=….
+#ifndef MyAppVersion
+  #define MyAppVersion "0.1.0"
+#endif
 #define MyAppPublisher "Restage"
 #define MyAppURL "https://github.com/roosmsg/Restage"
 #define MyAppExeName "Restage.exe"
@@ -49,8 +54,8 @@ Name: "addpath"; Description: "Add the restage command to my PATH"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; Flags: unchecked
 
 [Files]
-Source: "..\publish\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\publish\{#MyCliExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\publish\app\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\publish\cli\{#MyCliExeName}"; DestDir: "{app}\bin"; Flags: ignoreversion
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
@@ -69,7 +74,7 @@ Root: HKCU; Subkey: "Software\Classes\restage"; ValueType: string; ValueName: "U
 Root: HKCU; Subkey: "Software\Classes\restage\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""
 ; User PATH entry for the command line (added only when not already present).
 Root: HKCU; Subkey: "Environment"; ValueType: expandsz; ValueName: "Path"; \
-  ValueData: "{olddata};{app}"; Tasks: addpath; Check: NeedsAddPath('{app}')
+  ValueData: "{olddata};{app}\bin"; Tasks: addpath; Check: NeedsAddPath('{app}\bin')
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; \

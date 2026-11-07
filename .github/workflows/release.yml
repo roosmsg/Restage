@@ -1,0 +1,87 @@
+name: Release
+
+# Builds the self-contained app and command line, the per-user installer
+# and a portable zip, and publishes them as a GitHub release with the notes
+# in docs/releases/v<version>.md. Start it either way:
+#   gh workflow run release.yml -f version=0.1.0   (or "Run workflow" in Actions)
+#   git tag v0.1.0 && git push origin v0.1.0
+# The version must match <Version> in Restage.App.csproj.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, such as 0.1.0 (tagged v0.1.0 on the chosen branch)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Version
+        id: version
+        shell: pwsh
+        run: |
+          $version = if ("${{ github.event_name }}" -eq "workflow_dispatch") { "${{ inputs.version }}".TrimStart('v') } else { "${{ github.ref_name }}".TrimStart('v') }
+          $tag = "v$version"
+          [xml]$project = Get-Content src/Restage.App/Restage.App.csproj
+          $declared = ($project.Project.PropertyGroup | Where-Object Version).Version
+          if ($declared -ne $version) { throw "Tag $tag does not match <Version>$declared</Version> in Restage.App.csproj" }
+          if (-not (Test-Path "docs/releases/$tag.md")) { throw "docs/releases/$tag.md is missing" }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+
+      - name: Test
+        run: dotnet test tests/Restage.Core.Tests/Restage.Core.Tests.csproj -c Release
+
+      - name: Publish
+        shell: pwsh
+        run: |
+          $v = "${{ steps.version.outputs.version }}"
+          dotnet publish src/Restage.App/Restage.App.csproj -c Release -r win-x64 --self-contained true `
+            /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true /p:Version=$v -o publish\app
+          # Its own folder: Windows sees restage.exe and Restage.exe as one file.
+          dotnet publish src/Restage.Cli/Restage.Cli.csproj -c Release -r win-x64 --self-contained true `
+            /p:PublishSingleFile=true /p:Version=$v -o publish\cli
+
+      - name: Installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
+          & $iscc "/DMyAppVersion=${{ steps.version.outputs.version }}" installer\Restage.iss
+          if ($LASTEXITCODE -ne 0) { throw "ISCC failed" }
+
+      - name: Portable zip and checksums
+        shell: pwsh
+        run: |
+          $v = "${{ steps.version.outputs.version }}"
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item "installer\Output\Restage-Setup-v$v.exe" dist\
+          New-Item -ItemType Directory -Force portable\bin | Out-Null
+          Copy-Item publish\app\Restage.exe portable\
+          Copy-Item publish\cli\restage.exe portable\bin\
+          Compress-Archive -Path portable\* -DestinationPath "dist\Restage-v$v-portable-win-x64.zip"
+          Get-ChildItem dist | ForEach-Object {
+            "{0}  {1}" -f (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower(), $_.Name
+          } | Set-Content dist\SHA256SUMS.txt
+
+      - name: Publish the release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ steps.version.outputs.tag }}"
+          # --target tags this commit when the tag does not exist yet (a run started by hand).
+          gh release create $tag (Get-ChildItem dist).FullName --target "${{ github.sha }}" `
+            --title "Restage ${{ steps.version.outputs.version }}" --notes-file "docs/releases/$tag.md"
