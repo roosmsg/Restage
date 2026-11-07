@@ -6,7 +6,8 @@
     <SolidColorBrush x:Key="CardBrush" Color="#F2F2F4"/>
     <SolidColorBrush x:Key="CardHoverBrush" Color="#EAEAED"/>
     <SolidColorBrush x:Key="AccentBrush" Color="#059669"/>
-    <SolidColorBrush x:Key="AccentHoverBrush" Color="#047857"/>
+    <SolidColorBrush x:Key="AccentFillBrush" Color="#047857"/>
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="#036546"/>
     <SolidColorBrush x:Key="AccentDisabledBrush" Color="#C9C9CE"/>
     <SolidColorBrush x:Key="AccentTextBrush" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="TextBrush" Color="#1B1B1F"/>
