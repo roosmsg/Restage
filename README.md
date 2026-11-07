@@ -1,3 +1,5 @@
+<p align="center"><img src="logo/Restage-transparent-1024.png" width="160" alt="Restage logo"></p>
+
 # Restage
 
 *Workspace manager. Save a desktop as a workspace. Come back to it with one click.*
