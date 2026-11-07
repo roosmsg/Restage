@@ -5,6 +5,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using Restage.Models;
 using Restage.Native;
 using Restage.Services;
@@ -32,7 +33,8 @@ public partial class MainWindow : Window
         // WPF stamps its own title-bar theme from the OS setting during load, so
         // re-apply ours at every stage that could overwrite it.
         SourceInitialized += (_, _) => { HookWindowProc(); ApplyTitleBarTheme(); };
-        Loaded += (_, _) => ApplyTitleBarTheme();
+        Loaded += (_, _) => { ApplyTitleBarTheme(); ApplyTitleIcon(); };
+        DpiChanged += (_, _) => ApplyTitleIcon();
         ContentRendered += (_, _) => ApplyTitleBarTheme();
     }
 
@@ -123,6 +125,27 @@ public partial class MainWindow : Window
         // square unless asked; ask, so the window looks like any other app's.
         var round = Win32.DWMWCP_ROUND;
         _ = Win32.DwmSetWindowAttribute(hwnd, Win32.DWMWA_WINDOW_CORNER_PREFERENCE, ref round, sizeof(int));
+    }
+
+    /// <summary>
+    /// The title-bar icon as the .ico frame that is 1:1 at the window's DPI
+    /// (16 px at 100 %, 20 at 125 %, 24 at 150 %), so it is never resampled.
+    /// </summary>
+    void ApplyTitleIcon()
+    {
+        try
+        {
+            var scale = VisualTreeHelper.GetDpi(this).DpiScaleX;
+            var wanted = (int)Math.Round(16 * scale);
+            var sri = Application.GetResourceStream(new Uri("pack://application:,,,/Assets/Restage.ico"));
+            if (sri == null) return;
+            using var icon = new System.Drawing.Icon(sri.Stream, wanted, wanted);
+            var bmp = Imaging.CreateBitmapSourceFromHIcon(icon.Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+            bmp.Freeze();
+            TitleIcon.Source = bmp;
+            TitleIcon.Width = TitleIcon.Height = icon.Width / scale;
+        }
+        catch { }
     }
 
     static AppSettings Settings => ((App)Application.Current).Settings;
