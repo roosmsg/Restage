@@ -63,8 +63,7 @@ public sealed class VSCodeAdapter : AppAdapter
             return Task.FromResult(LaunchResult.Failed($"folder missing: {item.Target}"));
         // -n: always a new window, so one launch per captured window holds even
         // when VS Code's "open folders in new window" setting says otherwise.
-        // With OpenContent off, VS Code just starts and restores its own windows.
-        var args = !item.OpenContent ? "" : item.Target == null ? "-n" : $"-n \"{item.Target}\"";
+        var args = item.Target == null ? "-n" : $"-n \"{item.Target}\"";
         try
         {
             LaunchHelpers.Start(item.Exe, args);

@@ -97,13 +97,6 @@ public sealed class WorkspaceItem
 
     public LaunchPolicy Policy { get; set; } = LaunchPolicy.IfNotRunning;
 
-    /// <summary>
-    /// Open the saved content (the note, folder, file or arguments) when
-    /// restoring. Off: just start the app and let it open whatever it opens.
-    /// Browsers and web apps ignore this; their profile is the app.
-    /// </summary>
-    public bool OpenContent { get; set; } = true;
-
     /// <summary>Window placement per display profile id (see <see cref="DisplayProfile"/>).</summary>
     public Dictionary<string, WindowPlacement> Placements { get; set; } = new();
 

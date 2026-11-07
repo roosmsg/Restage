@@ -43,38 +43,6 @@ public class WorkspaceItemViewModel : ViewModelBase
         }
     }
 
-    /// <summary>Whether the item has content to open beyond the app itself (a note, folder, file…).</summary>
-    public bool HasContent => Item.Kind switch
-    {
-        ItemKind.Obsidian => Item.Args.Contains("&file=", StringComparison.Ordinal),
-        ItemKind.VSCode => Item.Target != null,
-        ItemKind.Explorer => true,
-        ItemKind.Terminal => Item.Cwds is { Count: > 0 } || Item.Args.Length > 0,
-        ItemKind.Generic => Item.Args.Length > 0,
-        _ => false,
-    };
-
-    /// <summary>What the content checkbox opens: "note", "folder", "folders", "arguments".</summary>
-    public string ContentLabel => Item.Kind switch
-    {
-        ItemKind.Obsidian => "note",
-        ItemKind.VSCode or ItemKind.Explorer => "folder",
-        ItemKind.Terminal => "folders",
-        _ => "arguments",
-    };
-
-    public bool OpenContent
-    {
-        get => Item.OpenContent;
-        set
-        {
-            if (Item.OpenContent == value) return;
-            Item.OpenContent = value;
-            OnPropertyChanged();
-            _changed();
-        }
-    }
-
     public string PolicyLabel => PolicyText(Item.Policy);
 
     /// <summary>Cycles through the launch policies; one themed button instead of a combo box.</summary>

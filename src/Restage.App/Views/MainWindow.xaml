@@ -126,12 +126,6 @@
                             ToolTip="How to bring it back; click to change"
                             Command="{Binding DataContext.NextPolicyCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                             CommandParameter="{Binding}"/>
-                    <!-- Open the saved note/folder/file, or just start the app. -->
-                    <CheckBox DockPanel.Dock="Right" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="10.5"
-                              IsChecked="{Binding OpenContent, Mode=TwoWay}" Content="{Binding ContentLabel}"
-                              Foreground="{DynamicResource MutedBrush}"
-                              Visibility="{Binding HasContent, Converter={StaticResource BoolToVis}}"
-                              ToolTip="Ticked: open the saved note, folder or file. Unticked: just start the app."/>
                     <StackPanel VerticalAlignment="Center" Margin="0,0,8,0" ToolTip="{Binding PlacementText}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{Binding Name}" FontSize="12.5" FontWeight="SemiBold"/>

@@ -199,24 +199,6 @@ public class ObsidianAdapterTests
     }
 
     [Fact]
-    public void OpenContent_off_opens_the_vault_without_the_note()
-    {
-        var item = new WorkspaceItem
-        {
-            Kind = ItemKind.Obsidian, Exe = @"C:\x\Obsidian.exe", Target = @"D:\Obsidian\Afstuderen",
-            Args = "obsidian://open?vault=Afstuderen&file=Inleiding",
-        };
-        Assert.Equal("\"obsidian://open?vault=Afstuderen&file=Inleiding\"", ObsidianAdapter.LaunchArgs(item));
-        item.OpenContent = false;
-        Assert.Equal("\"obsidian://open?vault=Afstuderen\"", ObsidianAdapter.LaunchArgs(item));
-
-        var generic = new WorkspaceItem { Kind = ItemKind.Generic, Name = "notepad", Args = "\"C:\\notes.txt\"" };
-        Assert.Equal("\"C:\\notes.txt\"", GenericAdapter.BuildArgs(generic));
-        generic.OpenContent = false;
-        Assert.Equal("", GenericAdapter.BuildArgs(generic));
-    }
-
-    [Fact]
     public void Open_uri_names_the_vault_and_the_note_as_a_vault_relative_path()
     {
         Assert.Equal("obsidian://open?vault=Mijn%20Vault", ObsidianAdapter.OpenUri("Mijn Vault", null));

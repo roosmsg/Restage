@@ -73,7 +73,7 @@ public sealed class ObsidianAdapter : AppAdapter
     /// </summary>
     public override Task ReuseAsync(WorkspaceItem item, CapturedWindow window, RestoreContext context, CancellationToken ct)
     {
-        if (item.OpenContent && item.Args.Contains("&file=", StringComparison.Ordinal) && File.Exists(item.Exe))
+        if (item.Args.Contains("&file=", StringComparison.Ordinal) && File.Exists(item.Exe))
         {
             try { LaunchHelpers.Start(item.Exe, LaunchArgs(item)); }
             catch (Exception ex) { context.Log?.Invoke($"Obsidian: could not reopen the note: {ex.Message}"); }
@@ -81,13 +81,10 @@ public sealed class ObsidianAdapter : AppAdapter
         return Task.CompletedTask;
     }
 
-    /// <summary>
-    /// The protocol URI as an argument; Obsidian handles it like a click on an
-    /// obsidian:// link. With OpenContent off the vault opens without a note.
-    /// </summary>
-    internal static string LaunchArgs(WorkspaceItem item)
+    /// <summary>The protocol URI as an argument; Obsidian handles it like a click on an obsidian:// link.</summary>
+    static string LaunchArgs(WorkspaceItem item)
     {
-        if (item.OpenContent && item.Args.Length > 0) return $"\"{item.Args}\"";
+        if (item.Args.Length > 0) return $"\"{item.Args}\"";
         var name = TargetVaultName(item);
         return name == null ? "" : $"\"{OpenUri(name, null)}\"";
     }

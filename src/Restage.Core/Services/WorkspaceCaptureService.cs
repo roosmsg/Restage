@@ -65,7 +65,6 @@ public static class WorkspaceCaptureService
             item.Id = match.Id;
             item.Policy = match.Policy;
             item.Enabled = match.Enabled;
-            item.OpenContent = match.OpenContent;
             foreach (var (profileId, placement) in match.Placements)
                 if (profileId != currentProfileId) item.Placements.TryAdd(profileId, placement);
         }
