@@ -525,7 +525,7 @@
                              button, so the gear lines up with the Workspaces title. -->
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="-9,-6,0,-6">
                             <ToggleButton x:Name="SettingsToggle" Style="{StaticResource IconToggle}" Width="28" Height="28" FontSize="14"
-                                          Tag="{StaticResource IconSettings}" VerticalAlignment="Center" Margin="0,0,18,0"
+                                          Tag="{StaticResource IconSettings}" VerticalAlignment="Center" Margin="0,0,8,0"
                                           AutomationProperties.Name="Settings" ToolTip="Settings"/>
                             <TextBlock Text="ACTIVITY LOG" Style="{StaticResource SectionLabel}" VerticalAlignment="Center"/>
                         </StackPanel>
