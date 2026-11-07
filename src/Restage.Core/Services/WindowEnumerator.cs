@@ -133,7 +133,10 @@ public static class WindowEnumerator
         if (string.IsNullOrEmpty(exe) && wmi.TryGetValue(pid, out var w1)) exe = w1.ExePath;
         if (string.IsNullOrEmpty(exe)) return null;
 
-        var cmd = wmi.TryGetValue(pid, out var w2) ? w2.Cmd ?? "" : "";
+        // The PEB read is cheap and works for every process we can open; WMI
+        // (full mode only) covers the elevated ones it cannot.
+        var cmd = Win32.GetProcessCommandLine(pid) ?? "";
+        if (cmd.Length == 0 && wmi.TryGetValue(pid, out var w2)) cmd = w2.Cmd ?? "";
         var args = cmd.Length > 0 ? StripExeFromCommandLine(cmd) : "";
         var cwds = light ? null : GetShellCwds(name, pid, children);
         return (name, exe, cmd, args, cwds);

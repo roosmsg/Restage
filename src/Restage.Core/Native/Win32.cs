@@ -220,12 +220,30 @@ internal static class Win32
     [DllImport("kernel32.dll")]
     static extern bool ReadProcessMemory(IntPtr handle, IntPtr address, byte[] buffer, nint size, out nint read);
 
+    // RTL_USER_PROCESS_PARAMETERS field offsets on x64.
+    const int ProcessParametersOffset = 0x20;   // in the PEB
+    const int CurrentDirectoryOffset = 0x38;    // CURDIR.DosPath (UNICODE_STRING)
+    const int CommandLineOffset = 0x70;         // UNICODE_STRING
+
     /// <summary>
-    /// Working directory of another process, read from its PEB (x64 layout:
-    /// PEB+0x20 = ProcessParameters, +0x38 = CurrentDirectory.DosPath).
-    /// Null when the process is elevated or otherwise unreadable.
+    /// Working directory of another process, read from its PEB. Null when the
+    /// process is elevated or otherwise unreadable.
     /// </summary>
     public static string? GetProcessCurrentDirectory(int pid)
+    {
+        var path = ReadProcessParameterString(pid, CurrentDirectoryOffset);
+        if (path == null) return null;
+        // "C:\Users\x\" → "C:\Users\x", but keep drive roots like "C:\"
+        return path.Length > 3 ? path.TrimEnd('\\') : path;
+    }
+
+    /// <summary>
+    /// Command line of another process, read from its PEB: milliseconds instead
+    /// of the second a WMI query costs. Null when unreadable (elevated process).
+    /// </summary>
+    public static string? GetProcessCommandLine(int pid) => ReadProcessParameterString(pid, CommandLineOffset);
+
+    static string? ReadProcessParameterString(int pid, int fieldOffset)
     {
         var h = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, pid);
         if (h == IntPtr.Zero) return null;
@@ -235,18 +253,16 @@ internal static class Win32
             if (NtQueryInformationProcess(h, 0, ref pbi, Marshal.SizeOf<PROCESS_BASIC_INFORMATION>(), out _) != 0)
                 return null;
             var buf = new byte[16];
-            if (!ReadProcessMemory(h, pbi.PebBaseAddress + 0x20, buf, 8, out _)) return null;
+            if (!ReadProcessMemory(h, pbi.PebBaseAddress + ProcessParametersOffset, buf, 8, out _)) return null;
             var procParams = (IntPtr)BitConverter.ToInt64(buf, 0);
             if (procParams == IntPtr.Zero) return null;
-            if (!ReadProcessMemory(h, procParams + 0x38, buf, 16, out _)) return null;
+            if (!ReadProcessMemory(h, procParams + fieldOffset, buf, 16, out _)) return null;
             int len = BitConverter.ToUInt16(buf, 0);
             var strPtr = (IntPtr)BitConverter.ToInt64(buf, 8);
             if (len <= 0 || len > 0x8000 || strPtr == IntPtr.Zero) return null;
             var strBuf = new byte[len];
             if (!ReadProcessMemory(h, strPtr, strBuf, len, out _)) return null;
-            var path = Encoding.Unicode.GetString(strBuf).TrimEnd('\0');
-            // "C:\Users\x\" → "C:\Users\x", but keep drive roots like "C:\"
-            return path.Length > 3 ? path.TrimEnd('\\') : path;
+            return Encoding.Unicode.GetString(strBuf).TrimEnd('\0');
         }
         catch { return null; }
         finally { CloseHandle(h); }

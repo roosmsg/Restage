@@ -1,0 +1,232 @@
+using Restage.Adapters;
+using Restage.Models;
+using Restage.Services;
+using Xunit;
+
+namespace Restage.Core.Tests;
+
+public class LaunchHelpersTests
+{
+    [Fact]
+    public void Tokenize_honours_quotes_and_rejoins_with_quotes_where_needed()
+    {
+        var tokens = LaunchHelpers.Tokenize("-P \"My Profile\" --flag=\"a b\" plain");
+        Assert.Equal(new[] { "-P", "My Profile", "--flag=a b", "plain" }, tokens);
+        Assert.Equal("-P \"My Profile\" \"--flag=a b\" plain", LaunchHelpers.Join(tokens));
+    }
+
+    [Theory]
+    [InlineData("--updated --start-in-tray", "--updated")]
+    [InlineData("/n -Embedding", "")]
+    [InlineData("--type=renderer --foo", "")]
+    [InlineData(null, "")]
+    [InlineData("\"C:\\My Docs\\file.txt\"", "\"C:\\My Docs\\file.txt\"")]
+    public void SanitizeArgs_drops_helper_and_start_hidden_flags(string? args, string expected)
+    {
+        Assert.Equal(expected, LaunchHelpers.SanitizeArgs(args));
+    }
+}
+
+public class FirefoxAdapterTests
+{
+    [Fact]
+    public void Taskbar_tab_arguments_are_recognised()
+    {
+        var parsed = FirefoxAdapter.Parse(
+            "-taskbar-tab d829367f-3200-4f95-9bb2-386f04aee70f -new-window https://teams.microsoft.com/v2/?clientType=pwa " +
+            "-profile C:\\Users\\x\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles\\qloeq5r3.default-esr -container 0");
+        Assert.True(parsed.IsTaskbarTab);
+        Assert.Equal("d829367f-3200-4f95-9bb2-386f04aee70f", parsed.TaskbarTabId);
+        Assert.Equal("https://teams.microsoft.com/v2/?clientType=pwa", parsed.Url);
+        Assert.EndsWith("qloeq5r3.default-esr", parsed.ProfilePath);
+    }
+
+    [Fact]
+    public void Named_profile_round_trips_into_launch_arguments()
+    {
+        var parsed = FirefoxAdapter.Parse("-P \"Werk Profiel\" -no-remote");
+        Assert.Equal("Werk Profiel", parsed.ProfileName);
+        Assert.Equal("Werk Profiel", parsed.ProfileKey);
+        Assert.Equal("-P \"Werk Profiel\"", FirefoxAdapter.ProfileArgs(parsed));
+    }
+
+    [Fact]
+    public void Default_profile_has_an_empty_key_and_no_arguments()
+    {
+        var parsed = FirefoxAdapter.Parse("");
+        Assert.Equal("", parsed.ProfileKey);
+        Assert.Equal("", FirefoxAdapter.ProfileArgs(parsed));
+    }
+
+    [Fact]
+    public void Match_distinguishes_profiles_and_taskbar_tabs()
+    {
+        var adapter = new FirefoxAdapter();
+        var exe = @"C:\Program Files\Mozilla Firefox\firefox.exe";
+        var browser = new WorkspaceItem { Kind = ItemKind.Firefox, Exe = exe, Target = "", Title = "Mozilla Firefox" };
+        var tab = new WorkspaceItem { Kind = ItemKind.FirefoxTaskbarTab, Exe = exe, Target = "abc" };
+
+        var plain = new CapturedWindow { ProcessName = "firefox", ExePath = exe, Args = "", Title = "Mozilla Firefox" };
+        var other = new CapturedWindow { ProcessName = "firefox", ExePath = exe, Args = "-P Werk", Title = "Mozilla Firefox" };
+        var tabWin = new CapturedWindow { ProcessName = "firefox", ExePath = exe, Args = "-taskbar-tab abc -new-window https://x", Title = "X" };
+
+        Assert.Equal(3, adapter.Match(browser, plain));
+        Assert.Equal(0, adapter.Match(browser, other));
+        Assert.Equal(0, adapter.Match(browser, tabWin));
+        Assert.Equal(3, adapter.Match(tab, tabWin));
+        Assert.Equal(0, adapter.Match(tab, plain));
+    }
+}
+
+public class ChromiumAdapterTests
+{
+    [Theory]
+    [InlineData("Chrome._crx_abcdefghijklmnopabcdefghijklmnop", "abcdefghijklmnopabcdefghijklmnop")]
+    [InlineData("Chrome.Profile1._crx_ABCDEFGHIJKLMNOPABCDEFGHIJKLMNOP", "abcdefghijklmnopabcdefghijklmnop")]
+    [InlineData("Chrome", null)]
+    [InlineData("Chrome.Profile1", null)]
+    [InlineData(null, null)]
+    public void App_id_is_read_from_the_AppUserModelId(string? aumid, string? expected)
+    {
+        Assert.Equal(expected, ChromiumAdapter.AppIdFromAumid(aumid));
+    }
+
+    [Fact]
+    public void Profile_segment_maps_back_to_the_real_directory_name()
+    {
+        Assert.Null(ChromiumAdapter.ProfileFromAumid("Chrome"));
+        Assert.Null(ChromiumAdapter.ProfileFromAumid("Chrome._crx_abcdefghijklmnopabcdefghijklmnop"));
+        Assert.Equal("Profile1", ChromiumAdapter.ProfileFromAumid("Chrome.Profile1"));
+        Assert.Equal("Profile 1", ChromiumAdapter.ProfileFromAumid("Chrome.Profile1._crx_abcdefghijklmnopabcdefghijklmnop", "Profile 1"));
+    }
+
+    [Fact]
+    public void Profile_directory_is_read_from_the_command_line()
+    {
+        Assert.Equal("Profile 2", ChromiumAdapter.ProfileFromArgs("--profile-directory=\"Profile 2\" --flag"));
+        Assert.Equal("Default", ChromiumAdapter.ProfileFromArgs("--profile-directory Default"));
+        Assert.Null(ChromiumAdapter.ProfileFromArgs("--flag"));
+    }
+
+    [Fact]
+    public void Browser_windows_and_web_apps_match_their_own_items_only()
+    {
+        var adapter = new ChromiumAdapter();
+        var exe = @"C:\Program Files\Google\Chrome\Application\chrome.exe";
+        var browser = new WorkspaceItem { Kind = ItemKind.Chromium, Exe = exe, Target = "Default", Title = "New Tab - Google Chrome" };
+        var app = new WorkspaceItem { Kind = ItemKind.ChromiumApp, Exe = exe, Target = "Default|abcdefghijklmnopabcdefghijklmnop" };
+
+        var browserWin = new CapturedWindow { ProcessName = "chrome", ExePath = exe, AppUserModelId = "Chrome", Title = "Docs - Google Chrome" };
+        var appWin = new CapturedWindow { ProcessName = "chrome", ExePath = exe, AppUserModelId = "Chrome._crx_abcdefghijklmnopabcdefghijklmnop", Title = "YouTube Music" };
+
+        Assert.Equal(2, adapter.Match(browser, browserWin));
+        Assert.Equal(0, adapter.Match(browser, appWin));
+        Assert.Equal(3, adapter.Match(app, appWin));
+        Assert.Equal(0, adapter.Match(app, browserWin));
+    }
+}
+
+public class VSCodeAdapterTests
+{
+    static readonly VSCodeAdapter.KnownWorkspace[] Known =
+    {
+        new(@"C:\Users\x\Projects\reverse-engineer", new DateTime(2026, 11, 7, 0, 37, 0)),
+        new(@"C:\Users\x\Projects\empty", new DateTime(2026, 11, 6)),
+        new(@"D:\Archive\empty", new DateTime(2025, 1, 1)),
+    };
+
+    [Theory]
+    [InlineData("Morluto/rea installation - reverse-engineer", @"C:\Users\x\Projects\reverse-engineer")]
+    [InlineData("SnapshotService.cs - reverse-engineer - Visual Studio Code", @"C:\Users\x\Projects\reverse-engineer")]
+    [InlineData("● README.md - empty - Visual Studio Code", @"C:\Users\x\Projects\empty")]
+    [InlineData("Welcome - Visual Studio Code", null)]
+    public void Folder_is_resolved_from_a_title_segment_preferring_the_most_recent(string title, string? expected)
+    {
+        Assert.Equal(expected, VSCodeAdapter.ResolveTarget(title, Known));
+    }
+
+    [Theory]
+    [InlineData("file:///c%3A/Users/Djinx/Projects/reverse-engineer", @"C:\Users\Djinx\Projects\reverse-engineer")]
+    [InlineData("file:///d:/Obsidian/My%20Vault/", @"D:\Obsidian\My Vault")]
+    [InlineData("file://server/share/folder", @"\\server\share\folder")]
+    [InlineData("vscode-remote://wsl%2BUbuntu/home/x", null)]
+    public void File_uris_become_windows_paths(string uri, string? expected)
+    {
+        Assert.Equal(expected, VSCodeAdapter.LocalPathFromUri(uri));
+    }
+
+    [Fact]
+    public void Match_requires_the_folder_name_in_the_title()
+    {
+        var adapter = new VSCodeAdapter();
+        var exe = @"C:\Users\x\AppData\Local\Programs\Microsoft VS Code\Code.exe";
+        var item = new WorkspaceItem { Kind = ItemKind.VSCode, Exe = exe, Target = @"C:\Users\x\Projects\reverse-engineer" };
+        Assert.Equal(3, adapter.Match(item, new CapturedWindow { ProcessName = "Code", ExePath = exe, Title = "x.cs - reverse-engineer - Visual Studio Code" }));
+        Assert.Equal(0, adapter.Match(item, new CapturedWindow { ProcessName = "Code", ExePath = exe, Title = "x.cs - other - Visual Studio Code" }));
+        Assert.Equal(0, adapter.Match(item, new CapturedWindow { ProcessName = "Code", ExePath = exe, Args = "--type=renderer", Title = "reverse-engineer" }));
+    }
+}
+
+public class ObsidianAdapterTests
+{
+    const string ObsidianJson = """
+        { "vaults": {
+            "a": { "path": "D:\\Obsidian\\Werkplaats", "ts": 1793569716803 },
+            "b": { "path": "D:\\Obsidian\\Afstuderen", "ts": 1793486545600, "open": true },
+            "c": { "path": "E:\\Backup\\Afstuderen", "ts": 1700000000000 } },
+          "frame": "hidden" }
+        """;
+
+    [Theory]
+    [InlineData("Untitled - Afstuderen - Obsidian 1.15.0", "Afstuderen")]
+    [InlineData("My Note - Werk - Plaats - Obsidian v1.4", "Plaats")]
+    [InlineData("Afstuderen - Obsidian 1.15.0", "Afstuderen")]
+    [InlineData("Settings", null)]
+    [InlineData("Note - Something Else", null)]
+    public void Vault_name_is_the_segment_before_Obsidian(string title, string? expected)
+    {
+        Assert.Equal(expected, ObsidianAdapter.VaultNameFromTitle(title));
+    }
+
+    [Fact]
+    public void Vaults_load_open_first_and_resolve_by_folder_name()
+    {
+        var vaults = ObsidianAdapter.LoadVaults(ObsidianJson);
+        Assert.Equal(@"D:\Obsidian\Afstuderen", vaults[0]);
+        Assert.Equal(@"D:\Obsidian\Afstuderen", ObsidianAdapter.ResolveVaultPath("afstuderen", vaults));
+        Assert.Equal(@"D:\Obsidian\Werkplaats", ObsidianAdapter.ResolveVaultPath("Werkplaats", vaults));
+        Assert.Null(ObsidianAdapter.ResolveVaultPath("Nope", vaults));
+        Assert.Empty(ObsidianAdapter.LoadVaults(null));
+    }
+}
+
+public class WorkspaceCaptureServiceTests
+{
+    [Fact]
+    public void Merge_keeps_identity_flags_and_other_profiles_placements()
+    {
+        var old = new List<WorkspaceItem>
+        {
+            new()
+            {
+                Id = "keep", Kind = ItemKind.VSCode, Exe = "code.exe", Target = @"C:\p", Enabled = false, Policy = LaunchPolicy.AlwaysNew,
+                Placements = { ["docked"] = new WindowPlacement { Left = 1 }, ["laptop"] = new WindowPlacement { Left = 2 } },
+            },
+            new() { Id = "gone", Kind = ItemKind.Generic, Exe = "x.exe", Title = "Old" },
+        };
+        var fresh = new List<WorkspaceItem>
+        {
+            new() { Kind = ItemKind.VSCode, Exe = "CODE.EXE", Target = @"c:\P", Placements = { ["laptop"] = new WindowPlacement { Left = 9 } } },
+            new() { Kind = ItemKind.Generic, Exe = "y.exe", Title = "New" },
+        };
+
+        WorkspaceCaptureService.Merge(old, fresh, "laptop");
+
+        Assert.Equal("keep", fresh[0].Id);
+        Assert.False(fresh[0].Enabled);
+        Assert.Equal(LaunchPolicy.AlwaysNew, fresh[0].Policy);
+        Assert.Equal(9, fresh[0].Placements["laptop"].Left);   // current profile: the fresh capture wins
+        Assert.Equal(1, fresh[0].Placements["docked"].Left);   // other profile: carried over
+        Assert.NotEqual("gone", fresh[1].Id);
+    }
+}

@@ -29,7 +29,7 @@ public class WorkspaceStoreTests
         ws.Remember(new DisplayProfile { Id = "p1", Name = "1 display · 1920×1080" });
 
         var json = JsonSerializer.Serialize(ws, WorkspaceStore.JsonOptions);
-        Assert.Contains("\"kind\": \"vSCode\"", json);
+        Assert.Contains("\"kind\": \"vsCode\"", json);
         Assert.Contains("\"state\": \"maximized\"", json);
         Assert.DoesNotContain("directory", json); // never serialized
 
