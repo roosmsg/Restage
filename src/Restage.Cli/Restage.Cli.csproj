@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Command-line front end over Restage.Core: capture, list, restore. Also
+       the hook for voice tools and scripts ("restage restore werk"). -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Restage.Cli</RootNamespace>
+    <AssemblyName>restage</AssemblyName>
+    <Product>Restage</Product>
+    <AssemblyTitle>Restage command line</AssemblyTitle>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Restage.Core\Restage.Core.csproj" />
+  </ItemGroup>
+
+</Project>
