@@ -50,6 +50,7 @@ public static class WorkspaceStore
             if (!File.Exists(file)) return null;
             var ws = JsonSerializer.Deserialize<Workspace>(File.ReadAllText(file), JsonOptions);
             if (ws == null) return null;
+            ws.UpgradeRemovedPolicies();
             ws.Id = id;
             ws.Directory = DirectoryFor(id);
             return ws;

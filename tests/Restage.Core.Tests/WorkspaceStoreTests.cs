@@ -43,11 +43,18 @@ public class WorkspaceStoreTests
     }
 
     [Fact]
-    public void Removed_only_if_open_policy_loads_as_reuse_if_open()
+    public void Removed_policies_load_as_reuse_if_open_and_skip_as_unticked()
     {
-        const string json = """{ "name": "Old", "items": [ { "kind": "generic", "name": "App", "policy": "focusOnly" } ] }""";
+        const string json = """
+            { "name": "Old", "items": [
+              { "kind": "generic", "name": "A", "policy": "focusOnly" },
+              { "kind": "generic", "name": "B", "policy": "skip" },
+              { "kind": "generic", "name": "C", "policy": "alwaysNew" } ] }
+            """;
         var ws = JsonSerializer.Deserialize<Workspace>(json, WorkspaceStore.JsonOptions)!;
-        Assert.Equal(LaunchPolicy.IfNotRunning, ws.Items[0].Policy);
+        ws.UpgradeRemovedPolicies();
+        Assert.Equal([LaunchPolicy.IfNotRunning, LaunchPolicy.IfNotRunning, LaunchPolicy.AlwaysNew], ws.Items.Select(i => i.Policy));
+        Assert.Equal([true, false, true], ws.Items.Select(i => i.Enabled));
     }
 
     [Fact]

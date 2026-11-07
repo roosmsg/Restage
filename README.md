@@ -68,9 +68,8 @@ this off (start on the current virtual desktop).
 
 ### Items and policies
 
-Select a card to see its items. Each can be ticked off, and its label cycles
-through how it comes back: **reuse if open** (default) · **always launch** ·
-**skip**. *Always relaunch* in the gear menu overrides the
+Select a card to see its items. Each can be ticked off, and its label switches
+how it comes back: **reuse if open** (default) or **always launch**. *Always relaunch* in the gear menu overrides the
 first for one session.
 
 Items with content of their own (an Obsidian note, a VS Code or Explorer

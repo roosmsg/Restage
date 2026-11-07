@@ -82,15 +82,10 @@ public class WorkspaceItemViewModel : ViewModelBase
 
     public string PolicyLabel => PolicyText(Item.Policy);
 
-    /// <summary>Cycles through the launch policies; one themed button instead of a combo box.</summary>
+    /// <summary>Switches between reuse if open and always launch; one themed button instead of a combo box.</summary>
     public void NextPolicy()
     {
-        Item.Policy = Item.Policy switch
-        {
-            LaunchPolicy.IfNotRunning => LaunchPolicy.AlwaysNew,
-            LaunchPolicy.AlwaysNew => LaunchPolicy.Skip,
-            _ => LaunchPolicy.IfNotRunning,
-        };
+        Item.Policy = Item.Policy == LaunchPolicy.AlwaysNew ? LaunchPolicy.IfNotRunning : LaunchPolicy.AlwaysNew;
         OnPropertyChanged(nameof(PolicyLabel));
         _changed();
     }
@@ -127,10 +122,6 @@ public class WorkspaceItemViewModel : ViewModelBase
         _ => "app",
     };
 
-    public static string PolicyText(LaunchPolicy policy) => policy switch
-    {
-        LaunchPolicy.IfNotRunning => "reuse if open",
-        LaunchPolicy.AlwaysNew => "always launch",
-        _ => "skip",
-    };
+    public static string PolicyText(LaunchPolicy policy) =>
+        policy == LaunchPolicy.AlwaysNew ? "always launch" : "reuse if open";
 }

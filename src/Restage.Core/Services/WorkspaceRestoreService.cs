@@ -75,11 +75,11 @@ public static class WorkspaceRestoreService
         var windowOf = new Dictionary<string, IntPtr>(); // item id -> its window
 
         var groups = ws.Items
-            .Where(i => i.Enabled && i.Policy != LaunchPolicy.Skip)
+            .Where(i => i.Enabled)
             .GroupBy(i => (Adapter: AdapterRegistry.For(i), Key: AdapterRegistry.For(i).LaunchGroup(i) ?? i.Id))
             .ToList();
-        foreach (var item in ws.Items.Where(i => !i.Enabled || i.Policy == LaunchPolicy.Skip))
-            Report(item.Id, RestoreStatus.Skipped, item.Enabled ? "skipped by policy" : "not selected");
+        foreach (var item in ws.Items.Where(i => !i.Enabled))
+            Report(item.Id, RestoreStatus.Skipped, "not selected");
 
         foreach (var group in groups)
         {

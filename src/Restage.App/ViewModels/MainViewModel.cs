@@ -398,7 +398,7 @@ public class MainViewModel : ViewModelBase
             ? "No layout saved for the current monitors; using the closest one."
             : "Apps open one at a time so your PC stays responsive.";
         RestoreProgress.Clear();
-        foreach (var item in card.Model.Items.Where(i => i.Enabled && i.Policy != LaunchPolicy.Skip))
+        foreach (var item in card.Model.Items.Where(i => i.Enabled))
             RestoreProgress.Add(new RestoreRowViewModel(item));
         _restoreDone = 0;
         _restoreTotal = RestoreProgress.Count;

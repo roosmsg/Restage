@@ -34,11 +34,13 @@ public enum LaunchPolicy
     AlwaysNew,
     /// <summary>
     /// Was "only if open" (place an open window, never launch); removed. Kept
-    /// so files holding it still load: <see cref="WorkspaceItem.Policy"/> reads
-    /// it as <see cref="IfNotRunning"/>.
+    /// so files holding it still load; see <see cref="Workspace.UpgradeRemovedPolicies"/>.
     /// </summary>
     FocusOnly,
-    /// <summary>Leave this item alone.</summary>
+    /// <summary>
+    /// Was "skip"; removed, because the item's checkbox already does that.
+    /// Kept so files holding it still load, as an unticked item.
+    /// </summary>
     Skip,
 }
 
@@ -99,13 +101,8 @@ public sealed class WorkspaceItem
     /// <summary>Unticked items stay in the workspace but are not restored.</summary>
     public bool Enabled { get; set; } = true;
 
-    /// <summary>How the item comes back; the removed FocusOnly reads as IfNotRunning.</summary>
-    public LaunchPolicy Policy
-    {
-        get => _policy;
-        set => _policy = value == LaunchPolicy.FocusOnly ? LaunchPolicy.IfNotRunning : value;
-    }
-    LaunchPolicy _policy = LaunchPolicy.IfNotRunning;
+    /// <summary>How the item comes back: reuse an open window, or always launch.</summary>
+    public LaunchPolicy Policy { get; set; } = LaunchPolicy.IfNotRunning;
 
     /// <summary>
     /// Open the saved content (the note, folder, file or arguments) when
@@ -197,6 +194,19 @@ public sealed class Workspace
 
     /// <summary>Folder the workspace was loaded from; set by the store, never serialized.</summary>
     [JsonIgnore] public string? Directory { get; set; }
+
+    /// <summary>
+    /// Rewrites policies that no longer exist, for files saved before they were
+    /// removed: "only if open" becomes reuse if open, "skip" an unticked item.
+    /// </summary>
+    public void UpgradeRemovedPolicies()
+    {
+        foreach (var item in Items)
+        {
+            if (item.Policy == LaunchPolicy.Skip) item.Enabled = false;
+            if (item.Policy is LaunchPolicy.Skip or LaunchPolicy.FocusOnly) item.Policy = LaunchPolicy.IfNotRunning;
+        }
+    }
 
     public DisplayProfile? Profile(string? id) => id == null ? null : Profiles.FirstOrDefault(p => p.Id == id);
 

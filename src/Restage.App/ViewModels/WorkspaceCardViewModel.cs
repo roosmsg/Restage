@@ -48,7 +48,7 @@ public class WorkspaceCardViewModel : ViewModelBase
         }
     }
 
-    public int EnabledCount => Model.Items.Count(i => i.Enabled && i.Policy != LaunchPolicy.Skip);
+    public int EnabledCount => Model.Items.Count(i => i.Enabled);
 
     /// <summary>Card line one: "Opened 5 minutes ago". The desktop name is already on the preview's badge.</summary>
     public string Subtitle => OpenedText;
