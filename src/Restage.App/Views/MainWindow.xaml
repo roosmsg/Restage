@@ -208,17 +208,31 @@
             </DataTemplate.Triggers>
         </DataTemplate>
 
-        <!-- Overlay panel chrome shared by every dialog-like overlay. -->
-        <Style x:Key="OverlayPanel" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource PanelBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush2}"/>
-            <Setter Property="BorderThickness" Value="1"/>
+        <!-- Overlay panel chrome shared by every dialog-like overlay. The shadow is
+             an empty layer behind the panel, not an Effect on it: WPF renders an
+             element with an Effect, children included, as a bitmap, which blurs
+             the text and controls inside. -->
+        <Style x:Key="OverlayPanel" TargetType="ContentControl">
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="Padding" Value="22,18,22,16"/>
-            <Setter Property="Effect">
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="UseLayoutRounding" Value="True"/>
+            <Setter Property="Template">
                 <Setter.Value>
-                    <DropShadowEffect BlurRadius="28" ShadowDepth="4" Opacity="0.35" Color="Black"/>
+                    <ControlTemplate TargetType="ContentControl">
+                        <Grid>
+                            <Border Background="{DynamicResource PanelBrush}">
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="28" ShadowDepth="4" Opacity="0.35" Color="Black"/>
+                                </Border.Effect>
+                            </Border>
+                            <Border Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource BorderBrush2}"
+                                    BorderThickness="1" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter/>
+                            </Border>
+                        </Grid>
+                    </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
@@ -277,13 +291,16 @@
                     <!-- The 8px shadow margin belongs to the popup's own window, so a click
                          there reaches neither the panel nor the main window. This transparent
                          grid catches it and counts it as "outside". -->
-                    <Grid Background="Transparent" MouseDown="SettingsPopupMargin_MouseDown">
-                    <Border Background="{DynamicResource PanelBrush}"
-                            BorderBrush="{DynamicResource BorderBrush2}" BorderThickness="1"
-                            Margin="8" Padding="8" Width="260">
+                    <Grid Background="Transparent" MouseDown="SettingsPopupMargin_MouseDown" UseLayoutRounding="True">
+                    <!-- Shadow on its own layer, not on the panel: an Effect would blur the panel's text. -->
+                    <Border Background="{DynamicResource PanelBrush}" Margin="8">
                         <Border.Effect>
                             <DropShadowEffect BlurRadius="16" ShadowDepth="2" Opacity="0.35" Color="Black"/>
                         </Border.Effect>
+                    </Border>
+                    <Border Background="{DynamicResource PanelBrush}"
+                            BorderBrush="{DynamicResource BorderBrush2}" BorderThickness="1"
+                            Margin="8" Padding="8" Width="260">
                         <StackPanel>
                             <TextBlock Text="SETTINGS" Style="{StaticResource SectionLabel}" Margin="7,4,7,10"/>
                             <CheckBox Content="Run at startup" FontSize="12.5"
@@ -618,7 +635,7 @@
             <Border Grid.RowSpan="2" Background="{DynamicResource OverlayDimBrush}" Panel.ZIndex="10"
                     Visibility="{Binding ShowRestorePanel, Converter={StaticResource BoolToVis}}"
                     MouseDown="RestoreBackdrop_MouseDown">
-                <Border Style="{StaticResource OverlayPanel}" Width="480" MaxHeight="520">
+                <ContentControl Style="{StaticResource OverlayPanel}" Width="480" MaxHeight="520">
                     <DockPanel>
                         <Grid DockPanel.Dock="Top">
                             <StackPanel Orientation="Horizontal">
@@ -668,13 +685,13 @@
                             <ItemsControl ItemsSource="{Binding RestoreProgress}" ItemTemplate="{StaticResource RestoreRowTemplate}"/>
                         </ScrollViewer>
                     </DockPanel>
-                </Border>
+                </ContentControl>
             </Border>
 
             <!-- ============ Desktop switch prompt ============ -->
             <Border Grid.RowSpan="2" Background="{DynamicResource OverlayDimBrush}" Panel.ZIndex="11"
                     Visibility="{Binding ShowDesktopPrompt, Converter={StaticResource BoolToVis}}">
-                <Border Style="{StaticResource OverlayPanel}" Width="440" Padding="24,20,24,18">
+                <ContentControl Style="{StaticResource OverlayPanel}" Width="440" Padding="24,20,24,18">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <Viewbox Width="15" Height="15" VerticalAlignment="Center" Margin="0,0,10,0">
@@ -699,13 +716,13 @@
                             </StackPanel>
                         </Grid>
                     </StackPanel>
-                </Border>
+                </ContentControl>
             </Border>
 
             <!-- ============ Capture overlay ============ -->
             <Border Grid.RowSpan="2" Background="{DynamicResource OverlayDimBrush}" Panel.ZIndex="12"
                     Visibility="{Binding ShowCapture, Converter={StaticResource BoolToVis}}">
-                <Border Style="{StaticResource OverlayPanel}" Width="580" MaxHeight="640">
+                <ContentControl Style="{StaticResource OverlayPanel}" Width="580" MaxHeight="640">
                     <DockPanel>
                         <TextBlock DockPanel.Dock="Top" Text="{Binding CaptureTitle}" FontSize="15" FontWeight="SemiBold"/>
                         <TextBlock DockPanel.Dock="Top" Text="{Binding CaptureSummary}" Style="{StaticResource SubtleText}"
@@ -734,7 +751,7 @@
                             <ItemsControl ItemsSource="{Binding CaptureItems}" ItemTemplate="{StaticResource CaptureRowTemplate}" Margin="0,0,6,0"/>
                         </ScrollViewer>
                     </DockPanel>
-                </Border>
+                </ContentControl>
             </Border>
 
             <!-- ============ Edit workspace: name and keyboard shortcut ============ -->
@@ -742,7 +759,7 @@
             <Border Grid.RowSpan="2" Background="{DynamicResource OverlayDimBrush}" Panel.ZIndex="13"
                     Visibility="{Binding ShowEdit, Converter={StaticResource BoolToVis}}"
                     MouseDown="EditBackdrop_MouseDown">
-                <Border x:Name="EditPanel" Style="{StaticResource OverlayPanel}" Width="420" Padding="24,20,24,18"
+                <ContentControl x:Name="EditPanel" Style="{StaticResource OverlayPanel}" Width="420" Padding="24,20,24,18"
                         Focusable="True" FocusVisualStyle="{x:Null}">
                     <StackPanel>
                         <TextBlock Text="Edit workspace" FontSize="15" FontWeight="SemiBold"/>
@@ -776,7 +793,7 @@
                                     Content="Save" Command="{Binding EditSaveCommand}"/>
                         </StackPanel>
                     </StackPanel>
-                </Border>
+                </ContentControl>
             </Border>
 
             <!-- ============ Confirmation prompt ============ -->
@@ -784,7 +801,7 @@
             <Border Grid.RowSpan="2" Background="{DynamicResource OverlayDimBrush}" Panel.ZIndex="13"
                     Visibility="{Binding ShowConfirm, Converter={StaticResource BoolToVis}}"
                     MouseDown="ConfirmBackdrop_MouseDown">
-                <Border Style="{StaticResource OverlayPanel}" Width="400" Padding="24,20,24,18">
+                <ContentControl Style="{StaticResource OverlayPanel}" Width="400" Padding="24,20,24,18">
                     <StackPanel>
                         <TextBlock Text="{Binding ConfirmTitle}" FontSize="15" FontWeight="SemiBold"/>
                         <TextBlock Text="{Binding ConfirmMessage}" Style="{StaticResource SubtleText}"
@@ -800,7 +817,7 @@
                                     Content="{Binding ConfirmAcceptLabel}" Command="{Binding ConfirmAcceptCommand}"/>
                         </StackPanel>
                     </StackPanel>
-                </Border>
+                </ContentControl>
             </Border>
         </Grid>
     </Grid>
