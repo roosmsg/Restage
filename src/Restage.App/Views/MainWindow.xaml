@@ -520,14 +520,13 @@
                     Padding="26,10,26,12">
                 <DockPanel>
                     <Grid DockPanel.Dock="Top" Margin="2,0,0,4">
-                        <!-- The settings gear has its own slot in the bottom-left corner, a divider
-                             between it and the log. -9: the 14px glyph sits 7px inside its 28px
+                        <!-- The settings gear has its own slot in the bottom-left corner, a clear gap
+                             before the log label. -9: the 14px glyph sits 7px inside its 28px
                              button, so the gear lines up with the Workspaces title. -->
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="-9,-6,0,-6">
                             <ToggleButton x:Name="SettingsToggle" Style="{StaticResource IconToggle}" Width="28" Height="28" FontSize="14"
-                                          Tag="{StaticResource IconSettings}" VerticalAlignment="Center"
+                                          Tag="{StaticResource IconSettings}" VerticalAlignment="Center" Margin="0,0,18,0"
                                           AutomationProperties.Name="Settings" ToolTip="Settings"/>
-                            <Border Width="1" Height="16" Background="{DynamicResource BorderBrush2}" Margin="12,0,14,0" VerticalAlignment="Center"/>
                             <TextBlock Text="ACTIVITY LOG" Style="{StaticResource SectionLabel}" VerticalAlignment="Center"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,-6,0,-6">
