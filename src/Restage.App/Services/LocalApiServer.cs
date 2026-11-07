@@ -69,7 +69,7 @@ public sealed class LocalApiServer : IDisposable
             var port = RandomNumberGenerator.GetInt32(49152, 65535);
             if (!TryListen(port)) continue;
             if (saved > 0)
-                _vm.Log($"Local API: port {saved} is taken by another program; using {port} for this run. Voice tools need the new address (Settings › Voice control).");
+                _vm.Log($"Local API: port {saved} is taken by another program; using {port} for this run. Connected apps need the new address (Settings › Connect apps).");
             else
             {
                 _settings.ApiPort = port;

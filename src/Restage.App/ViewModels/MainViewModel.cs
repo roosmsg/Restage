@@ -626,7 +626,17 @@ public class MainViewModel : ViewModelBase
 
     public RelayCommand ToggleThemeCommand { get; }
 
-    // ---- Voice control: the local API's address and token, to copy into a voice tool ----
+    // ---- Connect apps: the local API's address and token, to copy into another app ----
+    // (a voice tool, a Stream Deck, a script), shown in a panel opened from Settings.
+
+    bool _showConnect;
+    public bool ShowConnect { get => _showConnect; private set => SetProperty(ref _showConnect, value); }
+
+    public RelayCommand OpenConnectCommand => _openConnect ??= new RelayCommand(_ => ShowConnect = true);
+    RelayCommand? _openConnect;
+
+    public RelayCommand CloseConnectCommand => _closeConnect ??= new RelayCommand(_ => ShowConnect = false);
+    RelayCommand? _closeConnect;
 
     string _apiToken = "";
 
@@ -635,8 +645,8 @@ public class MainViewModel : ViewModelBase
 
     public bool HasApi => ApiCommandUrl.Length > 0;
 
-    /// <summary>The token's last characters, enough to tell which one a voice tool has.</summary>
-    public string ApiTokenHint => _apiToken.Length > 6 ? $"Token ••••{_apiToken[^6..]}" : "Token";
+    /// <summary>The token hidden but for its last characters, enough to tell which one an app has.</summary>
+    public string ApiTokenMasked => _apiToken.Length > 6 ? $"••••••••••••{_apiToken[^6..]}" : "";
 
     public RelayCommand CopyApiUrlCommand => _copyApiUrl ??= new RelayCommand(_ => Copy(ApiCommandUrl, "Voice command URL copied."));
     RelayCommand? _copyApiUrl;
@@ -651,7 +661,7 @@ public class MainViewModel : ViewModelBase
         ApiCommandUrl = $"http://127.0.0.1:{port}/command";
         OnPropertyChanged(nameof(ApiCommandUrl));
         OnPropertyChanged(nameof(HasApi));
-        OnPropertyChanged(nameof(ApiTokenHint));
+        OnPropertyChanged(nameof(ApiTokenMasked));
     }
 
     void Copy(string text, string done)

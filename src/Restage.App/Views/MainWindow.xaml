@@ -324,20 +324,11 @@
                                     Content="{Binding AppHotkeyLabel}" Command="{Binding EditAppHotkeyCommand}"
                                     Click="SettingsRow_CloseOnClick" Margin="0,0,0,4"/>
 
-                            <!-- What a voice tool (Hex, Handy) needs to send commands; stays the same across restarts. -->
-                            <StackPanel Visibility="{Binding HasApi, Converter={StaticResource BoolToVis}}">
-                                <Border Height="1" Background="{DynamicResource BorderBrush2}" Margin="0,6"/>
-                                <TextBlock Text="VOICE CONTROL" Style="{StaticResource SectionLabel}"
-                                           FontSize="10.5" Margin="7,4,7,4"/>
-                                <TextBlock Text="{Binding ApiCommandUrl}" FontSize="11" Margin="7,0,7,6"
-                                           Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis"
-                                           ToolTip="Send what was said here, as JSON {&quot;text&quot;: &quot;…&quot;}, with the token as a bearer token. It stays the same when Restage restarts."/>
-                                <Button Style="{StaticResource MenuRowButton}" Tag="{StaticResource IconCopy}"
-                                        Content="Copy command URL" Command="{Binding CopyApiUrlCommand}"/>
-                                <Button Style="{StaticResource MenuRowButton}" Tag="{StaticResource IconCopy}"
-                                        Content="{Binding ApiTokenHint}" Command="{Binding CopyApiTokenCommand}"
-                                        ToolTip="Copy the token"/>
-                            </StackPanel>
+                            <!-- Opens the Connect apps panel: what another app needs to send Restage commands. -->
+                            <Button Style="{StaticResource MenuRowButton}" Tag="{StaticResource IconPlug}"
+                                    Content="Connect apps" Command="{Binding OpenConnectCommand}"
+                                    Click="SettingsRow_CloseOnClick" Margin="0,0,0,4"
+                                    Visibility="{Binding HasApi, Converter={StaticResource BoolToVis}}"/>
 
                             <Border Height="1" Background="{DynamicResource BorderBrush2}" Margin="0,6"/>
                             <TextBlock Text="WORKSPACE ON ANOTHER DESKTOP" Style="{StaticResource SectionLabel}"
@@ -861,6 +852,44 @@
                                     Command="{Binding EditCancelCommand}" Margin="0,0,8,0"/>
                             <Button Style="{StaticResource AccentButton}" Padding="16,9" FontSize="12.5"
                                     Content="Save" Command="{Binding EditSaveCommand}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </ContentControl>
+            </Border>
+
+            <!-- ============ Connect apps: the local API's address and token ============ -->
+            <!-- A click on the dimmed backdrop closes it. -->
+            <Border Grid.RowSpan="2" Background="{DynamicResource OverlayDimBrush}" Panel.ZIndex="13"
+                    Visibility="{Binding ShowConnect, Converter={StaticResource BoolToVis}}"
+                    MouseDown="ConnectBackdrop_MouseDown">
+                <ContentControl Style="{StaticResource OverlayPanel}" Width="460" Padding="24,20,24,18">
+                    <StackPanel>
+                        <TextBlock Text="Connect apps" FontSize="15" FontWeight="SemiBold"/>
+                        <TextBlock Style="{StaticResource SubtleText}" FontSize="11.5" TextWrapping="Wrap" Margin="0,8,0,0"
+                                   Text="Other apps on this PC can start, switch and save workspaces by sending Restage a command: a voice tool such as Hex or Handy, a Stream Deck button, a script. Give the app this address and token."/>
+
+                        <TextBlock Text="COMMAND URL" Style="{StaticResource SectionLabel}" Margin="0,16,0,6"/>
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Style="{StaticResource SubtleIconButton}" Tag="{StaticResource IconCopy}"
+                                    Margin="6,0,0,0" ToolTip="Copy the URL" AutomationProperties.Name="Copy the URL"
+                                    Command="{Binding CopyApiUrlCommand}"/>
+                            <TextBox IsReadOnly="True" Text="{Binding ApiCommandUrl, Mode=OneWay}"
+                                     AutomationProperties.Name="Command URL"/>
+                        </DockPanel>
+
+                        <TextBlock Text="TOKEN" Style="{StaticResource SectionLabel}" Margin="0,14,0,6"/>
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Style="{StaticResource SubtleIconButton}" Tag="{StaticResource IconCopy}"
+                                    Margin="6,0,0,0" ToolTip="Copy the token" AutomationProperties.Name="Copy the token"
+                                    Command="{Binding CopyApiTokenCommand}"/>
+                            <TextBox IsReadOnly="True" Text="{Binding ApiTokenMasked, Mode=OneWay}"
+                                     AutomationProperties.Name="Token (hidden)"/>
+                        </DockPanel>
+
+                        <TextBlock Style="{StaticResource SubtleText}" FontSize="11" TextWrapping="Wrap" Margin="0,10,0,0"
+                                   Text="Send what should happen as JSON, {&quot;text&quot;: &quot;open research&quot;}, with the token as a bearer token. Both stay the same when Restage restarts. docs/API.md lists every route."/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+                            <Button Style="{StaticResource QuietButton}" Content="Close" Command="{Binding CloseConnectCommand}"/>
                         </StackPanel>
                     </StackPanel>
                 </ContentControl>

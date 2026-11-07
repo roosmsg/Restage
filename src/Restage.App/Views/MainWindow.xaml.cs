@@ -317,6 +317,11 @@ public partial class MainWindow : Window
 
     // ---- Edit panel: name and keyboard shortcut -----------------------------------
 
+    void ConnectBackdrop_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (ReferenceEquals(e.OriginalSource, sender)) RunIfAllowed((DataContext as MainViewModel)?.CloseConnectCommand);
+    }
+
     void EditBackdrop_MouseDown(object sender, MouseButtonEventArgs e)
     {
         if (ReferenceEquals(e.OriginalSource, sender)) RunIfAllowed((DataContext as MainViewModel)?.EditCancelCommand);

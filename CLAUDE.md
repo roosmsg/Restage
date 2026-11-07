@@ -172,8 +172,8 @@ Data: `%LOCALAPPDATA%\Restage\workspaces\<id>\workspace.json` + `thumbnail.png`,
   `http://127.0.0.1:<port>/` (loopback prefixes need no URL ACL); port and
   bearer token are picked on the first run and kept (`AppSettings.ApiPort`,
   `ApiToken`) so a voice tool's setup survives restarts; a taken port gets a
-  random one for that run only (logged). Settings › Voice control shows the
-  URL and copies URL and token. Discovery file `%LOCALAPPDATA%\Restage\local-api.json`
+  random one for that run only (logged). Settings › Connect apps opens a panel that
+  shows the URL and copies URL and token. Discovery file `%LOCALAPPDATA%\Restage\local-api.json`
   (`LocalApiFile`, Core; readers check the pid). Routes in `docs/API.md`:
   status, workspaces, restore, capture, command. Requests are handled on the
   UI thread (`Dispatcher.InvokeAsync`), a restore answers 202 at once. The

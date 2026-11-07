@@ -111,7 +111,8 @@ Restage does not listen to the microphone. Voice tools such as
 [Hex](https://anoma.ly/hex) or [Handy](https://handy.computer) do that their
 own way; what Restage offers them is a small local API to send commands to.
 While the app runs it listens on `127.0.0.1` with a token; Settings ›
-*Voice control* copies the command URL and the token for your voice tool,
+*Connect apps* copies the command URL and the token for your voice tool,
+Stream Deck or script,
 and both stay the same when Restage restarts (they are also announced in
 `%LOCALAPPDATA%\Restage\local-api.json`). It lists, starts
 and captures workspaces, and `POST /command` takes a spoken sentence as it
