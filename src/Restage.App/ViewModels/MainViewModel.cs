@@ -727,8 +727,8 @@ public class MainViewModel : ViewModelBase
     public string EditTitle => EditingApp ? "Open Restage" : "Edit workspace";
 
     public string EditHint => EditingApp
-        ? "Opens Restage's window from anywhere in Windows, also while the tray icon is hidden. Click the box, then press Ctrl, Alt or Win plus a key; Backspace clears it."
-        : "Starts the workspace from anywhere in Windows, or brings it to the front when it is already open. Click the box, then press Ctrl, Alt or Win plus a key; Backspace clears it.";
+        ? "Opens Restage's window from anywhere in Windows, also while the tray icon is hidden. Click the box, then press Ctrl, Alt or Win plus a key."
+        : "Starts the workspace from anywhere in Windows, or brings it to the front when it is already open. Click the box, then press Ctrl, Alt or Win plus a key.";
 
     void OnEditModeChanged()
     {
