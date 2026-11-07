@@ -24,7 +24,7 @@ static class Program
                 "show" => Show(args.ElementAtOrDefault(1)),
                 "restore" => await Restore(args.Skip(1).ToArray()),
                 "delete" => Delete(args.ElementAtOrDefault(1)),
-                "inspect" => Inspect(),
+                "inspect" => Inspect(args.Skip(1).Contains("--windows")),
                 _ => Usage(2),
             };
         }
@@ -48,7 +48,9 @@ static class Program
                                                   bring a workspace back; --force relaunches apps that
                                                   are already open, --here skips the desktop switch
               restage delete <id>                 delete a workspace
-              restage inspect                     print what a capture would record, without saving
+              restage inspect [--windows]         print what a capture would record, without saving;
+                                                  --windows also lists every window with its
+                                                  AppUserModelID and arguments (adapter debugging)
             """);
         return code;
     }
@@ -70,10 +72,18 @@ static class Program
         return 0;
     }
 
-    static int Inspect()
+    static int Inspect(bool windows)
     {
         var result = WorkspaceCaptureService.Capture("(inspect)", takeThumbnail: false);
         PrintWorkspace(result.Workspace, result.Profile.Id);
+        if (!windows) return 0;
+        Console.WriteLine("  windows:");
+        foreach (var w in WindowEnumerator.Enumerate())
+        {
+            Console.WriteLine($"    {w.ProcessName,-14} {Trunc(w.Title, 70)}");
+            Console.WriteLine($"                   aumid: {w.AppUserModelId ?? "-"}");
+            if (w.Args.Length > 0) Console.WriteLine($"                   args:  {Trunc(w.Args, 100)}");
+        }
         return 0;
     }
 
@@ -149,7 +159,7 @@ static class Program
             var p = i.PlacementFor(profileId);
             var where = p == null ? "" : $"{p.State} {p.Left},{p.Top} {p.Width}x{p.Height}";
             Console.WriteLine($"    [{i.Kind,-17}] {i.Name,-16} {Trunc(i.Detail ?? i.Title, 48),-50} {where}");
-            if (i.Kind is ItemKind.Generic or ItemKind.Terminal && i.Args.Length > 0)
+            if (i.Kind is ItemKind.Generic or ItemKind.Terminal or ItemKind.ChromiumApp && i.Args.Length > 0)
                 Console.WriteLine($"                        args: {Trunc(i.Args, 90)}");
         }
     }
