@@ -88,7 +88,7 @@ restage show <name|id>              print a workspace's items
 restage restore <name|id> [--force] [--here]
 restage delete <id>
 restage inspect                     print what a capture would record, without saving
-restage command <text>              hand what was said to the running app ("open afstuderen")
+restage command <text>              hand what was said to the running app ("open research")
 restage api                         where the running app's local API is
 ```
 
@@ -110,9 +110,9 @@ own way; what Restage offers them is a small local API to send commands to.
 While the app runs it listens on `127.0.0.1` at a random port, with a token,
 both announced in `%LOCALAPPDATA%\Restage\local-api.json`. It lists, starts
 and captures workspaces, and `POST /command` takes a spoken sentence as it
-came out of the transcriber ("open afstuderen", "ga naar research", "save
-this as Thesis") and works out the rest, with some tolerance for names heard
-slightly wrong. [docs/API.md](docs/API.md) has every route and examples;
+came out of the transcriber ("open research", "switch to thesis", "save
+this as Thesis"), in English or Dutch, and works out the rest, with some
+tolerance for names heard slightly wrong. [docs/API.md](docs/API.md) has every route and examples;
 `restage command "<text>"` tries one from a shell.
 
 ## Your data and privacy
