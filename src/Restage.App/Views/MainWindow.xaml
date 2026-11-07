@@ -817,14 +817,19 @@
                             <TextBox MaxLength="48" Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}"
                                      AutomationProperties.Name="Workspace name"
                                      IsVisibleChanged="OverlayInput_IsVisibleChanged" KeyDown="EditName_KeyDown"/>
-                            <CheckBox Style="{StaticResource SwitchCheckBox}" IsChecked="{Binding EditApplyWallpaper}" Margin="0,14,0,0"
-                                      Visibility="{Binding EditHasWallpaper, Converter={StaticResource BoolToVis}}">
-                                <StackPanel>
+                            <!-- Only the switch itself takes the click, not the text next to it. -->
+                            <DockPanel Margin="0,14,0,0"
+                                       Visibility="{Binding EditHasWallpaper, Converter={StaticResource BoolToVis}}">
+                                <CheckBox DockPanel.Dock="Right" Style="{StaticResource SwitchCheckBox}"
+                                          HorizontalAlignment="Right" VerticalAlignment="Center"
+                                          IsChecked="{Binding EditApplyWallpaper}"
+                                          AutomationProperties.Name="Apply the saved wallpaper"/>
+                                <StackPanel VerticalAlignment="Center">
                                     <TextBlock Text="Apply the saved wallpaper" FontSize="12.5"/>
                                     <TextBlock Text="when the workspace starts" FontSize="11"
                                                Foreground="{DynamicResource MutedBrush}"/>
                                 </StackPanel>
-                            </CheckBox>
+                            </DockPanel>
                         </StackPanel>
                         <TextBlock Text="KEYBOARD SHORTCUT" Style="{StaticResource SectionLabel}" Margin="0,16,0,6"/>
                         <!-- The box never takes text: it records the keys pressed while it has focus. -->
