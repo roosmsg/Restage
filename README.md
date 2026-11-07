@@ -1,6 +1,6 @@
 # Restage
 
-*Save a desktop. Come back to it with one click.*
+*Workspace manager. Save a desktop as a workspace. Come back to it with one click.*
 
 Restage saves what you have open — VS Code folders, Obsidian vaults, Firefox
 and Chrome profiles and web apps, Explorer folders, terminals, any other app —
