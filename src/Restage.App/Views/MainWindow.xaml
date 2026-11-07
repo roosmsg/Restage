@@ -527,8 +527,12 @@
                              before the log label. -9: the 14px glyph sits 7px inside its 28px
                              button, so the gear lines up with the Workspaces title. -->
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="-9,-6,0,-6">
+                            <!-- ClickMode Press: the popup opens on mouse-down, before the button
+                                 would take mouse capture on the way to a release click. With the
+                                 capture free, the popup takes it and closes on any click outside. -->
                             <ToggleButton x:Name="SettingsToggle" Style="{StaticResource IconToggle}" Width="28" Height="28" FontSize="14"
                                           Tag="{StaticResource IconSettings}" VerticalAlignment="Center" Margin="0,0,8,0"
+                                          ClickMode="Press"
                                           AutomationProperties.Name="Settings" ToolTip="Settings"/>
                             <TextBlock Text="ACTIVITY LOG" Style="{StaticResource SectionLabel}" VerticalAlignment="Center"/>
                         </StackPanel>
