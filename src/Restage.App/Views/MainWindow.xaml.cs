@@ -36,16 +36,30 @@ public partial class MainWindow : Window
         Loaded += (_, _) => { ApplyTitleBarTheme(); ApplyTitleIcon(); };
         DpiChanged += (_, _) => ApplyTitleIcon();
         ContentRendered += (_, _) => ApplyTitleBarTheme();
-        // The settings panel closes on any click that is not on it: clicks on
-        // the panel never reach this window (it is its own HWND), so every
-        // mouse-down here is "outside"; so is a click on another app.
-        PreviewMouseDown += (_, _) => CloseSettingsIfOpen();
+        // The settings panel closes on any click that is not on it, and on a
+        // click in another app. The panel is its own HWND, but WPF still routes
+        // its mouse events up through the Popup to this window, so a click on
+        // the panel arrives here too and must be told apart, or the panel would
+        // close on mouse-down before any of its options got the click.
+        PreviewMouseDown += (_, e) => { if (!IsInSettingsPanel(e.OriginalSource)) CloseSettingsIfOpen(); };
         Deactivated += (_, _) => CloseSettingsIfOpen();
     }
 
     void CloseSettingsIfOpen()
     {
         if (SettingsPopup.IsOpen) SettingsPopup.IsOpen = false;
+    }
+
+    /// <summary>True for an element inside the settings panel (text runs included).</summary>
+    bool IsInSettingsPanel(object? source)
+    {
+        var panel = SettingsPopup.Child;
+        for (var d = source as DependencyObject; d != null;
+             d = d is Visual or System.Windows.Media.Media3D.Visual3D
+                 ? VisualTreeHelper.GetParent(d) ?? LogicalTreeHelper.GetParent(d)
+                 : LogicalTreeHelper.GetParent(d))
+            if (ReferenceEquals(d, panel)) return true;
+        return false;
     }
 
     /// <summary>A click on the popup's transparent shadow margin, not on the panel itself.</summary>
