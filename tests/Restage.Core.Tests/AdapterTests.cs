@@ -104,7 +104,8 @@ public class FirefoxAdapterTests
             """;
         var tabs = FirefoxAdapter.ParseTaskbarTabs(json, Profile);
         Assert.Equal(2, tabs.Count);
-        Assert.Equal($"-taskbar-tab {ReaderId} -new-window https://read.readwise.io/ -profile \"{Profile}\" -container 0", tabs[0].LaunchArgs);
+        // Quote() only quotes tokens with whitespace, so this path stays bare.
+        Assert.Equal($"-taskbar-tab {ReaderId} -new-window https://read.readwise.io/ -profile {Profile} -container 0", tabs[0].LaunchArgs);
         Assert.Equal(Path.Combine(Profile, "taskbartabs", "icons", ReaderId + ".ico"), tabs[0].IconFile);
         Assert.Equal(2, tabs[1].ContainerId);
 

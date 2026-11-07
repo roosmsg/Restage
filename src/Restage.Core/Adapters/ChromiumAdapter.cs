@@ -116,6 +116,16 @@ public sealed class ChromiumAdapter : AppAdapter
         catch (Exception ex) { return Task.FromResult(LaunchResult.Failed(ex.Message)); }
     }
 
+    /// <summary>The icon Chrome stored for an installed web app, in the profile's Web Applications folder.</summary>
+    public override string? IconFile(WorkspaceItem item)
+    {
+        if (item.Kind != ItemKind.ChromiumApp || item.Target?.Split('|') is not { Length: 2 } parts) return null;
+        if (!UserDataDirs.TryGetValue(Path.GetFileNameWithoutExtension(item.Exe), out var rel)) return null;
+        var dir = Path.Combine(LocalAppData, rel, parts[0], "Web Applications", "_crx_" + parts[1]);
+        try { return Directory.Exists(dir) ? Directory.EnumerateFiles(dir, "*.ico").FirstOrDefault() : null; }
+        catch { return null; }
+    }
+
     /// <summary>
     /// "Chrome._crx_abc…" → the letters after "_crx_" (26 of the 32 when Chrome
     /// shortened the component); null for browser windows.

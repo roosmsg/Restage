@@ -72,6 +72,12 @@ public abstract class AppAdapter
     /// <summary>Live windows that could belong to this adapter's items.</summary>
     public virtual IReadOnlyList<CapturedWindow> LiveWindows() => WindowEnumerator.EnumerateLight();
 
+    /// <summary>
+    /// An icon file (.ico) that represents the item better than its executable
+    /// does, such as a web app's own icon; null to use the executable's icon.
+    /// </summary>
+    public virtual string? IconFile(WorkspaceItem item) => null;
+
     /// <summary>Case-insensitive path/name equality helper for adapters.</summary>
     protected static bool Same(string? a, string? b) =>
         string.Equals(a?.Trim(), b?.Trim(), StringComparison.OrdinalIgnoreCase);

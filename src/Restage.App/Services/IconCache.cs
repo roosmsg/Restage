@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using Restage.Adapters;
 using Restage.Models;
 using Restage.Native;
 
@@ -13,9 +14,37 @@ public static class IconCache
 {
     static readonly Dictionary<string, ImageSource?> Cache = new(StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>The icon for an item: the folder icon for Explorer items, else the exe's.</summary>
-    public static ImageSource? ForItem(WorkspaceItem item) =>
-        item.Kind == ItemKind.Explorer ? GetFolderIcon() : Get(item.Exe);
+    /// <summary>
+    /// The icon for an item: the folder icon for Explorer items, the item's own
+    /// icon file when its adapter knows one (web apps), else the exe's.
+    /// </summary>
+    public static ImageSource? ForItem(WorkspaceItem item)
+    {
+        if (item.Kind == ItemKind.Explorer) return GetFolderIcon();
+        var own = AdapterRegistry.For(item).IconFile(item);
+        return (own != null ? GetIconFile(own) : null) ?? Get(item.Exe);
+    }
+
+    /// <summary>A .ico file as a frozen 32px bitmap; null when missing or unreadable.</summary>
+    public static ImageSource? GetIconFile(string path)
+    {
+        if (Cache.TryGetValue(path, out var cached)) return cached;
+        ImageSource? src = null;
+        try
+        {
+            if (File.Exists(path))
+            {
+                using var ico = new System.Drawing.Icon(path, 32, 32);
+                var bmp = System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(
+                    ico.Handle, Int32Rect.Empty, BitmapSizeOptions.FromWidthAndHeight(32, 32));
+                bmp.Freeze();
+                src = bmp;
+            }
+        }
+        catch { }
+        Cache[path] = src;
+        return src;
+    }
 
     /// <summary>The executable's associated icon as a frozen 32px bitmap; null when unavailable.</summary>
     public static ImageSource? Get(string exe)
