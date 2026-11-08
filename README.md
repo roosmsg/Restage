@@ -67,7 +67,7 @@ loading ring. Settings can make the tray icon monochrome, white or black to
 match the taskbar, or hide it. Hidden, Restage keeps running (hotkeys, local API);
 start it again from the Start menu to open the window.
 
-### Virtual desktops
+## Virtual desktops
 
 Windows has no public API to switch virtual desktops, so Restage never does it
 behind your back. If a workspace lives on another virtual desktop, a prompt names it
@@ -75,7 +75,7 @@ and offers Task View; press <kbd>Win</kbd>+<kbd>Ctrl</kbd>+<kbd>‚Üê</kbd>/<kbd>‚
 and the workspace starts the moment you arrive. The settings panel can turn
 this off (start on the current virtual desktop).
 
-### Items and policies
+## Items and policies
 
 Select a card to see its items. Each can be ticked off, and its label switches
 how it comes back: **reuse if open** (default) or **always launch**.
