@@ -12,7 +12,7 @@ wallpaper. A workspace is a card with a screenshot in a
 gallery; **Start** brings it all back, on every monitor arrangement you have
 saved a layout for.
 
-![The Restage window: a gallery with one workspace card, and its items on the right](docs/images/workspaces.png)
+<p align="center"><img src="docs/images/workspaces.png" width="640" alt="The Restage window: a gallery with one workspace card, and its items on the right"></p>
 
 ---
 
