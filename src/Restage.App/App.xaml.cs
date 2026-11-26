@@ -79,7 +79,7 @@ public partial class App : Application, IAppHost
         _api = new LocalApiServer(ViewModel, Settings);
         if (_api.Start()) ViewModel.SetApi(_api.Port, _api.Token);
 
-        _tray = new WinForms.NotifyIcon { Text = $"Restage {AppVersion}" };
+        _tray = new WinForms.NotifyIcon { Text = "Restage" };
         _tray.ContextMenuStrip = BuildTrayMenu();
         _tray.DoubleClick += (_, _) => ShowMain();
         RefreshTray();
@@ -251,7 +251,7 @@ public partial class App : Application, IAppHost
             _tray.Icon = _trayIcon;
             old?.Dispose();
         }
-        var text = busy ? $"Restage: starting {ViewModel.RestoreTitle}…" : $"Restage {AppVersion}";
+        var text = busy ? $"Restage: starting {ViewModel.RestoreTitle}…" : "Restage";
         _tray.Text = text.Length > 127 ? text[..126] + "…" : text;
         _tray.Visible = Settings.ShowTrayIcon;
     }
