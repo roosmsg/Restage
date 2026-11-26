@@ -15,7 +15,9 @@
     <Product>Restage</Product>
     <Company>Restage</Company>
     <Copyright>© 2026 Restage contributors. Based on Rewake © 2026 Anurag Patil (MIT).</Copyright>
-    <AssemblyTitle>Restage — save and restore desktop workspaces</AssemblyTitle>
+    <!-- The file description, which Windows shows as the app's name in tray
+         icon lists, Task Manager and notification settings. -->
+    <AssemblyTitle>Restage</AssemblyTitle>
   </PropertyGroup>
 
   <ItemGroup>
